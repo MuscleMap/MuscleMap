@@ -1,11 +1,9 @@
-Data collection and organization
-================================
-
+#MuscleMap: Generic Acquisition Protocol for Whole-Body Quantitative MRI of Muscle
 
 Imaging Protocol
 -----------------
-The "Spine Generic" MRI acquisition protocol is available at `this
-link <http://www.spinalcordmri.org/protocols>`__. Each site was instructed to scan six healthy subjects
+The Generic Acquisition Protocol is available here `this
+link <https://github.com/MuscleMap/MuscleMap/tree/main/protocol>`__. Each site was instructed to scan six healthy subjects
 (3 men, 3 women), aged between 20 and 40 y.o. Note: there was some
 flexibility in terms of number of participants and age range.
 
@@ -15,7 +13,7 @@ coordinate with Julien Cohen-Adad.
 
 .. _multi-center-data:
 
-Data conversion: DICOM to BIDS
+#Data conversion: DICOM to BIDS
 ------------------------------
 
 To facilitate the collection, sharing and processing of data, we use the
