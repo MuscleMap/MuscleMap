@@ -1,0 +1,16 @@
+region_label,region_id
+background,00
+brain,01
+head,02
+neck,03
+shoulder,04
+arm,05
+forearm,06
+hand,07
+thorax,08
+abdomen,09
+pelvis,10
+thigh,11
+leg,12
+foot,13
+
