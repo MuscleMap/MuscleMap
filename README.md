@@ -1,4 +1,4 @@
-# MuscleMap: An Open-Source, Community-Suppported Consortium for Whole-Body Quantitative MRI of Muscle
+# MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
 This repository includes the documentation, protocol, and scripts for the MuscleMap Consortium.
 
