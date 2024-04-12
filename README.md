@@ -2,7 +2,7 @@
 
 This repository includes the documentation, protocol, and scripts for the MuscleMap Consortium.
 
-<img align="left" width="33%" src="https://github.com/MuscleMap/MuscleMap/blob/main/musclemap_logo.png">
+<img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/musclemap_logo.png">
 
 **Planned MuscleMap Phases:**
 1. Develop a generic acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
