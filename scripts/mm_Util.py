@@ -68,10 +68,10 @@ def load_model_config(config_path):
 
 
 def validate_arguments(args):
-    if not args.image:
+    if not args.images:
         logging.error("Error: The input image (-i) argument is required.")
         sys.exit(1)
-    if args.image and not isinstance(args.image, str):
+    if args.images and not isinstance(args.images, str):
         logging.error("Error: The input image (-i) argument must be a string.")
         sys.exit(1)    
     
