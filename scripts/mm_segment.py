@@ -41,8 +41,8 @@ def get_parser():
     
     # Required arguments
     required = parser.add_argument_group("Required")
-    required.add_argument("-i", '--image', required=True, type=str,
-                          help="Image to segment. Can be multiple images separated with spaces.")
+    required.add_argument("-i", '--images', required=True, type=str,
+                          help="Image to segment. Can be multiple images separated with commas.")
     required.add_argument("-r", '--region', required=True, type=str,
                           help="Body region of input image.")
     
@@ -50,8 +50,8 @@ def get_parser():
     optional = parser.add_argument_group("Optional")
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
-    optional.add_argument("-o", '--output_file_name', default='image_dseg.nii.gz', required=False, type=str,
-                          help="Output file name. By default, dseg suffix will be added, and the output extension will be .nii.gz.")
+    optional.add_argument("-o", '--output_file_name', default=None, required=False, type=str,
+                          help="Output file name. the output extension will be .nii.gz.")
     optional.add_argument("-s", '--output_dir', default='../output', required=False, type=str,
                           help="Output directory, default is the output folder")
     optional.add_argument("-g", '--gui', default='N', type=str, choices=['Y', 'N', 'y', 'n'],
@@ -60,7 +60,6 @@ def get_parser():
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
-
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     parser = get_parser()
@@ -75,12 +74,11 @@ def main():
     validate_arguments(args)
 
     # Process multiple images
-    image_paths = [img.strip() for img in args.image.split(',')]
+    image_paths = [img.strip() for img in args.images.split(',')]
     for image_path in image_paths:
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
-
 
     # Load model configuration
     logging.info("Loading configuration file...")
@@ -112,13 +110,10 @@ def main():
         sys.exit(1)
 
     # Directory setup
-    data_dir = args.image
     save_dir = os.path.abspath(args.output_dir)
     if not os.path.exists(save_dir):
         logging.info(f"Creating output directory at '{save_dir}'...")
         os.makedirs(save_dir)
-    images = sorted(glob.glob(data_dir)) 
-    test_files = [{"image": img} for img in images]
 
     # Use os.path.join for all path constructions to ensure cross-platform compatibility
     # Set seed for reproducibility (identical to training part)
@@ -137,6 +132,10 @@ def main():
         NormalizeIntensityd(keys=["image"], nonzero=True),
         EnsureTyped(keys=["image"])
     ])
+    # Process all images at once
+    test_files = [{"image": img} for img in image_paths]
+    logging.info(f"Test files: {test_files}")  # Debug statement
+
 
     # Create iterable dataset and dataloader, identical to training part
     inference_transforms_dataset = Dataset(
@@ -146,11 +145,12 @@ def main():
     inference_transforms_loader = DataLoader(
         inference_transforms_dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
+
     # Device config
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Ensure flexibility to handle models with varying label counts
-    # Validate post processing steps based on specific requirements of different models
+    # Validate post-processing steps based on specific requirements of different models
     post_transforms = Compose([
         Invertd(
             keys="pred",
@@ -164,12 +164,11 @@ def main():
             device=device
         ),
         AsDiscreted(keys="pred", argmax=True),
-        #add something here to customize based on label number
-
-        FillHolesd(keys="pred", applied_labels=list(range(1, num_labels + 1))),  #dynamic num_labels
-        KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, num_labels + 1))),  
+        FillHolesd(keys="pred", applied_labels=list(range(1, num_labels + 1))),  # dynamic num_labels
+        KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, num_labels + 1))),
         SaveImaged(keys="pred", meta_keys="pred_meta_dict", output_dir=save_dir, output_dtype=('int16'), separate_folder=False, resample=False)
     ])
+
 
     # Create model and set parameters
     model = UNet(
@@ -189,16 +188,56 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=map_location))
     model.eval()
 
-    # Run inference on the image and images using model, post-process the predictions
+    logging.info("model loaded ...")
+
+    # Prepare the output file naming scheme
+    if args.output_file_name:
+        base_output_name, ext = os.path.splitext(args.output_file_name)
+        if ext != '.nii.gz':
+            ext = '.nii.gz'
+        base_output_name += '_dseg'
+        logging.info(f"base_output_name: {base_output_name} ...")
+
+
+
+
+
+    # Run inference on all images using model, post-process the predictions
     with torch.no_grad():
         for i, input_data in enumerate(inference_transforms_loader):
-            logging.info(f"Running inference on batch {i+1}/{len(inference_transforms_loader)}...")
+            if 'image_meta_dict' not in input_data:
+                input_data['image_meta_dict'] = {'filename_or_obj': 'unknown'}
+            image_file_name = input_data['image_meta_dict']['filename_or_obj']
+
+            logging.info(f"Running inference on batch {i+1}/{len(inference_transforms_loader)} for image '{input_data['image_meta_dict']['filename_or_obj']}'...")
             val_inputs = input_data["image"].to(device)
             axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
             input_data["pred"] = axial_inferer(val_inputs, model)
             val_data = [post_transforms(i) for i in decollate_batch(input_data)]
             logging.info(f"Inference and post-processing completed for batch {i+1}/{len(inference_transforms_loader)}.")
-            logging.info(f"Saving output for batch {i+1}/{len(inference_transforms_loader)}...")
+
+                
+            # Extract and modify the image file name
+            image_file_name = input_data['image_meta_dict']['filename_or_obj']
+            if base_output_name:
+                output_file_name = f"{base_output_name}_{i+1}{ext}"
+            else:
+                input_file_name = os.path.basename(image_file_name)
+                input_file_base, input_file_ext = os.path.splitext(input_file_name)
+                if input_file_ext != '.nii.gz':
+                    input_file_ext = '.nii.gz'
+                output_file_name = f"{input_file_base}_dseg{input_file_ext}"
+
+            # Update the SaveImaged transform with the modified file name
+            save_image_transform = SaveImaged(keys="pred", meta_keys="pred_meta_dict", output_dir=save_dir, output_postfix="", output_filename=output_file_name, output_dtype=('int16'), separate_folder=False, resample=False)
+            save_image_transform(val_data)
+
+
+            
+            
+            
+            logging.info(f"Saving output for batch {i+1}/{len(inference_transforms_loader)} to {output_file_name}...")
+
 
     logging.info("Inference completed. All outputs saved.")
 
