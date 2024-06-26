@@ -6,5 +6,16 @@
     "amount_of_labels": 9,
     "pix_dim": [1, 1, -1],
     "model_continue_training": "FILLER_NAME_continue_training.pth"
+  },
+  "model": {
+    "num_labels": 9,
+    "spatial_dims": 2,
+    "in_channels": 1,
+    "out_channels": 9,
+    "channels": [64, 128, 256, 512, 1024],
+    "act": "LeakyReLU",
+    "strides": [2, 2, 2, 2],
+    "num_res_units": 2,
+    "norm": "INSTANCE"
   }
 }
