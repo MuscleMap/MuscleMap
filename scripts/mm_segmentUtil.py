@@ -14,28 +14,44 @@ def check_image_exists(image_path):
         logging.error(f"Image file '{image_path}' is not readable.")
         sys.exit(1)
 
+
 def get_model_and_config_paths(region, specified_model=None):
-    models_base_dir = os.path.join("musclemap", "models", region)
+    models_base_dir = os.path.join(os.path.dirname(__file__), "..", "models", region)
+    
     if specified_model:
         model_path = os.path.join(models_base_dir, specified_model)
-        config_path = os.path.join(models_base_dir, f"{specified_model}.json")
+        config_path = os.path.splitext(model_path)[0] + ".json"
         if not os.path.isfile(model_path):
-            logging.error(f"Specified model '{specified_model}' does not exist for region '{region}'.")
+            logging.error(f"Specified model '{specified_model}' does not exist.")
             sys.exit(1)
         if not os.path.isfile(config_path):
             logging.error(f"Config file for model '{specified_model}' does not exist.")
             sys.exit(1)
     else:
-        model_path = os.path.join(models_base_dir, "best_model.pth")
-        config_path = os.path.join(models_base_dir, "config.json")
-        if not os.path.isfile(model_path):
-            logging.error(f"Best model for region '{region}' does not exist.")
+        if not os.path.isdir(models_base_dir):
+            logging.error(f"Region folder '{region}' does not exist.")
             sys.exit(1)
-        if not os.path.isfile(config_path):
-            logging.error(f"Config file for the best model in region '{region}' does not exist.")
+        
+        # Assuming only one model file and one config file in each region folder
+        model_path = None
+        config_path = None
+
+        for file in os.listdir(models_base_dir):
+            if file.endswith(".pth"):
+                model_path = os.path.join(models_base_dir, file)
+            elif file.endswith(".json"):
+                config_path = os.path.join(models_base_dir, file)
+
+        if not model_path:
+            logging.error(f"No model file found in region folder '{region}'.")
             sys.exit(1)
-    
+        if not config_path:
+            logging.error(f"No config file found in region folder '{region}'.")
+            sys.exit(1)
+
     return model_path, config_path
+
+
 
 
 def load_model_config(config_path):
@@ -73,4 +89,7 @@ def validate_arguments(args):
     
     if args.output_file_name and not isinstance(args.output_file_name, str):
         logging.error("Error: The output file name (-o) argument must be a string.")
+        sys.exit(1)
+    if args.output_dir and not isinstance(args.output_dir, str):
+        logging.error("Error: The output directory (-s) argument must be a string.")
         sys.exit(1)
