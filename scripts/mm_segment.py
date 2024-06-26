@@ -31,7 +31,7 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_segmentUtil import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments
+from mm_Util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments
 import torch
 
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
@@ -54,6 +54,8 @@ def get_parser():
                           help="Output file name. By default, dseg suffix will be added, and the output extension will be .nii.gz.")
     optional.add_argument("-s", '--output_dir', default='../output', required=False, type=str,
                           help="Output directory, default is the output folder")
+    optional.add_argument("-g", '--gui', default='N', type=str, choices=['Y', 'N', 'y', 'n'],
+                          help="Use GUI for inputs. 'Y' to use GUI, 'N' (default) to use command line.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -64,12 +66,21 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
+    if args.gui.lower() == 'y':
+        import mm_segment_gui
+        mm_segment_gui.launch_gui()
+        return
+
     # Validate Arguments
     validate_arguments(args)
 
-    # Check that the image exists and is readable
-    logging.info(f"Checking if image '{args.image}' exists and is readable...")
-    check_image_exists(args.image)
+    # Process multiple images
+    image_paths = [img.strip() for img in args.image.split(',')]
+    for image_path in image_paths:
+        # Check that each image exists and is readable
+        logging.info(f"Checking if image '{image_path}' exists and is readable...")
+        check_image_exists(image_path)
+
 
     # Load model configuration
     logging.info("Loading configuration file...")
