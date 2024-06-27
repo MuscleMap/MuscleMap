@@ -39,9 +39,9 @@ This repository includes the toolbox and generic acquisition protocol for the Mu
     
     2. From your browser:
     
-        1. Open https://github.com/MuscleMap/MuscleMap in your browser.
+        1. Open https://github.com/MuscleMap/MuscleMap in your browser
 
-        2. Click green **<> Code ▼**
+        2. Click the green **<> Code ▼** button
 
         3. Click **Download Zip**
 
