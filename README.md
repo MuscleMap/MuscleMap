@@ -18,20 +18,22 @@ This repository includes the toolbox and generic acquisition protocol for the Mu
 
 * Python 3.9.0
 
-
 ### Installation
 
-1. Create python environement
+1. Install python
+   * We recommend [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
+
+2. Create python environment
     ~~~
     conda create --name MuscleMap python==3.9.0
     ~~~
 
-2. Activate environement
+3. Activate environment
     ~~~
     conda activate MuscleMap
     ~~~
 
-3. Download MuscleMap repository
+4. Download MuscleMap repository
     1. Using the git command line tool:
         ~~~
         git clone https://github.com/MuscleMap/MuscleMap
@@ -45,7 +47,7 @@ This repository includes the toolbox and generic acquisition protocol for the Mu
 
         3. Click **Download Zip**
 
-        4. Unzip the zipped MuscleMap repository
+        4. Unzip the MuscleMap repository
 
     3. Navigate to MuscleMap repository
 
@@ -58,8 +60,7 @@ This repository includes the toolbox and generic acquisition protocol for the Mu
         ~~~
         pip install -r requirements.txt
         ~~~
-
-
+   5. To use a GPU to speed up analyses, you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
 ### Usage
 
@@ -87,7 +88,6 @@ We are currently working on developing our Generic Acquisition Protocol for Whol
 
 ## Data Curation
 We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. Our protools 
-
 
 ### Convert DICOM to BIDS
 
@@ -163,3 +163,4 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
     * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
     * derivatives = contains segmentation images and any other derivatives
+    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. Feel free to reach out the MuscleMap developers for help automating the conversion.
