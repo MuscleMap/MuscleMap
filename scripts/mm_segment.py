@@ -207,37 +207,12 @@ def main():
         for i, input_data in enumerate(inference_transforms_loader):
             if 'image_meta_dict' not in input_data:
                 input_data['image_meta_dict'] = {'filename_or_obj': 'unknown'}
-            image_file_name = input_data['image_meta_dict']['filename_or_obj']
-
             logging.info(f"Running inference on batch {i+1}/{len(inference_transforms_loader)} for image '{input_data['image_meta_dict']['filename_or_obj']}'...")
             val_inputs = input_data["image"].to(device)
             axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
             input_data["pred"] = axial_inferer(val_inputs, model)
             val_data = [post_transforms(i) for i in decollate_batch(input_data)]
             logging.info(f"Inference and post-processing completed for batch {i+1}/{len(inference_transforms_loader)}.")
-
-                
-            # Extract and modify the image file name
-            image_file_name = input_data['image_meta_dict']['filename_or_obj']
-            if base_output_name:
-                output_file_name = f"{base_output_name}_{i+1}{ext}"
-            else:
-                input_file_name = os.path.basename(image_file_name)
-                input_file_base, input_file_ext = os.path.splitext(input_file_name)
-                if input_file_ext != '.nii.gz':
-                    input_file_ext = '.nii.gz'
-                output_file_name = f"{input_file_base}_dseg{input_file_ext}"
-
-            # Update the SaveImaged transform with the modified file name
-            save_image_transform = SaveImaged(keys="pred", meta_keys="pred_meta_dict", output_dir=save_dir, output_postfix="", output_filename=output_file_name, output_dtype=('int16'), separate_folder=False, resample=False)
-            save_image_transform(val_data)
-
-
-            
-            
-            
-            logging.info(f"Saving output for batch {i+1}/{len(inference_transforms_loader)} to {output_file_name}...")
-
 
     logging.info("Inference completed. All outputs saved.")
 
