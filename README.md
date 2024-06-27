@@ -161,5 +161,5 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
     ```
 
-    * sourcedata = contains raw images
-    * derivatives = contains segmenation images and other derivatives
+    * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+    * derivatives = contains segmentation images and any other derivatives
