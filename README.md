@@ -3,7 +3,7 @@
 This repository includes the toolbox and generic acquisition protocol for the MuscleMap Consortium.
 
 ## Planned MuscleMap Phases
-<img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/musclemap_logo.png">
+<img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 
 1. Develop a generic acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 2. Generate an open-source large (n≥300) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body Muscle MRI dataset across the lifespan using the generic acquisition protocol.
