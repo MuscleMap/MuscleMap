@@ -70,13 +70,21 @@ This repository includes the MuscleMap Toolbox, generic acquisition protocol, an
     cd ./MuscleMap/scripts
     ~~~
 
-2. mm_segment.py
+2. mm_segment
 
     ~~~
     python mm_segment.py -i image.nii.gz -r abdomen -o output.nii.gz
     ~~~
 
-3. mm_extract_metrics.py
+    * mm_segment uses contrast agnostic segmentation models by default and only the body region needs to be specified. Users may specify another available model with -m.
+    
+    #### Regions
+    * Abdomen
+        * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
+    
+    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+
+3. mm_extract_metrics
 
     ~~~
     IN DEVELOPMENT
@@ -163,7 +171,7 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
     * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
     * derivatives = contains segmentation images and any other derivatives
-    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. Feel free to reach out the MuscleMap developers for help automating the conversion.
+    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out the MuscleMap developers for help automating the conversion.
 
 ## Citing MuscleMap
 
