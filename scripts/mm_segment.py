@@ -11,6 +11,7 @@ import logging
 import os
 import sys
 import glob
+import shutil
 from monai.inferers import SliceInferer
 from monai.networks.nets import UNet
 from monai.transforms import (
@@ -31,8 +32,10 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_Util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments
+from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments
 import torch
+
+
 
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
 def get_parser():
@@ -51,11 +54,10 @@ def get_parser():
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
     optional.add_argument("-o", '--output_file_name', default=None, required=False, type=str,
-                          help="Output file name. the output extension will be .nii.gz.")
+                          help="Output file name. default adds _dseg to end, the output extension will be .nii.gz.")
     optional.add_argument("-s", '--output_dir', default='../output', required=False, type=str,
                           help="Output directory, default is the output folder")
-    optional.add_argument("-g", '--gui', default='N', type=str, choices=['Y', 'N', 'y', 'n'],
-                          help="Use GUI for inputs. 'Y' to use GUI, 'N' (default) to use command line.")
+
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -64,11 +66,6 @@ def main():
 
     parser = get_parser()
     args = parser.parse_args()
-
-    if args.gui.lower() == 'y':
-        import mm_segment_gui
-        mm_segment_gui.launch_gui()
-        return
 
     # Validate Arguments
     validate_arguments(args)
@@ -79,6 +76,8 @@ def main():
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
+    
+        ####here
 
     # Load model configuration
     logging.info("Loading configuration file...")
@@ -88,6 +87,9 @@ def main():
 
     # Load model configuration
     model_config = load_model_config(model_config_path)
+
+
+
 
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
@@ -110,6 +112,8 @@ def main():
         sys.exit(1)
 
     # Directory setup
+
+        
     save_dir = os.path.abspath(args.output_dir)
     if not os.path.exists(save_dir):
         logging.info(f"Creating output directory at '{save_dir}'...")
@@ -166,7 +170,15 @@ def main():
         AsDiscreted(keys="pred", argmax=True),
         FillHolesd(keys="pred", applied_labels=list(range(1, num_labels + 1))),  # dynamic num_labels
         KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, num_labels + 1))),
-        SaveImaged(keys="pred", meta_keys="pred_meta_dict", output_dir=save_dir, output_dtype=('int16'), separate_folder=False, resample=False)
+        SaveImaged(
+            keys="pred", 
+            meta_keys="pred_meta_dict", 
+            output_dir=save_dir, 
+            output_dtype=('int16'), 
+            separate_folder=False, 
+            resample=False, 
+            output_postfix="dseg"
+    )
     ])
 
 
@@ -190,16 +202,6 @@ def main():
 
     logging.info("model loaded ...")
 
-    # Prepare the output file naming scheme
-    if args.output_file_name:
-        base_output_name, ext = os.path.splitext(args.output_file_name)
-        if ext != '.nii.gz':
-            ext = '.nii.gz'
-        base_output_name += '_dseg'
-        logging.info(f"base_output_name: {base_output_name} ...")
-
-
-
 
 
     # Run inference on all images using model, post-process the predictions
@@ -212,7 +214,10 @@ def main():
             axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
             input_data["pred"] = axial_inferer(val_inputs, model)
             val_data = [post_transforms(i) for i in decollate_batch(input_data)]
+
             logging.info(f"Inference and post-processing completed for batch {i+1}/{len(inference_transforms_loader)}.")
+    
+
 
     logging.info("Inference completed. All outputs saved.")
 
