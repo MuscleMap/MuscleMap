@@ -1,30 +1,39 @@
 import os
-import sys
 import pandas as pd
 import argparse
 import numpy as np
 import logging
-from mm_Util import extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,extract_ID_file_name,create_image_array,map_image,create_excel
+import math
+from mm_util import extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
+
+from glob import glob
+import nibabel as nib
+
+
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Muscle and Fat Segmentation in Lumbar Spine MRI")
+    parser = argparse.ArgumentParser(description="Muscle and Fat Segmentation in MRI")
 
     parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm'], 
                           help="Method to use: dixon, kmeans, or gmm")
 
     parser.add_argument("-i", '--input', required=False, type=str, 
                           help="Input image for kmeans or gmm")
-    parser.add_argument("-c", '--components', required=False, type=int, choices=[2, 3], 
+    parser.add_argument("-c", '--components', required=False, default=None, type=int, choices=[2, 3], 
                           help="Number of components for kmeans or gmm (2 or 3)")
     parser.add_argument("-s", '--segmentation_image', required=False, type=str, 
                           help="Segmentation image for any method")
     
+
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
                           help="Fat image for dixon method")
     parser.add_argument("-w", '--water_image', required=False, type=str, 
                           help="Water image for dixon method")
-
+    
+    parser.add_argument("-o", '--output_dir', required=True, type=str, 
+                          help="Output directory to save the results")
     return parser
+
 
 def validate_args(args):
     if args.method == 'dixon':
@@ -39,202 +48,147 @@ def validate_args(args):
 
 def main():
     logging.basicConfig(level=logging.INFO)
-
     parser = get_parser()
     args = parser.parse_args()
     validate_args(args)
 
-    kmeans_activate = False
-    GMM_activate = False
+
+
+    logging.info(f"Method selected: {args.method}")
+    logging.info(f"Segmentation image: {args.segmentation_image}")
+    segmentations, segmentations_data, segmentations_dim,segmentations_pixdim = extract_image_data(args.segmentation_image)
+    create_output_dir(args.output_dir)
+    results_list=[]
+    kmeans_activate=False
+    GMM_activate=False
 
     if args.method == 'kmeans':
         kmeans_activate = True
     elif args.method == 'gmm':
         GMM_activate = True
-
-
-    logging.info(f"Method selected: {args.method}")
-    
+    # Extract the ID from the input filename
     if args.method == 'dixon':
-        logging.info(f"Fat image: {args.fat_image}")
-        logging.info(f"Water image: {args.water_image}")
-        logging.info(f"Segmentation image: {args.segmentation_image}")
-        # Add your dixon method processing code here
-    elif args.method in ['kmeans', 'gmm']:
-        logging.info(f"Input image: {args.input}")
-        logging.info(f"Number of components: {args.components}")
-        logging.info(f"Segmentation image: {args.segmentation_image}")
-        # Add your kmeans or gmm method processing code here
+        input_filename = os.path.basename(args.fat_image)
+    else:
+        input_filename = os.path.basename(args.input)
+
+
+    base_name = os.path.splitext(input_filename)[0]
+    id_part = base_name.split('_')[0]  # This assumes the ID is the first part of the filename
     
+    total_probability_maps = [np.zeros(segmentations_data.shape) for _ in range(args.components)]
 
+    combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
+    combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
+    combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
 
+    for value in np.unique(segmentations_data):
+        if value>0: #iterates through muscles 
+            logging.info(f"running label {value}")
+            mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
+            #If no mask, then assign nan
+            if mask.sum() == 0:
+                volume = np.nan
+                number_of_slices = np.nan
+                imf_percentage = np.nan
+            else:
+                number_of_slices = np.sum(np.max(np.max(mask, axis=0), axis=0))
+                if args.method == 'dixon':     
+                    logging.info(f"Fat image: {args.fat_image}")
+                    logging.info(f"Water image: {args.water_image}")
+                    water, water_array, water_dim, water_pixdim = extract_image_data(args.water_image)
+                    fat, fat_array, fat_dim, fat_pixdim = extract_image_data(args.fat_image)
+                    volume=np.around(mask.sum() * math.prod(water_pixdim)/ 1000, decimals=2)
+                    imf_percentage = np.around((fat_array[mask].sum() / (fat_array[mask].sum() + water_array[mask].sum())) * 100, decimals=2)
 
+                elif args.method == 'kmeans' or 'gmm':
+                    image, image_array, im_dim, (sx, sy, sz) = extract_image_data(args.input) #image array has dimensions of INPUT
+                    mask_img = np.reshape(image_array[mask], (-1, 1)) #takes true positions in mask and reshapes the 1D array into 2D array with single column of input values
 
+                    #image_array has original input dimensions, mask does too (but is boolean array). image_array[mask] gives a 1D array of intensity values for the masked regions, reshape makes it into a 2D array suitable for clustering, so mask_img is 2D
 
-
-    #Find all images and masks
-    image_path = args.input
-    mask_path = args.segmentation_image
-
-
-    
-    #empty lists for each variable per muscle 
-    muscle_multifidus_right, muscle_multifidus_left = [], []
-    muscle_erector_right, muscle_erector_left = [], []
-    muscle_psoas_right, muscle_psoas_left = [], []
-    fat_multifidus_right, fat_multifidus_left = [], []
-    fat_erector_right, fat_erector_left = [], []
-    fat_psoas_right, fat_psoas_left = [], []
-    volume_total_multifidus_right, volume_total_multifidus_left = [], []
-    volume_total_erector_right, volume_total_erector_left = [], []
-    volume_total_psoas_right, volume_total_psoas_left = [], []
-    volume_muscle_multifidus_right, volume_muscle_multifidus_left = [], []
-    volume_muscle_erector_right, volume_muscle_erector_left = [], []
-    volume_muscle_psoas_right, volume_muscle_psoas_left = [], []
-    volume_fat_multifidus_right, volume_fat_multifidus_left = [], []
-    volume_fat_erector_right, volume_fat_erector_left = [], []
-    volume_fat_psoas_right, volume_fat_psoas_left = [], []
-    ID_name = []
-    
-    #loop over folder
-    # Process single input and segmentation image
-    ID_name_file = extract_ID_file_name(image_path)
-    ID_name.append(ID_name_file)
-    # Extract image data
-    img, img_array, mask_array, (sx, sy, sz) = extract_image_data(image_path, mask_path)
-
-    # Process each muscle group
-    for label_pair, muscle_group in zip([(1, 2), (3, 4), (5, 6)], ['multifidus', 'erector', 'psoas']):
-        combined_mask = np.logical_or(mask_array == label_pair[0], mask_array == label_pair[1])
-        mask_img = np.reshape(img_array[combined_mask], (-1, 1))
-        #loop over de muscles
-        if muscle_group == 'multifidus':
-            labels_multifidus = apply_clustering(mask_img, kmeans_activate, GMM_activate, args.components)
-            upper_threshold, muscle_image, fat_img  = calculate_thresholds(labels_multifidus,mask_img) 
-            # loop over the sides
-            for side in (['right', 'left']):
-                if side == 'right':
-                    label = 1
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
-                
-                    #append outcomes from quantify function to lists
-                    muscle_multifidus_right.append(muscle_percentage)
-                    fat_multifidus_right.append(fat_percentage)
-                    volume_muscle_multifidus_right.append(muscle_volume_ml)
-                    volume_fat_multifidus_right.append(fat_volume_ml)
-                    volume_total_multifidus_right.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image =  muscle_array + fat_array
+                    labels, clustering = apply_clustering(mask_img, kmeans_activate, GMM_activate, args.components) #, args.output_dir, image, id_part) #added output_dir for gmm, kmeans mask saving
                     
-                if side == 'left':
-                    label = 2
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
+                    muscle_max, unknown_max, cluster_intensities, sorted_indices= calculate_thresholds(labels, mask_img, args.components)
                     
-                    #append outcomes from quantify function to lists
-                    muscle_multifidus_left.append(muscle_percentage)
-                    fat_multifidus_left.append(fat_percentage)
-                    volume_muscle_multifidus_left.append(muscle_volume_ml)
-                    volume_fat_multifidus_left.append(fat_volume_ml)
-                    volume_total_multifidus_left.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image = segmentation_image+ muscle_array + fat_array
-                    
-        if muscle_group == 'erector':
-            labels_erector = apply_clustering(mask_img, kmeans_activate, GMM_activate, args.components)
-            upper_threshold, muscle_image, fat_img  = calculate_thresholds(labels_erector,mask_img) 
-            # loop over the sides
-            for side in (['right', 'left']):
-                if side == 'right':
-                    label = 3
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
-                
-                    #append outcomes from quantify function to lists
-                    muscle_erector_right.append(muscle_percentage)
-                    fat_erector_right.append(fat_percentage)
-                    volume_muscle_erector_right.append(muscle_volume_ml)
-                    volume_fat_erector_right.append(fat_volume_ml)
-                    volume_total_erector_right.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image = segmentation_image + muscle_array + fat_array
-                if side == 'left':
-                    label = 4
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
-                    
-                    #append outcomes from quantify function to lists
-                    muscle_erector_left.append(muscle_percentage)
-                    fat_erector_left.append(fat_percentage)
-                    volume_muscle_erector_left.append(muscle_volume_ml)
-                    volume_fat_erector_left.append(fat_volume_ml)
-                    volume_total_erector_left.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image = segmentation_image+ muscle_array + fat_array       
-        if muscle_group == 'psoas':
-            labels_psoas = apply_clustering(mask_img, kmeans_activate, GMM_activate, args.components)
-            upper_threshold, muscle_image, fat_img  = calculate_thresholds(labels_psoas,mask_img) 
-            # loop over the sides
-            for side in (['right', 'left']):
-                if side == 'right':
-                    label = 5
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
-                
-                    #append outcomes from quantify function to lists
-                    muscle_psoas_right.append(muscle_percentage)
-                    fat_psoas_right.append(fat_percentage)
-                    volume_muscle_psoas_right.append(muscle_volume_ml)
-                    volume_fat_psoas_right.append(fat_volume_ml)
-                    volume_total_psoas_right.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image = segmentation_image + muscle_array + fat_array
-                    
-                if side == 'left':
-                    label = 6
-                    #use quantify function to calculate the measures
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml = quantify_muscle_measures(img_array, mask_array, upper_threshold, label, sx, sy, sz)
-                    
-                    #append outcomes from quantify function to lists
-                    muscle_psoas_left.append(muscle_percentage)
-                    fat_psoas_left.append(fat_percentage)
-                    volume_muscle_psoas_left.append(muscle_volume_ml)
-                    volume_fat_psoas_left.append(fat_volume_ml)
-                    volume_total_psoas_left.append(total_volume_ml)  
-                
-                    # Mask for muscle
-                    muscle_array,fat_array = create_image_array(img_array, mask_array,label,upper_threshold)
-                    segmentation_image = segmentation_image+ muscle_array + fat_array
-        
-                    
-        map_image (ID_name_file, segmentation_image,img,"GMM" if GMM_activate else "K-means")
-            
-    list_muscle = pd.DataFrame([ID_name, muscle_multifidus_right, muscle_multifidus_left, muscle_erector_right, muscle_erector_left, muscle_psoas_right, muscle_psoas_left]).T
-    list_fat = pd.DataFrame([ID_name, fat_multifidus_right, fat_multifidus_left, fat_erector_right, fat_erector_left, fat_psoas_right, fat_psoas_left]).T
-    list_volume = pd.DataFrame([ID_name, volume_total_multifidus_right, volume_total_multifidus_left, volume_total_erector_right, volume_total_erector_left, volume_total_psoas_right, volume_total_psoas_left]).T
-    list_muscle_volume = pd.DataFrame([ID_name, volume_muscle_multifidus_right, volume_muscle_multifidus_left, volume_muscle_erector_right, volume_muscle_erector_left, volume_muscle_psoas_right, volume_muscle_psoas_left]).T
-    list_fat_volume = pd.DataFrame([ID_name, volume_fat_multifidus_right, volume_fat_multifidus_left, volume_fat_erector_right, volume_fat_erector_left, volume_fat_psoas_right, volume_fat_psoas_left]).T
-    lists = [list_muscle, list_fat, list_volume, list_muscle_volume, list_fat_volume]
-    
-    file_name = f"Muscle_Measures_{'GMM' if GMM_activate else 'K-means'}.xlsx"
-    sheet_names = ['Muscle(%)', 'IMF(%)', 'Muscle(ml)', 'IMF(ml)', 'IMF(ml)']
-    titles = ['LMR', 'LML', 'ESR', 'ESL', 'PMR', 'PML']
-    
-    create_excel(lists, file_name, sheet_names, titles)
+                    #begin new segment
+                    if args.method == 'gmm':
+                        logging.info(f"Input image dimensions: {image.shape}")
+                        # Get probability maps for each component
+                        probability_maps = clustering.predict_proba(mask_img) #mask_img is 2D for clustering
+                        sorted_probability_maps = probability_maps[:, sorted_indices]
+                        #probability_maps has dimensions (n,k), n is the number of samples (voxels) in mask_img, k is the number of components (2 or 3). so probability maps has dimensions (num of voxels, num components) with each row being a voxel, and each column being a probability of it belonging to that component
+
+       
+                        
+                        for i in range(args.components): 
+                            prob_map = sorted_probability_maps[:, i] #returns 1D array, taking all rows and the ith column from probability_maps (a 2D array->1D array)
+                            logging.info(f"Dimensions of prob_map for component {i}: {prob_map.shape}") 
+
+                            prob_map_reshaped = np.zeros(image.shape) #creates a 0 array with dimensions of original image
+                            prob_map_reshaped[mask] = prob_map #prob_map_reshaped[mask] assigns the items in 3D array that belong to mask to the value from prob_map
+                            logging.info(f"Dimensions of prob_map_reshaped for component {i}: {prob_map_reshaped.shape}")
+
+                            # Update the total probability map for the current component
+                            total_probability_maps[i] += prob_map_reshaped
+                            logging.info(f"Updated total_probability_map for component {i}")
+
+                            
+
+                        
+
+                    #end of new segment
+                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)
+
+                    # Update cumulative masks
+                    combined_muscle_mask |= muscle_mask
+                    combined_unknown_mask |= unknown_mask
+                    combined_fat_mask |= fat_mask
+
+                    imf_percentage = np.around((fat_volume_ml / volume) * 100, decimals=2) if volume != 0 else 0 #round to 2 decimals
+                    muscle_array, fat_array = create_image_array(image_array,  segmentations_data, value, muscle_max)
+                    if value == 1:
+                        segmentation_image = muscle_array + fat_array
+                    else:
+                        segmentation_image += muscle_array + fat_array
+                results_list.append({
+                    'Label': value, #current val iterating through, "muscle number"
+                    'Volume': volume, 
+                    'Number_of_slices': number_of_slices,
+                    'IMF_percentage': imf_percentage,
+                })
+                map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
 
 
+            # Convert results list to DataFrame
+        results_df = pd.DataFrame(results_list)
 
+    for i, component_name in enumerate(["muscle", "undefined", "fat"]):
+        prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
+        prob_output_file_path = os.path.join(args.output_dir, prob_output_filename)
+        prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
+        prob_map_img.to_filename(prob_output_file_path)
+        logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
+
+    save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_muscle_mask.nii.gz'))
+    save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_undefined_mask.nii.gz'))
+    save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_fat_mask.nii.gz'))
+
+
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Determine the path to the MuscleMaps directory
+    musclemaps_dir = os.path.dirname(script_dir)
+    # Construct the path to the output folder
+    output_dir = os.path.join(musclemaps_dir, 'output')
+    output_filename = f"{id_part}_{args.method}_{args.components}_results.csv"
+
+    # Construct the full path to the output file in the output folder
+    output_file_path = os.path.join(output_dir, output_filename)
+
+    # Export the results
+    results_df.to_csv(output_file_path, index=False)
+    print(f"Results have been exported to {output_file_path}")
 
 if __name__ == "__main__":
     main()
