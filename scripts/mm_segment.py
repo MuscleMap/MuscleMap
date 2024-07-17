@@ -32,11 +32,11 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments, create_output_dir
+from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
 import torch
 
 
-
+#naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -68,7 +68,7 @@ def main():
     args = parser.parse_args()
 
     # Validate Arguments
-    validate_arguments(args)
+    validate_seg_arguments(args)
 
     # Process multiple images
     image_paths = [img.strip() for img in args.images.split(',')]

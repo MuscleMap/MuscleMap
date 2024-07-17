@@ -71,7 +71,7 @@ def load_model_config(config_path):
         sys.exit(1)
 
 
-def validate_arguments(args):
+def validate_seg_arguments(args):
     if not args.images:
         logging.error("Error: The input image (-i) argument is required.")
         sys.exit(1)
@@ -109,7 +109,15 @@ def save_nifti(data, affine, filename):
 
 ##########################################################################################
 
-
+def validate_extract_args(args):
+    if args.method == 'dixon':
+        if not args.fat_image or not args.water_image or not args.segmentation_image:
+            print("For dixon method, you must provide -f (fat image), -w (water image), and -s (segmentation image).")
+            exit(1)
+    elif args.method in ['kmeans', 'gmm']:
+        if not args.input or not args.components or not args.segmentation_image:
+            print("For kmeans or gmm method, you must provide -i (input image), -c (number of components), and -s (segmentation image).")
+            exit(1)
 
 def extract_image_data(image_path):
     img = nib.load(image_path)
