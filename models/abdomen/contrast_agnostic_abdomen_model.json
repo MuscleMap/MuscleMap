@@ -17,5 +17,15 @@
     "strides": [2, 2, 2, 2],
     "num_res_units": 2,
     "norm": "INSTANCE"
-  }
+  },
+  "labels": [
+    { "muscle": "multifidus", "side": "right", "value": 1 },
+    { "muscle": "multifidus", "side": "left", "value": 2 },
+    { "muscle": "erector_spinae", "side": "right", "value": 3 },
+    { "muscle": "erector_spinae", "side": "left", "value": 4 },
+    { "muscle": "psoas_major", "side": "right", "value": 5 },
+    { "muscle": "psoas_major", "side": "left", "value": 6 },
+    { "muscle": "quadratus_lumborum", "side": "right", "value": 7 },
+    { "muscle": "quadratus_lumborum", "side": "left", "value": 8 }
+  ]
 }

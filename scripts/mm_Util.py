@@ -192,6 +192,7 @@ def quantify_muscle_measures(img_array, mask_array, muscle_max, unknown_max, lab
     else: #2 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) 
         fat_mask = (mask_array == label) & (img_array > muscle_max)
+        unknown_mask=None
     
     total_mask = (mask_array == label)
 
@@ -216,10 +217,17 @@ def create_image_array(img_array, mask_array,label,upper_threshold):
     return muscle_array,fat_array
 
 def create_output_dir(output_dir):
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Determine the path to the MuscleMaps directory (one level up from the script directory)
+    musclemaps_dir = os.path.dirname(script_dir)
+    # Construct the path to the output folder in the main MuscleMaps directory
+    output_dir = os.path.join(musclemaps_dir, output_dir)
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     logging.info(f"Output directory {output_dir} created")
-
+    return output_dir
 
 def map_image(ID_name_file, segmentation_image, img, kmeans_activate, GMM_activate):
     if kmeans_activate:

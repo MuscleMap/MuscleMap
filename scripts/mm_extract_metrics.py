@@ -57,15 +57,30 @@ def main():
     logging.info(f"Method selected: {args.method}")
     logging.info(f"Segmentation image: {args.segmentation_image}")
     segmentations, segmentations_data, segmentations_dim,segmentations_pixdim = extract_image_data(args.segmentation_image)
-    create_output_dir(args.output_dir)
+    output_dir=create_output_dir(args.output_dir)
     results_list=[]
     kmeans_activate=False
     GMM_activate=False
 
     if args.method == 'kmeans':
         kmeans_activate = True
+        total_probability_maps = None
+        combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
+
     elif args.method == 'gmm':
         GMM_activate = True
+        total_probability_maps = [np.zeros(segmentations_data.shape) for _ in range(args.components)]
+        combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
+    else:
+        total_probability_maps = None
+        combined_muscle_mask = None
+        combined_unknown_mask = None
+        combined_fat_mask = None
+
     # Extract the ID from the input filename
     if args.method == 'dixon':
         input_filename = os.path.basename(args.fat_image)
@@ -76,11 +91,10 @@ def main():
     base_name = os.path.splitext(input_filename)[0]
     id_part = base_name.split('_')[0]  # This assumes the ID is the first part of the filename
     
-    total_probability_maps = [np.zeros(segmentations_data.shape) for _ in range(args.components)]
 
-    combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
-    combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
-    combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
+
+
+
 
     for value in np.unique(segmentations_data):
         if value>0: #iterates through muscles 
@@ -142,7 +156,8 @@ def main():
 
                     # Update cumulative masks
                     combined_muscle_mask |= muscle_mask
-                    combined_unknown_mask |= unknown_mask
+                    if args.components ==3:
+                        combined_unknown_mask |= unknown_mask
                     combined_fat_mask |= fat_mask
 
                     imf_percentage = np.around((fat_volume_ml / volume) * 100, decimals=2) if volume != 0 else 0 #round to 2 decimals
@@ -157,38 +172,46 @@ def main():
                     'Number_of_slices': number_of_slices,
                     'IMF_percentage': imf_percentage,
                 })
-                map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
+                #if args.method =="kmeans" or 'gmm':
+                #map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
 
 
             # Convert results list to DataFrame
         results_df = pd.DataFrame(results_list)
 
-    for i, component_name in enumerate(["muscle", "undefined", "fat"]):
-        prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
-        prob_output_file_path = os.path.join(args.output_dir, prob_output_filename)
-        prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
-        prob_map_img.to_filename(prob_output_file_path)
-        logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
-
-    save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_muscle_mask.nii.gz'))
-    save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_undefined_mask.nii.gz'))
-    save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(args.output_dir, f'{id_part}_{args.method}_binary_fat_mask.nii.gz'))
 
 
-    # Get the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Determine the path to the MuscleMaps directory
-    musclemaps_dir = os.path.dirname(script_dir)
-    # Construct the path to the output folder
-    output_dir = os.path.join(musclemaps_dir, 'output')
+
+    if args.method == 'gmm':
+        if args.components == 3:
+            for i, component_name in enumerate(["muscle", "undefined", "fat"]):
+                prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
+                prob_output_file_path = os.path.join(output_dir, prob_output_filename)
+                prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
+                prob_map_img.to_filename(prob_output_file_path)
+                logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
+        else:
+            for i, component_name in enumerate(["muscle", "fat"]):
+                prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
+                prob_output_file_path = os.path.join(output_dir, prob_output_filename)
+                prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
+                prob_map_img.to_filename(prob_output_file_path)
+                logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
+
+    if args.method != 'dixon':
+        save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_muscle_mask.nii.gz'))
+        if args.components == 3:
+            save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_undefined_mask.nii.gz'))
+        save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_fat_mask.nii.gz'))
+
+    # Construct the path to the output CSV file
     output_filename = f"{id_part}_{args.method}_{args.components}_results.csv"
-
-    # Construct the full path to the output file in the output folder
     output_file_path = os.path.join(output_dir, output_filename)
 
     # Export the results
     results_df.to_csv(output_file_path, index=False)
     print(f"Results have been exported to {output_file_path}")
+
 
 if __name__ == "__main__":
     main()
