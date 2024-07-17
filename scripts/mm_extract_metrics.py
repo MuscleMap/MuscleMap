@@ -4,12 +4,8 @@ import argparse
 import numpy as np
 import logging
 import math
-from mm_util import extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
-
-from glob import glob
+from mm_util import validate_extract_args, extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
 import nibabel as nib
-
-
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Muscle and Fat Segmentation in MRI")
@@ -23,7 +19,6 @@ def get_parser():
                           help="Number of components for kmeans or gmm (2 or 3)")
     parser.add_argument("-s", '--segmentation_image', required=False, type=str, 
                           help="Segmentation image for any method")
-    
 
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
                           help="Fat image for dixon method")
@@ -35,24 +30,12 @@ def get_parser():
     return parser
 
 
-def validate_args(args):
-    if args.method == 'dixon':
-        if not args.fat_image or not args.water_image or not args.segmentation_image:
-            print("For dixon method, you must provide -f (fat image), -w (water image), and -s (segmentation image).")
-            exit(1)
-    elif args.method in ['kmeans', 'gmm']:
-        if not args.input or not args.components or not args.segmentation_image:
-            print("For kmeans or gmm method, you must provide -i (input image), -c (number of components), and -s (segmentation image).")
-            exit(1)
-
 
 def main():
     logging.basicConfig(level=logging.INFO)
     parser = get_parser()
     args = parser.parse_args()
-    validate_args(args)
-
-
+    validate_extract_args(args)
 
     logging.info(f"Method selected: {args.method}")
     logging.info(f"Segmentation image: {args.segmentation_image}")
@@ -86,16 +69,9 @@ def main():
         input_filename = os.path.basename(args.fat_image)
     else:
         input_filename = os.path.basename(args.input)
-
-
     base_name = os.path.splitext(input_filename)[0]
     id_part = base_name.split('_')[0]  # This assumes the ID is the first part of the filename
     
-
-
-
-
-
     for value in np.unique(segmentations_data):
         if value>0: #iterates through muscles 
             logging.info(f"running label {value}")
@@ -133,8 +109,6 @@ def main():
                         sorted_probability_maps = probability_maps[:, sorted_indices]
                         #probability_maps has dimensions (n,k), n is the number of samples (voxels) in mask_img, k is the number of components (2 or 3). so probability maps has dimensions (num of voxels, num components) with each row being a voxel, and each column being a probability of it belonging to that component
 
-       
-                        
                         for i in range(args.components): 
                             prob_map = sorted_probability_maps[:, i] #returns 1D array, taking all rows and the ith column from probability_maps (a 2D array->1D array)
                             logging.info(f"Dimensions of prob_map for component {i}: {prob_map.shape}") 
@@ -146,10 +120,6 @@ def main():
                             # Update the total probability map for the current component
                             total_probability_maps[i] += prob_map_reshaped
                             logging.info(f"Updated total_probability_map for component {i}")
-
-                            
-
-                        
 
                     #end of new segment
                     muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)
@@ -175,12 +145,8 @@ def main():
                 #if args.method =="kmeans" or 'gmm':
                 #map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
 
-
             # Convert results list to DataFrame
         results_df = pd.DataFrame(results_list)
-
-
-
 
     if args.method == 'gmm':
         if args.components == 3:
@@ -205,13 +171,13 @@ def main():
         save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_fat_mask.nii.gz'))
 
     # Construct the path to the output CSV file
+    
     output_filename = f"{id_part}_{args.method}_{args.components}_results.csv"
     output_file_path = os.path.join(output_dir, output_filename)
 
     # Export the results
     results_df.to_csv(output_file_path, index=False)
     print(f"Results have been exported to {output_file_path}")
-
 
 if __name__ == "__main__":
     main()
