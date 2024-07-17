@@ -32,7 +32,7 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments
+from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_arguments, create_output_dir
 import torch
 
 
@@ -55,7 +55,7 @@ def get_parser():
                           help="Option to specify another model.")
     optional.add_argument("-o", '--output_file_name', default=None, required=False, type=str,
                           help="Output file name. default adds _dseg to end, the output extension will be .nii.gz.")
-    optional.add_argument("-s", '--output_dir', default='../output', required=False, type=str,
+    optional.add_argument("-s", '--output_dir', default='output', required=False, type=str,
                           help="Output directory, default is the output folder")
 
     return parser
@@ -114,10 +114,8 @@ def main():
     # Directory setup
 
         
-    save_dir = os.path.abspath(args.output_dir)
-    if not os.path.exists(save_dir):
-        logging.info(f"Creating output directory at '{save_dir}'...")
-        os.makedirs(save_dir)
+    save_dir = create_output_dir(args.output_dir)
+
 
     # Use os.path.join for all path constructions to ensure cross-platform compatibility
     # Set seed for reproducibility (identical to training part)
