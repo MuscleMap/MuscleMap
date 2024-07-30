@@ -86,9 +86,20 @@ This repository includes the MuscleMap Toolbox, generic acquisition protocol, an
 
 3. mm_extract_metrics
 
-    ~~~
-    IN DEVELOPMENT
-    ~~~
+    1. For T1w and T2w MRI:
+
+        ~~~
+        python mm_extract_metrics.py -m gmm -i image.nii.gz -s image_dlabel.nii.gz -c 3
+        ~~~
+
+    * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
+    * Users may specifcy 2 or 3 components with -c.
+
+    2. For Dixon fat-water MRI:
+
+        ~~~
+        python mm_extract_metrics.py -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dlabel.nii.gz
+        ~~~
 
 ## Generic Acquisition Protocol
 
