@@ -44,7 +44,7 @@ def get_parser():
     
     # Required arguments
     required = parser.add_argument_group("Required")
-    required.add_argument("-i", '--images', required=True, type=str,
+    required.add_argument("-i", '--input_images', required=True, type=str,
                           help="Image to segment. Can be multiple images separated with commas.")
     required.add_argument("-r", '--region', required=True, type=str,
                           help="Body region of input image.")
@@ -53,25 +53,35 @@ def get_parser():
     optional = parser.add_argument_group("Optional")
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
-    optional.add_argument("-o", '--output_file_name', default=None, required=False, type=str,
-                          help="Output file name. default adds _dseg to end, the output extension will be .nii.gz.")
-    optional.add_argument("-s", '--output_dir', default='output', required=False, type=str,
-                          help="Output directory, default is the output folder")
-
+    required.add_argument("-f", '--file_path', required=True, type=str,
+                            help="Full output file path including directory and file name, defaults to current directory if not specified.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
+    script_path = os.path.abspath(__file__)
+    print(f"The absolute path of the script is: {script_path}")
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     parser = get_parser()
     args = parser.parse_args()
 
+    if args.file_path.endswith('.nii.gz'):
+        output_dir, output_file_name = os.path.split(args.file_path)
+    else:
+        output_dir = os.getcwd()
+        output_file_name = args.file_path  # Replace with your default file name logic
+
+    # Ensure the output directory is absolute
+    output_dir = os.path.abspath(output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     # Validate Arguments
     validate_seg_arguments(args)
 
     # Process multiple images
-    image_paths = [img.strip() for img in args.images.split(',')]
+    image_paths = [img.strip() for img in args.input_images.split(',')]
     for image_path in image_paths:
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
@@ -87,6 +97,21 @@ def main():
 
     # Load model configuration
     model_config = load_model_config(model_config_path)
+
+    # maps norm from json for use in model because monai imports can't be saved in json
+    norm_map = {
+    "batch": Norm.BATCH,
+    "instance": Norm.INSTANCE,
+    # Add other normalization types if needed
+    }
+
+    def custom_name_formatter(metadata, saver, output_file_path):
+        base_dir, base_file = os.path.split(output_file_path)
+        file_name, ext = os.path.splitext(base_file)
+        return {
+            'subject': file_name
+
+        }
 
 
 
@@ -107,14 +132,20 @@ def main():
         strides = model_config['model']['strides']
         num_res_units = model_config['model']['num_res_units']
         num_labels = model_config['model']['num_labels']
+        import_norm_str = model_config['model']['norm']
     except KeyError as e:
         logging.error(f"Missing key in model configuration file: {e}")
         sys.exit(1)
 
     # Directory setup
 
+    if import_norm_str in norm_map:
+        import_norm = norm_map[import_norm_str]
+    else:
+        logging.error(f"Unknown normalization type: {import_norm_str}")
+        sys.exit(1) 
+
         
-    save_dir = create_output_dir(args.output_dir)
 
 
     # Use os.path.join for all path constructions to ensure cross-platform compatibility
@@ -171,11 +202,13 @@ def main():
         SaveImaged(
             keys="pred", 
             meta_keys="pred_meta_dict", 
-            output_dir=save_dir, 
+            output_dir=output_dir, 
             output_dtype=('int16'), 
             separate_folder=False, 
             resample=False, 
-            output_postfix="dseg"
+            output_postfix="",
+            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, args.file_path)
+
     )
     ])
 
@@ -189,7 +222,8 @@ def main():
         act=act,
         strides=strides,
         num_res_units=num_res_units,
-        norm=Norm.INSTANCE,
+
+        norm=import_norm,
     ).to(device)
 
     # Load pre-existing model if we want to continue training

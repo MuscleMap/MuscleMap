@@ -72,11 +72,11 @@ def load_model_config(config_path):
 
 
 def validate_seg_arguments(args):
-    if not args.images:
-        logging.error("Error: The input image (-i) argument is required.")
+    if not args.input_images:
+        logging.error("Error: The input images (-i) argument is required.")
         sys.exit(1)
-    if args.images and not isinstance(args.images, str):
-        logging.error("Error: The input image (-i) argument must be a string.")
+    if args.input_images and not isinstance(args.images, str):
+        logging.error("Error: The input images (-i) argument must be a string.")
         sys.exit(1)    
     
     if not args.region:
@@ -91,11 +91,8 @@ def validate_seg_arguments(args):
         logging.error("Error: The model (-m) argument must be a string.")
         sys.exit(1)
     
-    if args.output_file_name and not isinstance(args.output_file_name, str):
-        logging.error("Error: The output file name (-o) argument must be a string.")
-        sys.exit(1)
-    if args.output_dir and not isinstance(args.output_dir, str):
-        logging.error("Error: The output directory (-s) argument must be a string.")
+    if args.file_path and not isinstance(args.file_path, str):
+        logging.error("Error: The output file path (-f) argument must be a string.")
         sys.exit(1)
 
 
@@ -115,7 +112,7 @@ def validate_extract_args(args):
             print("For dixon method, you must provide -f (fat image), -w (water image), and -s (segmentation image).")
             exit(1)
     elif args.method in ['kmeans', 'gmm']:
-        if not args.input or not args.components or not args.segmentation_image:
+        if not args.input_image or not args.components or not args.segmentation_image:
             print("For kmeans or gmm method, you must provide -i (input image), -c (number of components), and -s (segmentation image).")
             exit(1)
 
@@ -224,17 +221,16 @@ def create_image_array(img_array, mask_array,label,upper_threshold):
     
     return muscle_array,fat_array
 
-def create_output_dir(output_dir):
-    # Get the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Determine the path to the MuscleMaps directory (one level up from the script directory)
-    musclemaps_dir = os.path.dirname(script_dir)
-    # Construct the path to the output folder in the main MuscleMaps directory
-    output_dir = os.path.join(musclemaps_dir, output_dir)
+def create_output_dir(output_dir=None):
+    if not output_dir:
+        output_dir = os.getcwd()  # Use the current working directory if no output directory is provided
+    else:
+        # Construct the path to the output directory from the current working directory
+        output_dir = os.path.abspath(output_dir)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    logging.info(f"Output directory {output_dir} created")
+        logging.info(f"Output directory {output_dir} created")
     return output_dir
 
 def map_image(ID_name_file, segmentation_image, img, kmeans_activate, GMM_activate):

@@ -13,20 +13,25 @@ def get_parser():
     parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm'], 
                           help="Method to use: dixon, kmeans, or gmm")
 
-    parser.add_argument("-i", '--input', required=False, type=str, 
+    parser.add_argument("-i", '--input_image', required=False, type=str, 
                           help="Input image for kmeans or gmm")
-    parser.add_argument("-c", '--components', required=False, default=None, type=int, choices=[2, 3], 
-                          help="Number of components for kmeans or gmm (2 or 3)")
-    parser.add_argument("-s", '--segmentation_image', required=False, type=str, 
-                          help="Segmentation image for any method")
+    
 
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
                           help="Fat image for dixon method")
     parser.add_argument("-w", '--water_image', required=False, type=str, 
                           help="Water image for dixon method")
     
-    parser.add_argument("-o", '--output_dir', required=True, type=str, 
-                          help="Output directory to save the results")
+
+    parser.add_argument("-s", '--segmentation_image', required=False, type=str, 
+                          help="Segmentation image for any method")
+    parser.add_argument("-c", '--components', required=False, default=None, type=int, choices=[2, 3], 
+                          help="Number of components for kmeans or gmm (2 or 3)")
+
+
+
+    parser.add_argument("-o", '--output_dir', required=False, type=str, 
+                          help="Output directory to save the results, can be absolute or relative")
     return parser
 
 
@@ -68,9 +73,8 @@ def main():
     if args.method == 'dixon':
         input_filename = os.path.basename(args.fat_image)
     else:
-        input_filename = os.path.basename(args.input)
-    base_name = os.path.splitext(input_filename)[0]
-    id_part = base_name.split('_')[0]  # This assumes the ID is the first part of the filename
+        input_filename = os.path.basename(args.input_image)
+    id_part = input_filename[:-7] if input_filename.endswith('.nii.gz') else input_filename # This assumes the ID is the first part of the filename
     
     for value in np.unique(segmentations_data):
         if value>0: #iterates through muscles 
@@ -92,7 +96,7 @@ def main():
                     imf_percentage = np.around((fat_array[mask].sum() / (fat_array[mask].sum() + water_array[mask].sum())) * 100, decimals=2)
 
                 elif args.method == 'kmeans' or 'gmm':
-                    image, image_array, im_dim, (sx, sy, sz) = extract_image_data(args.input) #image array has dimensions of INPUT
+                    image, image_array, im_dim, (sx, sy, sz) = extract_image_data(args.input_image) #image array has dimensions of INPUT
                     mask_img = np.reshape(image_array[mask], (-1, 1)) #takes true positions in mask and reshapes the 1D array into 2D array with single column of input values
 
                     #image_array has original input dimensions, mask does too (but is boolean array). image_array[mask] gives a 1D array of intensity values for the masked regions, reshape makes it into a 2D array suitable for clustering, so mask_img is 2D
@@ -138,7 +142,7 @@ def main():
                         segmentation_image += muscle_array + fat_array
                 results_list.append({
                     'Label': value, #current val iterating through, "muscle number"
-                    'Volume': volume, 
+                    'Volume (mL)': volume, 
                     'Number_of_slices': number_of_slices,
                     'IMF_percentage': imf_percentage,
                 })
@@ -150,29 +154,25 @@ def main():
 
     if args.method == 'gmm':
         if args.components == 3:
-            for i, component_name in enumerate(["muscle", "undefined", "fat"]):
-                prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
-                prob_output_file_path = os.path.join(output_dir, prob_output_filename)
-                prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
-                prob_map_img.to_filename(prob_output_file_path)
-                logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
+            array=["muscle", "undefined", "fat"]
         else:
-            for i, component_name in enumerate(["muscle", "fat"]):
-                prob_output_filename = f'{id_part}_gmm_probabilityMask_{component_name}.nii.gz'
-                prob_output_file_path = os.path.join(output_dir, prob_output_filename)
-                prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
-                prob_map_img.to_filename(prob_output_file_path)
-                logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
+            array=["muscle", "fat"]
+        for i, component_name in enumerate(array):
+            prob_output_filename = f'{id_part}_gmm_{component_name}_{args.components}component_softseg.nii.gz'
+            prob_output_file_path = os.path.join(output_dir, prob_output_filename)
+            prob_map_img = nib.Nifti1Image(total_probability_maps[i], image.affine, image.header)
+            prob_map_img.to_filename(prob_output_file_path)
+            logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
 
     if args.method != 'dixon':
-        save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_muscle_mask.nii.gz'))
+        save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_muscle_seg.nii.gz'))
         if args.components == 3:
-            save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_undefined_mask.nii.gz'))
-        save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_binary_fat_mask.nii.gz'))
+            save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_undefined_seg.nii.gz'))
+        save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_fat_seg.nii.gz'))
 
     # Construct the path to the output CSV file
     
-    output_filename = f"{id_part}_{args.method}_{args.components}_results.csv"
+    output_filename = f"{id_part}_{args.method}_{args.components}component_results.csv"
     output_file_path = os.path.join(output_dir, output_filename)
 
     # Export the results
