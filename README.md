@@ -1,6 +1,6 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
-# Planned MuscleMap Phases
+## Planned MuscleMap Phases
 \
 <img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 1. Develop a generic acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
