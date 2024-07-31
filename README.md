@@ -18,20 +18,20 @@
 
 ### Installation
 
-1. Install python
+1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
 
-2. Create python environment
+2. Create python environment:
     ~~~
     conda create --name MuscleMap python==3.9.0
     ~~~
 
-3. Activate environment
+3. Activate python environment:
     ~~~
     conda activate MuscleMap
     ~~~
 
-4. Download MuscleMap repository
+4. Download MuscleMap repository:
     1. Using the git command line tool:
         ~~~
         git clone https://github.com/MuscleMap/MuscleMap
@@ -47,13 +47,13 @@
 
         4. Unzip the MuscleMap repository
 
-    3. Navigate to MuscleMap repository
+    3. Navigate to MuscleMap repository:
 
         ~~~
         cd ./MuscleMap
         ~~~
 
-    4. Install python packages 
+    4. Install python packages:
     
         ~~~
         pip install -r requirements.txt
@@ -62,13 +62,13 @@
 
 ### Usage
 
-1. Navigate to MuscleMap repository scripts directory
+1. Navigate to MuscleMap repository scripts directory:
 
     ~~~
     cd ./MuscleMap/scripts
     ~~~
 
-2. mm_segment
+2. To run mm_segment:
 
     ~~~
     python mm_segment.py -i image.nii.gz -r abdomen -o output.nii.gz
@@ -82,7 +82,7 @@
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
 
-3. mm_extract_metrics
+3. To run mm_extract_metrics:
 
     1. For T1w and T2w MRI:
 
@@ -108,13 +108,13 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 ### Convert DICOM to BIDS
 
-1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format
+1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
     * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz)
     * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters
 
-2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification 
+2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
 
-3. Here is an example [BIDS](https://bids.neuroimaging.io/) directory structure: 
+3. Here is an example [BIDS](https://bids.neuroimaging.io/) directory structure:
 
     ```
     dataset
