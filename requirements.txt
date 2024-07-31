@@ -1,1 +1,15 @@
-monai==1.3.1
+argparse
+logging
+os
+sys
+glob
+shutil
+monai
+torch
+tk
+subprocess
+json
+numpy
+nibabel
+scikit-learn
+pandas
