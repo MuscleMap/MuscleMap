@@ -1,11 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8
+# -*- coding: utf-8 -*-
 
 # For usage, type: python mm_segment.py -h
 
 # Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
+
+# IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
 import argparse
+import logging
 import os
+import sys
+import glob
+import shutil
 from monai.inferers import SliceInferer
 from monai.networks.nets import UNet
 from monai.transforms import (
@@ -19,74 +25,135 @@ from monai.transforms import (
     EnsureTyped,
     NormalizeIntensityd,
     EnsureChannelFirstd,
-    SaveImaged,
     FillHolesd,
+    SaveImaged,
     KeepLargestConnectedComponentd,
 )
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
-from monai.data import (
-    Dataset,
-    DataLoader,
-    decollate_batch,
-)
+from monai.data import Dataset, DataLoader, decollate_batch
+from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
 import torch
 
+
+#naming not functional
+# get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
 def get_parser():
     parser = argparse.ArgumentParser(
         description="Segment an input image according to the specified deep learning model.")
     
-    #Required arguments
+    # Required arguments
     required = parser.add_argument_group("Required")
-    required.add_argument("-i", required=True, type=str,
-                        help="Image to segment. Can be multiple images separated with spaces.")
-    required.add_argument("-r", required=True, type=str,
-                        help="Body region of input image.")
+    required.add_argument("-i", '--input_images', required=True, type=str,
+                          help="Image to segment. Can be multiple images separated with commas.")
+    required.add_argument("-r", '--region', required=True, type=str,
+                          help="Body region of input image.")
     
-    #Optional arguments
+    # Optional arguments
     optional = parser.add_argument_group("Optional")
-    optional.add_argument("-m", default=None, required=False, type=str,
-                        help="Option to specifiy another model.")
-    optional.add_argument("-o", default=None, required=False, type=str,
-                        help="Output file name. By default, dseg suffix will be added, and the output extension will be .nii.gz.")
+    optional.add_argument("-m", '--model', default=None, required=False, type=str,
+                          help="Option to specify another model.")
+    required.add_argument("-f", '--file_path', required=True, type=str,
+                            help="Full output file path including directory and file name, defaults to current directory if not specified.")
     return parser
 
+# main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
+    script_path = os.path.abspath(__file__)
+    print(f"The absolute path of the script is: {script_path}")
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
     parser = get_parser()
     args = parser.parse_args()
 
-    #Check that image exists and is readable
+    if args.file_path.endswith('.nii.gz'):
+        output_dir, output_file_name = os.path.split(args.file_path)
+    else:
+        output_dir = os.getcwd()
+        output_file_name = args.file_path  # Replace with your default file name logic
 
-    #Check that body region and corresponding model are available
-  
+    # Ensure the output directory is absolute
+    output_dir = os.path.abspath(output_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    #Load model and model parameters
+    # Validate Arguments
+    validate_seg_arguments(args)
 
-    #setup data directory
+    # Process multiple images
+    image_paths = [img.strip() for img in args.input_images.split(',')]
+    for image_path in image_paths:
+        # Check that each image exists and is readable
+        logging.info(f"Checking if image '{image_path}' exists and is readable...")
+        check_image_exists(image_path)
+    
+        ####here
 
-    directory = os.environ.get("Monai_Directory") #Ken Assume OUTPUT is PWD os.get_pwd unles they specifcy /home/kenweber/input.nii.gz
-    root_dir = tempfile.mkdtemp() if directory is None else directory
-    save_dir = 'D:\\PS_Muscle_Segmentation\\Monai\\Current_projects\\QL\\CNN' #Assume is PWD os.get_pwd unles they specifcy /home/kenweber/input.nii.gz
+    # Load model configuration
+    logging.info("Loading configuration file...")
 
-    data_dir = 'D:\\PS_Muscle_Segmentation\\Monai\\Lx'
-    images = sorted(glob.glob(os.path.join(data_dir, "testing", "*img.nii.gz"))) #KEN Start with just one image but later we can allow them to specificy multiple images
-    test_files = [{"image": img} for img in zip(images)] #KEN Remove test and validation it's now an input and output
+    # Get model and config paths
+    model_path, model_config_path = get_model_and_config_paths(args.region, args.model)
 
-    # set some important parameters comparable to training #KEN see if these can go in the parameters file
-    roi_size = (112,112)
-    spatial_window_size = (112,112,1)
-    spatial_window_batch_size = 1
-    amount_of_labels = 9
-    inference_iteration = 500000 #KEN We don't need inference_iteration any more
-    pix_dim  = (1,1,-1)
-    model_save_best = "best_metric_model_UNET_Lumbar_spine.pth"
-    model_continue_training = f'model_UNET_Lumbar_spine_iteration_{inference_iteration}.pth'
+    # Load model configuration
+    model_config = load_model_config(model_config_path)
 
-    #set seed for reproducibility (identical to training part)
-    set_determinism(seed=0) #Ken Don't belive this is necessary for inference
+    # maps norm from json for use in model because monai imports can't be saved in json
+    norm_map = {
+    "batch": Norm.BATCH,
+    "instance": Norm.INSTANCE,
+    # Add other normalization types if needed
+    }
 
-    #create transforms identical to training part, but here we don't specifiy the label key #Ken maybe call this inference instead of validation_original
-    validation_original = Compose([
+    def custom_name_formatter(metadata, saver, output_file_path):
+        base_dir, base_file = os.path.split(output_file_path)
+        file_name, ext = os.path.splitext(base_file)
+        return {
+            'subject': file_name
+
+        }
+
+
+
+
+    try:
+        roi_size = tuple(model_config['parameters']['roi_size'])
+        spatial_window_batch_size = model_config['parameters']['spatial_window_batch_size']
+        amount_of_labels = model_config['parameters']['amount_of_labels'] #not used
+        pix_dim = tuple(model_config['parameters']['pix_dim'])
+        model_continue_training = model_config['parameters']['model_continue_training'] #not used
+
+        # Load model configuration parameters
+        spatial_dims = model_config['model']['spatial_dims']
+        in_channels = model_config['model']['in_channels']
+        out_channels = model_config['model']['out_channels']
+        channels = model_config['model']['channels']
+        act = model_config['model']['act']
+        strides = model_config['model']['strides']
+        num_res_units = model_config['model']['num_res_units']
+        num_labels = model_config['model']['num_labels']
+        import_norm_str = model_config['model']['norm']
+    except KeyError as e:
+        logging.error(f"Missing key in model configuration file: {e}")
+        sys.exit(1)
+
+    # Directory setup
+
+    if import_norm_str in norm_map:
+        import_norm = norm_map[import_norm_str]
+    else:
+        logging.error(f"Unknown normalization type: {import_norm_str}")
+        sys.exit(1) 
+
+        
+
+
+    # Use os.path.join for all path constructions to ensure cross-platform compatibility
+    # Set seed for reproducibility (identical to training part)
+    set_determinism(seed=0)  # Seed for reproducibility (identical to training part)
+
+    # Create transforms identical to training part, but here we don't specify the label key
+    inference_transforms = Compose([
         LoadImaged(keys=["image"]),
         EnsureChannelFirstd(keys=["image"]),
         Spacingd(
@@ -95,75 +162,96 @@ def main():
             mode=("bilinear")),
         Orientationd(keys=["image"], axcodes="RAS"),
         CropForegroundd(keys=["image"], source_key="image"),
-        NormalizeIntensityd(keys=["image"], nonzero = True),
+        NormalizeIntensityd(keys=["image"], nonzero=True),
         EnsureTyped(keys=["image"])
     ])
+    # Process all images at once
+    test_files = [{"image": img} for img in image_paths]
+    logging.info(f"Test files: {test_files}")  # Debug statement
 
-    #create iterable dataset and dataloader, identical to training part
-    validation_original_dataset = Dataset(
-    data=test_files, transform=validation_original,
+
+    # Create iterable dataset and dataloader, identical to training part
+    inference_transforms_dataset = Dataset(
+        data=test_files, transform=inference_transforms,
     )
 
-    validation_original_loader = DataLoader(
-    validation_original_dataset , batch_size=1, shuffle=False, num_workers=0, pin_memory=True)
+    inference_transforms_loader = DataLoader(
+        inference_transforms_dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
-    #device config #KEN probably want to keep
+
+    # Device config
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    #set post transforms #KEN can probably go into parameters file
+    # Ensure flexibility to handle models with varying label counts
+    # Validate post-processing steps based on specific requirements of different models
     post_transforms = Compose([
-    Invertd(
-        keys="pred",
-        transform=validation_original,
-        orig_keys="image",
-        meta_keys="pred_meta_dict",
-        orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict",
-        nearest_interp=False,
-        to_tensor=True,
-        device = device
-    ),
-    AsDiscreted(keys="pred", argmax=True),
-    FillHolesd(keys="pred", applied_labels=[1,2,3,4,5,6,7,8,9]), #Ken Not all Models will have 1-9 labels
-    KeepLargestConnectedComponentd(keys="pred", applied_labels=[1,2,3,4,5,6,7,8,9]),, #Ken Not all Models will have 1-9 labels
-    SaveImaged(keys="pred", meta_keys="pred_meta_dict", output_dir=save_dir, output_dtype=('int16'), separate_folder = False, resample=False)
+        Invertd(
+            keys="pred",
+            transform=inference_transforms,
+            orig_keys="image",
+            meta_keys="pred_meta_dict",
+            orig_meta_keys="image_meta_dict",
+            meta_key_postfix="meta_dict",
+            nearest_interp=False,
+            to_tensor=True,
+            device=device
+        ),
+        AsDiscreted(keys="pred", argmax=True),
+        FillHolesd(keys="pred", applied_labels=list(range(1, num_labels + 1))),  # dynamic num_labels
+        KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, num_labels + 1))),
+        SaveImaged(
+            keys="pred", 
+            meta_keys="pred_meta_dict", 
+            output_dir=output_dir, 
+            output_dtype=('int16'), 
+            separate_folder=False, 
+            resample=False, 
+            output_postfix="",
+            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, args.file_path)
+
+    )
     ])
 
-    #Create model and set parameters. #Ken Goes in the Paramters Folder
-    model= UNet(
-    spatial_dims=2,
-    in_channels=1,
-    out_channels=amount_of_labels,
-    channels=(64, 128, 256, 512, 1024),
-    act= 'LeakyRelu',
-    strides=(2, 2, 2, 2),
-    num_res_units=2,
-    norm=Norm.INSTANCE,
+
+    # Create model and set parameters
+    model = UNet(
+        spatial_dims=spatial_dims,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        channels=channels,
+        act=act,
+        strides=strides,
+        num_res_units=num_res_units,
+
+        norm=import_norm,
     ).to(device)
 
-    #load pre-excisting model if we want to continue training
-    model.load_state_dict(torch.load(
-    os.path.join(root_dir,'Models',"lumbar_spine_UNET_per_iteration",model_continue_training )))
+    # Load pre-existing model if we want to continue training
+    map_location = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logging.info(f"Loading model from '{model_path}'...")
+    model.load_state_dict(torch.load(model_path, map_location=map_location))
     model.eval()
 
-    #Run inference on the image and images.
+    logging.info("model loaded ...")
 
-    #Inference part
+
+
+    # Run inference on all images using model, post-process the predictions
     with torch.no_grad():
-    for i, test_data in enumerate(validation_original_loader): #Ken call test_data input_images or inputs
-        val_inputs = test_data["image"].to(device)
-        axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
-        test_data["pred"] = axial_inferer(val_inputs, model)
-        val_data = [post_transforms(i) for i in decollate_batch(test_data)]
+        for i, input_data in enumerate(inference_transforms_loader):
+            if 'image_meta_dict' not in input_data:
+                input_data['image_meta_dict'] = {'filename_or_obj': 'unknown'}
+            logging.info(f"Running inference on batch {i+1}/{len(inference_transforms_loader)} for image '{input_data['image_meta_dict']['filename_or_obj']}'...")
+            val_inputs = input_data["image"].to(device)
+            axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
+            input_data["pred"] = axial_inferer(val_inputs, model)
+            val_data = [post_transforms(i) for i in decollate_batch(input_data)]
 
-
-
-
-    """Optional"""
-    #Allow list of filenames separated by spaces
-    #Make sure relative and absolute paths work
+            logging.info(f"Inference and post-processing completed for batch {i+1}/{len(inference_transforms_loader)}.")
     
+
+
+    logging.info("Inference completed. All outputs saved.")
 
 if __name__ == "__main__":
     main()
-    
