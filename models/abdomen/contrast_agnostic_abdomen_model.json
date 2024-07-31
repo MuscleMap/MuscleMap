@@ -16,7 +16,7 @@
     "act": "LeakyReLU",
     "strides": [2, 2, 2, 2],
     "num_res_units": 2,
-    "norm": "INSTANCE"
+    "norm": "instance"
   },
   "labels": [
     { "muscle": "multifidus", "side": "right", "value": 1 },
