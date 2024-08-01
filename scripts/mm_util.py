@@ -56,8 +56,6 @@ def get_model_and_config_paths(region, specified_model=None):
     return model_path, config_path
 
 
-
-
 def load_model_config(config_path):
     try:
         with open(config_path, 'r') as file:
@@ -75,7 +73,7 @@ def validate_seg_arguments(args):
     if not args.input_images:
         logging.error("Error: The input images (-i) argument is required.")
         sys.exit(1)
-    if args.input_images and not isinstance(args.images, str):
+    if args.input_images and not isinstance(args.input_images, str):
         logging.error("Error: The input images (-i) argument must be a string.")
         sys.exit(1)    
     
@@ -94,7 +92,10 @@ def validate_seg_arguments(args):
     if args.file_path and not isinstance(args.file_path, str):
         logging.error("Error: The output file path (-f) argument must be a string.")
         sys.exit(1)
-
+        
+    if args.output_file and not isinstance(args.output_file, str):
+       logging.error("Error: The output file (-o) argument must be a string.")
+       sys.exit(1)
 
 ##########################################################################################
 
@@ -102,8 +103,6 @@ def validate_seg_arguments(args):
 def save_nifti(data, affine, filename):
     nifti_img = nib.Nifti1Image(data, affine)
     nib.save(nifti_img, filename)
-
-
 ##########################################################################################
 
 def validate_extract_args(args):

@@ -47,7 +47,9 @@ def get_parser():
     required.add_argument("-i", '--input_images', required=True, type=str,
                           help="Image to segment. Can be multiple images separated with commas.")
     required.add_argument("-r", '--region', required=True, type=str,
-                          help="Body region of input image.")
+                          help="output name.")
+    required.add_argument("-o", '--output_file', required=True, type=str,
+                          help="output name.")
     
     # Optional arguments
     optional = parser.add_argument_group("Optional")
@@ -112,9 +114,6 @@ def main():
             'subject': file_name
 
         }
-
-
-
 
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
@@ -207,11 +206,8 @@ def main():
             separate_folder=False, 
             resample=False, 
             output_postfix="",
-            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, args.file_path)
-
     )
     ])
-
 
     # Create model and set parameters
     model = UNet(
