@@ -71,7 +71,7 @@
 2. To run mm_segment:
 
     ~~~
-    python mm_segment.py -i image.nii.gz -r abdomen -o output.nii.gz
+    python mm_segment.py -i image.nii.gz -r abdomen
     ~~~
 
     * mm_segment uses contrast agnostic segmentation models by default and only the body region needs to be specified. Users may specify another available model with -m.
