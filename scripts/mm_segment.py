@@ -48,8 +48,6 @@ def get_parser():
                           help="Image to segment. Can be multiple images separated with commas.")
     required.add_argument("-r", '--region', required=True, type=str,
                           help="output name.")
-    required.add_argument("-o", '--output_file', required=True, type=str,
-                          help="output name.")
     
     # Optional arguments
     optional = parser.add_argument_group("Optional")
