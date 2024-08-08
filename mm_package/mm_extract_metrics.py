@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 import logging
 import math
-from mm_util import validate_extract_args, extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
+from mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
 import nibabel as nib
 
 def get_parser():
@@ -27,6 +27,9 @@ def get_parser():
                           help="Segmentation image for any method")
     parser.add_argument("-c", '--components', required=False, default=None, type=int, choices=[2, 3], 
                           help="Number of components for kmeans or gmm (2 or 3)")
+    
+    parser.add_argument("-r", '--region', required=False, type=str,
+                          help="output name.")
 
 
 
@@ -49,6 +52,12 @@ def main():
     results_list=[]
     kmeans_activate=False
     GMM_activate=False
+
+    # Get model and config paths
+    model_path, model_config_path = get_model_and_config_paths(args.region, None)
+
+    # Load model configuration
+    model_config = load_model_config(model_config_path)
 
     if args.method == 'kmeans':
         kmeans_activate = True
@@ -79,6 +88,10 @@ def main():
     for value in np.unique(segmentations_data):
         if value>0: #iterates through muscles 
             logging.info(f"running label {value}")
+            for label in model_config["labels"]:
+                if label["value"] == value:
+                    muscle_side_info = label["muscle"] + " " + label["side"]
+                
             mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
             #If no mask, then assign nan
             if mask.sum() == 0:
@@ -108,6 +121,7 @@ def main():
                     #begin new segment
                     if args.method == 'gmm':
                         logging.info(f"Input image dimensions: {image.shape}")
+
                         # Get probability maps for each component
                         probability_maps = clustering.predict_proba(mask_img) #mask_img is 2D for clustering
                         sorted_probability_maps = probability_maps[:, sorted_indices]
@@ -141,10 +155,12 @@ def main():
                     else:
                         segmentation_image += muscle_array + fat_array
                 results_list.append({
-                    'Label': value, #current val iterating through, "muscle number"
+                    'muscle': muscle_side_info,
+                    'Label': value, #current val iterating through, "muscle number",
                     'Volume (mL)': volume, 
                     'Number_of_slices': number_of_slices,
                     'IMF_percentage': imf_percentage,
+
                 })
                 #if args.method =="kmeans" or 'gmm':
                 #map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
