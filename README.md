@@ -77,8 +77,9 @@
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+    *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source. If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.*
 
-2. To run mm_extract_metrics:
+3. To run mm_extract_metrics:
 
     1. For T1w and T2w MRI:
 
@@ -97,7 +98,7 @@
         mm_extract_metrics -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
         ~~~
 
-3. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
+4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
 
      ~~~
      mm_gui
