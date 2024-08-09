@@ -15,7 +15,7 @@ setup(
         'nibabel==5.1.0',
         'scikit-learn==1.3.0',
         'pandas==1.5.3',
-        'scikit-image==0.24.0'
+        'scikit-image'
 
     ],
     entry_points={
