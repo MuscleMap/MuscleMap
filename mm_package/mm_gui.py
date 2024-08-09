@@ -18,8 +18,11 @@ def browse_directory(entry):
 
 def run_segmentation():
     # Start with the mandatory arguments
+    # Assuming mm_segment.py is in the same directory as your current script
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
+    
     command = [
-        sys.executable, 'mm_segment.py',
+        sys.executable, script_path,  # Use the full path to the mm_segment.py script
         '-i', segment_input_image_entry.get(),
         '-r', segment_region_entry.get()
     ]
@@ -36,12 +39,14 @@ def run_segmentation():
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+
 def run_extraction(segmentation_output=None):
     method = extract_method_var.get()
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_extract_metrics.py')
 
-    # Base command
+    # Base command using the full path to the script
     command = [
-        sys.executable, 'mm_extract_metrics.py',
+        sys.executable, script_path,
         '-m', method,
         '-r', extract_region_entry.get(),
         '-o', extract_output_dir_entry.get()
@@ -71,6 +76,7 @@ def run_extraction(segmentation_output=None):
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+
 def run_chained():
     input_image = chain_input_image_entry.get()
     region = chain_region_entry.get()
@@ -83,7 +89,7 @@ def run_chained():
     elif input_image.endswith('.nii'):
         segmentation_output = os.path.join(output_dir, os.path.basename(input_image).replace('.nii', '_dseg.nii.gz'))
     command = [
-        sys.executable, 'mm_segment.py',
+        sys.executable, 'mm_segment',
         '-i', input_image,
         '-r', region, 
         '-f', segmentation_output
@@ -97,7 +103,7 @@ def run_chained():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
     command = [
-        sys.executable, 'mm_extract_metrics.py',
+        sys.executable, 'mm_extract_metrics',
         '-m', method,
         '-r', region,
         '-o', output_dir,
@@ -176,7 +182,7 @@ segment_region_entry.grid(row=1, column=1)
 ttk.Label(segment_tab, text="Output File Path:").grid(row=2, column=0)
 segment_file_path_entry = tk.Entry(segment_tab, width=50)
 segment_file_path_entry.grid(row=2, column=1)
-ttk.Button(segment_tab, text="Browse...", command=lambda: browse_file(segment_file_path_entry)).grid(row=2, column=2)
+ttk.Button(segment_tab, text="Browse...", command=lambda: browse_directory(segment_file_path_entry)).grid(row=2, column=2)
 
 
 ttk.Button(segment_tab, text="Run Segmentation", command=run_segmentation).grid(row=3, column=1)

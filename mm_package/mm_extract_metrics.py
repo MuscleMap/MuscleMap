@@ -4,7 +4,12 @@ import argparse
 import numpy as np
 import logging
 import math
-from mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering,calculate_thresholds,quantify_muscle_measures,create_image_array, create_output_dir, map_image,  save_nifti
+try:
+    # Attempt to import as if it is a part of a package
+    from .mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti
+except ImportError:
+    # Fallback to direct import if run as a standalone script
+    from mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti
 import nibabel as nib
 
 def get_parser():
@@ -54,10 +59,11 @@ def main():
     GMM_activate=False
 
     # Get model and config paths
-    model_path, model_config_path = get_model_and_config_paths(args.region, None)
+    if args.region:
+        model_path, model_config_path = get_model_and_config_paths(args.region, None)
 
-    # Load model configuration
-    model_config = load_model_config(model_config_path)
+        # Load model configuration
+        model_config = load_model_config(model_config_path)
 
     if args.method == 'kmeans':
         kmeans_activate = True
@@ -88,10 +94,13 @@ def main():
     for value in np.unique(segmentations_data):
         if value>0: #iterates through muscles 
             logging.info(f"running label {value}")
-            for label in model_config["labels"]:
-                if label["value"] == value:
-                    muscle_side_info = label["muscle"] + " " + label["side"]
-                
+            if args.region:
+                for label in model_config["labels"]:
+                    if label["value"] == value:
+                        muscle_side_info = label["muscle"] + " " + label["side"]
+            else:
+                muscle_side_info=""
+                    
             mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
             #If no mask, then assign nan
             if mask.sum() == 0:
@@ -154,6 +163,7 @@ def main():
                         segmentation_image = muscle_array + fat_array
                     else:
                         segmentation_image += muscle_array + fat_array
+                    
                 results_list.append({
                     'muscle': muscle_side_info,
                     'Label': value, #current val iterating through, "muscle number",

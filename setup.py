@@ -9,12 +9,13 @@ setup(
     url='https://github.com/MuscleMap/MuscleMap.git',
     packages=find_packages(),
     install_requires=[
-        #add versions
-        'numpy',
-        'pandas',  # Assuming you use pandas
-        'nibabel',
-        'scikit-learn'
-
+        'monai==0.9.0',
+        'torch==1.13.0',
+        'numpy==1.23.5',
+        'nibabel==5.1.0',
+        'scikit-learn==1.3.0',
+        'pandas==1.5.3',
+        'scikit-image==0.24.0'
 
     ],
     entry_points={
