@@ -1,7 +1,7 @@
 {
   "parameters": {
     "num_workers": 4,
-    "roi_size": [112, 112],
+    "roi_size": [128, 128],
     "spatial_window_batch_size": 1,
     "amount_of_labels": 9,
     "pix_dim": [1, 1, -1],
