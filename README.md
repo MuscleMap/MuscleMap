@@ -87,7 +87,7 @@
     1. For T1w and T2w MRI:
 
         ~~~
-        python mm_extract_metrics.py -m gmm -i image.nii.gz -s image_dlabel.nii.gz -c 3
+        python mm_extract_metrics.py -m gmm -i image.nii.gz -s image_dseg.nii.gz -c 3
         ~~~
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
@@ -96,7 +96,7 @@
     2. For Dixon fat-water MRI:
 
         ~~~
-        python mm_extract_metrics.py -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dlabel.nii.gz
+        python mm_extract_metrics.py -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
         ~~~
 
 ## Generic Acquisition Protocol
@@ -124,14 +124,14 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
     │		└── sub-example02
     │           ├── ses-abdomen
     │           │   └── anat
-    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dlabel.json
-    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dlabel.nii.gz
-    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dlabel.json
-    │           │       └── sub-example02_ses-adomen_water_label-muscle_dlabel.nii.gz
+    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
+    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
     │           └── ses-neck
     │               └── anat
-    │                   ├── sub-example02_ses-neck_water_label-muscle_dlabel.json
-    │                   └── sub-example02_ses-neck_water_label-muscle_dlabel.nii.gz
+    │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
+    │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
     └── sourcedata
         └── participants.tsv
         └── sub-example01
