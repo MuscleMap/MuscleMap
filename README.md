@@ -3,11 +3,11 @@
 ## Planned MuscleMap Phases
 \
 <img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
-1. Develop a generic acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
-2. Generate an open-source large (n≥300) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body Muscle MRI dataset across the lifespan using the generic acquisition protocol.  
+2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
-3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition.  
+3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the hetergenous whole-body muscle MRI dataset.
 <br />
 
 ## MuscleMap Toolbox
@@ -56,25 +56,21 @@
     4. Install python packages:
     
         ~~~
-        pip install -r requirements.txt
+        pip install .
         ~~~
-   5. To use a GPU to speed up analyses, you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
+
+   5. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
 ### Usage
 
-1. Navigate to MuscleMap repository scripts directory:
+1. To run mm_segment:
 
     ~~~
-    cd ./MuscleMap/scripts
-    ~~~
-
-2. To run mm_segment:
-
-    ~~~
-    python mm_segment.py -i image.nii.gz -r abdomen -o output.nii.gz
+    mm_segment -i image.nii.gz -r abdomen
     ~~~
 
     * mm_segment uses contrast agnostic segmentation models by default and only the body region needs to be specified. Users may specify another available model with -m.
+    * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     
     #### Regions
     * Abdomen
@@ -82,26 +78,40 @@
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
 
+   *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
+
+   *If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.*
+
 3. To run mm_extract_metrics:
 
     1. For T1w and T2w MRI:
 
         ~~~
-        python mm_extract_metrics.py -m gmm -i image.nii.gz -s image_dlabel.nii.gz -c 3
+        mm_extract_metrics -m gmm -i image.nii.gz -s image_dseg.nii.gz -c 3
         ~~~
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
     * Users may specifcy 2 or 3 components with -c.
+    * For gmm, probability maps are ouput for each component and label.
+    * For gmm and kmeans, binarized segmentations are ouput for each component and label.
 
     2. For Dixon fat-water MRI:
 
         ~~~
-        python mm_extract_metrics.py -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dlabel.nii.gz
+        mm_extract_metrics -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
         ~~~
 
-## Generic Acquisition Protocol
+4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
 
-We are currently developing the genmeric acquisition protocol for whole-body quantitative MRI of Muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the generic acquisition protocol, please contact [Kenneth Weber](mailto:kenweber@stanford.edu), [Eddo Wesselink](mailto:eddo_wesselink@msn.com), [James Elliott](mailto:james.elliott@sydney.edu.au), or [Marnee McKay](mailto:marnee.mckay@sydney.edu.au).
+     ~~~
+     mm_gui
+     ~~~
+    
+* To run mm_segment followed by mm_extract metrics use the chaining option in the GUI (only available for gmm and kmeans).
+
+## Standardized Acquisition Protocol
+
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of Muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [Kenneth Weber](mailto:kenweber@stanford.edu), [Eddo Wesselink](mailto:eddo_wesselink@msn.com), [James Elliott](mailto:james.elliott@sydney.edu.au), or [Marnee McKay](mailto:marnee.mckay@sydney.edu.au).
 
 ## Data Curation
 We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
@@ -120,18 +130,18 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
     dataset
     ├── derivatives
     │   └── labels
-    │       └── sub-example01
-    │		└── sub-example02
+    │   └── sub-example01
+    │        └── sub-example02
     │           ├── ses-abdomen
     │           │   └── anat
-    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dlabel.json
-    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dlabel.nii.gz
-    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dlabel.json
-    │           │       └── sub-example02_ses-adomen_water_label-muscle_dlabel.nii.gz
+    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
+    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
     │           └── ses-neck
     │               └── anat
-    │                   ├── sub-example02_ses-neck_water_label-muscle_dlabel.json
-    │                   └── sub-example02_ses-neck_water_label-muscle_dlabel.nii.gz
+    │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
+    │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
     └── sourcedata
         └── participants.tsv
         └── sub-example01
