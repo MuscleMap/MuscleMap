@@ -1,4 +1,0 @@
-[console_scripts]
-mm_extract_metrics = mm_package.mm_extract_metrics:main
-mm_gui = mm_package.mm_gui
-mm_segment = mm_package.mm_segment:main
