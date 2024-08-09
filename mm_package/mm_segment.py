@@ -10,6 +10,8 @@ import argparse
 import logging
 import os
 import sys
+print("Command line arguments received:", sys.argv)
+
 import glob
 import shutil
 from monai.inferers import SliceInferer
@@ -32,7 +34,12 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+try:
+    # Attempt to import as if it is a part of a package
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+except ImportError:
+    # Fallback to direct import if run as a standalone script
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
 import torch
 
 
