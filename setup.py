@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='mm_package',
+    name='scripts',
     version='0.1.0',
     author='Your Name',
     author_email='your.email@example.com',
@@ -20,13 +20,13 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'mm_segment=mm_package.mm_segment:main',
-            'mm_extract_metrics=mm_package.mm_extract_metrics:main',
-            'mm_gui=mm_package.mm_gui' 
+            'mm_segment=scripts.mm_segment:main',
+            'mm_extract_metrics=scripts.mm_extract_metrics:main',
+            'mm_gui=scripts.mm_gui:main' 
         ]
     },
     package_data={
-        'mm_package': ['models/**/*.json', 'models/**/*.pth'],
+        'scripts': ['models/**/*.json', 'models/**/*.pth'],
     },
     include_package_data=True,
     python_requires='>=3.6',

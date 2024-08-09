@@ -63,7 +63,7 @@ def get_parser():
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
     
-    optional.add_argument("-g", '--use_GPU', required=False, default = {'Y'}, type=str ,choices=['Y', 'N'],
+    optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="select Y or N, default is Y, if N monai will use the cpu even if a cuda enabled device is identified.")
     return parser
 
@@ -71,10 +71,12 @@ def get_parser():
 def main():
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     parser = get_parser()
     args = parser.parse_args()
+    print(f"GPU arg: {args.use_GPU}")
 
     if args.file_path is None:
         output_dir = os.getcwd()
