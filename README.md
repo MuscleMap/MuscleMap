@@ -77,7 +77,10 @@
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
-    *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source. If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.*
+
+   *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
+
+   *If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.*
 
 3. To run mm_extract_metrics:
 
