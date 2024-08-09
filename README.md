@@ -126,7 +126,7 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
     dataset
     ├── derivatives
     │   └── labels
-    │       └── sub-example01
+    │   └── sub-example01
     │		└── sub-example02
     │           ├── ses-abdomen
     │           │   └── anat
