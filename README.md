@@ -131,7 +131,7 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
     ├── derivatives
     │   └── labels
     │   └── sub-example01
-    │        └── sub-example02
+    │		└── sub-example02
     │           ├── ses-abdomen
     │           │   └── anat
     │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
