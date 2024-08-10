@@ -10,6 +10,89 @@
 3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the hetergenous whole-body muscle MRI dataset.
 <br />
 
+## Standardized Acquisition Protocol
+
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of Muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:kenweber@stanford.edu).
+
+## Data Curation
+We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
+
+### Convert DICOM to BIDS
+
+1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
+    * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz).
+    * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters.
+
+2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
+
+3. Here is an example [BIDS](https://bids.neuroimaging.io/) directory structure:
+
+    ```
+    dataset
+    ├── derivatives
+    │   └── labels
+    │   └── sub-example01
+    │		└── sub-example02
+    │           ├── ses-abdomen
+    │           │   └── anat
+    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
+    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
+    │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
+    │           └── ses-neck
+    │               └── anat
+    │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
+    │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
+    └── sourcedata
+        └── participants.tsv
+        └── sub-example01
+        └── sub-example02
+            ├── ses-abdomen
+            │   ├── anat
+            │   │   ├── sub-example02_ses-abdomen_fatfrac.json
+            │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_fat.json
+            │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_inphase.json
+            │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_outphase.json
+            │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_R2star.json
+            │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_T1w.json
+            │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_T2w.json
+            │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
+            │   │   ├── sub-example02_ses-abdomen_water.json
+            │   │   └── sub-example02_ses-abdomen_water.nii.gz
+            │   └── dwi
+            │       ├── sub-example02_ses-abdomen_dwi.bval
+            │       ├── sub-example02_ses-abdomen_dwi.bvec
+            │       ├── sub-example02_ses-abdomen_dwi.json
+            │       └── sub-example02_ses-abdomen_dwi.nii.gz
+            └── ses-neck
+                └── anat
+                    ├── sub-example02_ses-neck_fat.json
+                    ├── sub-example02_ses-neck_fat.nii.gz
+                    ├── sub-example02_ses-neck_fatfrac.json
+                    ├── sub-example02_ses-neck_fatfrac.nii.gz
+                    ├── sub-example02_ses-neck_inphase.json
+                    ├── sub-example02_ses-neck_inphase.nii.gz
+                    ├── sub-example02_ses-neck_outphase.json
+                    ├── sub-example02_ses-neck_outphase.nii.gz
+                    ├── sub-example02_ses-neck_R2star.json
+                    ├── sub-example02_ses-neck_R2star.nii.gz
+                    ├── sub-example02_ses-neck_T2w.json
+                    ├── sub-example02_ses-neck_T2w.nii.gz
+                    ├── sub-example02_ses-neck_water.json
+                    └── sub-example02_ses-neck_water.nii.gz
+
+    ```
+
+    * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+    * derivatives = contains segmentation images and any other derivatives
+    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
+
 ## MuscleMap Toolbox
 
 ### Dependencies
@@ -114,92 +197,9 @@
     
 * To run mm_segment followed by mm_extract metrics use the chaining option in the GUI (only available for gmm and kmeans).
 
-## Standardized Acquisition Protocol
-
-We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of Muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [Kenneth Weber](mailto:kenweber@stanford.edu), [Eddo Wesselink](mailto:eddo_wesselink@msn.com), [James Elliott](mailto:james.elliott@sydney.edu.au), or [Marnee McKay](mailto:marnee.mckay@sydney.edu.au).
-
-## Data Curation
-We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
-
-### Convert DICOM to BIDS
-
-1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
-    * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz)
-    * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters
-
-2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
-
-3. Here is an example [BIDS](https://bids.neuroimaging.io/) directory structure:
-
-    ```
-    dataset
-    ├── derivatives
-    │   └── labels
-    │   └── sub-example01
-    │		└── sub-example02
-    │           ├── ses-abdomen
-    │           │   └── anat
-    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
-    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
-    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
-    │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
-    │           └── ses-neck
-    │               └── anat
-    │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
-    │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
-    └── sourcedata
-        └── participants.tsv
-        └── sub-example01
-        └── sub-example02
-            ├── ses-abdomen
-            │   ├── anat
-            │   │   ├── sub-example02_ses-abdomen_fatfrac.json
-            │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_fat.json
-            │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_inphase.json
-            │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_outphase.json
-            │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_R2star.json
-            │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_T1w.json
-            │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_T2w.json
-            │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_water.json
-            │   │   └── sub-example02_ses-abdomen_water.nii.gz
-            │   └── dwi
-            │       ├── sub-example02_ses-abdomen_dwi.bval
-            │       ├── sub-example02_ses-abdomen_dwi.bvec
-            │       ├── sub-example02_ses-abdomen_dwi.json
-            │       └── sub-example02_ses-abdomen_dwi.nii.gz
-            └── ses-neck
-                └── anat
-                    ├── sub-example02_ses-neck_fat.json
-                    ├── sub-example02_ses-neck_fat.nii.gz
-                    ├── sub-example02_ses-neck_fatfrac.json
-                    ├── sub-example02_ses-neck_fatfrac.nii.gz
-                    ├── sub-example02_ses-neck_inphase.json
-                    ├── sub-example02_ses-neck_inphase.nii.gz
-                    ├── sub-example02_ses-neck_outphase.json
-                    ├── sub-example02_ses-neck_outphase.nii.gz
-                    ├── sub-example02_ses-neck_R2star.json
-                    ├── sub-example02_ses-neck_R2star.nii.gz
-                    ├── sub-example02_ses-neck_T2w.json
-                    ├── sub-example02_ses-neck_T2w.nii.gz
-                    ├── sub-example02_ses-neck_water.json
-                    └── sub-example02_ses-neck_water.nii.gz
-
-    ```
-
-    * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
-    * derivatives = contains segmentation images and any other derivatives
-    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out the MuscleMap developers for help automating the conversion.
-
 ## Citing MuscleMap
 
-When using the MuscleMap Toolbox please cite the following publications.
+When using the MuscleMap Toolbox please cite the following publications:
 
 ## mm_segment
 
