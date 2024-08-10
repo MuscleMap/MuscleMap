@@ -63,7 +63,12 @@
 
 ### Usage
 
-1. To run mm_segment:
+1. Activate python environment:
+    ~~~
+    conda activate MuscleMap
+    ~~~
+
+2. To run mm_segment:
 
     ~~~
     mm_segment -i image.nii.gz -r abdomen
