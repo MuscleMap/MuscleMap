@@ -8,7 +8,7 @@ setup(
     name='scripts',
     version='0.1.0',
     author='Richard Yin,  Kenneth Weber, Eddo Wesselink',  # Add another author's name
-    description='A medical imaging toolbox for muscle.',
+    description='An imaging toolbox for muscle.',
     url='https://github.com/MuscleMap/MuscleMap.git',
     packages=find_packages(),
     install_requires=required,
