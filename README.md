@@ -92,7 +92,7 @@
     1. For T1w and T2w MRI:
 
         ~~~
-        mm_extract_metrics -m gmm -i image.nii.gz -s image_dseg.nii.gz -c 3
+        mm_extract_metrics -m gmm -r abdomen -i image.nii.gz -s image_dseg.nii.gz -c 3
         ~~~
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
@@ -103,7 +103,7 @@
     2. For Dixon fat-water MRI:
 
         ~~~
-        mm_extract_metrics -m dixon -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
+        mm_extract_metrics -m dixon -r abdomen -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
         ~~~
 
 4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
