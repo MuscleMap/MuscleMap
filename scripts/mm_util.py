@@ -1,5 +1,4 @@
 #TO DO: add descriptions to functions
-
 import os
 import logging
 import sys
@@ -20,7 +19,7 @@ def check_image_exists(image_path):
 
 
 def get_model_and_config_paths(region, specified_model=None):
-    models_base_dir = os.path.join(os.path.dirname(__file__), "..", "models", region)
+    models_base_dir = os.path.join(os.path.dirname(__file__), "models", region)
     
     if specified_model:
         model_path = os.path.join(models_base_dir, specified_model)
@@ -56,8 +55,6 @@ def get_model_and_config_paths(region, specified_model=None):
     return model_path, config_path
 
 
-
-
 def load_model_config(config_path):
     try:
         with open(config_path, 'r') as file:
@@ -72,28 +69,24 @@ def load_model_config(config_path):
 
 
 def validate_seg_arguments(args):
-    if not args.input_images:
-        logging.error("Error: The input images (-i) argument is required.")
-        sys.exit(1)
-    if args.input_images and not isinstance(args.images, str):
-        logging.error("Error: The input images (-i) argument must be a string.")
-        sys.exit(1)    
-    
-    if not args.region:
-        logging.error("Error: The body region (-r) argument is required.")
-        sys.exit(1)
-    if args.region and not isinstance(args.region, str):
-        logging.error("Error: The body region (-r) argument must be a string.")
-        sys.exit(1)  
+    required_args = {'input_images': "-i", 'region': "-r"}
+    for arg_name, flag in required_args.items():
+        arg_value = getattr(args, arg_name, None)
+        if not arg_value:
+            logging.error(f"Error: The {arg_name} ({flag}) argument is required.")
+            sys.exit(1)
+        if not isinstance(arg_value, str):
+            logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
+            sys.exit(1)
 
-    # Optional Argument input=type string validation
-    if args.model and not isinstance(args.model, str):
-        logging.error("Error: The model (-m) argument must be a string.")
-        sys.exit(1)
+    # Optional arguments validation
+    optional_args = {'model': "-m"}
+    for arg_name, flag in optional_args.items():
+        arg_value = getattr(args, arg_name, None)
+        if arg_value and not isinstance(arg_value, str):
+            logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
+            sys.exit(1)
     
-    if args.file_path and not isinstance(args.file_path, str):
-        logging.error("Error: The output file path (-f) argument must be a string.")
-        sys.exit(1)
 
 
 ##########################################################################################
@@ -102,8 +95,6 @@ def validate_seg_arguments(args):
 def save_nifti(data, affine, filename):
     nifti_img = nib.Nifti1Image(data, affine)
     nib.save(nifti_img, filename)
-
-
 ##########################################################################################
 
 def validate_extract_args(args):
@@ -115,6 +106,14 @@ def validate_extract_args(args):
         if not args.input_image or not args.components or not args.segmentation_image:
             print("For kmeans or gmm method, you must provide -i (input image), -c (number of components), and -s (segmentation image).")
             exit(1)
+    string_args = ['fat_image', 'water_image', 'segmentation_image', 'input_image', 'region', 'output_dir']
+    for arg_name in string_args:
+        arg_value = getattr(args, arg_name, None)
+        if arg_value and not isinstance(arg_value, str):
+            logging.error(f"Error: The {arg_name} argument must be a string.")
+            sys.exit(1)
+
+        
 
 def extract_image_data(image_path):
     img = nib.load(image_path)

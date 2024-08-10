@@ -10,6 +10,8 @@ import argparse
 import logging
 import os
 import sys
+print("Command line arguments received:", sys.argv)
+
 import glob
 import shutil
 from monai.inferers import SliceInferer
@@ -32,7 +34,12 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
-from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+try:
+    # Attempt to import as if it is a part of a package
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+except ImportError:
+    # Fallback to direct import if run as a standalone script
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
 import torch
 
 
@@ -47,30 +54,65 @@ def get_parser():
     required.add_argument("-i", '--input_images', required=True, type=str,
                           help="Image to segment. Can be multiple images separated with commas.")
     required.add_argument("-r", '--region', required=True, type=str,
-                          help="Body region of input image.")
+                          help="output name.")
+    required.add_argument("-f", '--file_path', required=False, type=str,
+                            help="full absolute file path with output file name OR path to output directory, output file name=input_image+dseg. if left empty, saves to cwd ")
     
     # Optional arguments
     optional = parser.add_argument_group("Optional")
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
-    required.add_argument("-f", '--file_path', required=True, type=str,
-                            help="Full output file path including directory and file name, defaults to current directory if not specified.")
+    
+    optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
+                        help="select Y or N, default is Y, if N monai will use the cpu even if a cuda enabled device is identified.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     parser = get_parser()
     args = parser.parse_args()
+    print(f"GPU arg: {args.use_GPU}")
 
-    if args.file_path.endswith('.nii.gz'):
-        output_dir, output_file_name = os.path.split(args.file_path)
-    else:
+    if args.file_path is None:
         output_dir = os.getcwd()
-        output_file_name = args.file_path  # Replace with your default file name logic
+        base_name = os.path.basename(args.input_images)
+
+        # Split the name from its extension
+        name, ext = os.path.splitext(base_name)
+        
+        # Further split in case of double extensions like .nii.gz
+        if ext == ".gz" and name.endswith(".nii"):
+            name, _ = os.path.splitext(name)  # Remove .nii part
+
+        # Add 'dseg' before the extension
+        output_file_name = f"{name}_dseg.nii.gz"
+    elif args.file_path.endswith('.nii.gz') or args.file_path.endswith('.nii'):
+        output_dir, output_file_name = os.path.split(args.file_path)
+    else: 
+        if os.path.isdir(args.file_path):
+            output_dir=args.file_path
+            base_name = os.path.basename(args.input_images)
+    
+            # Split the name from its extension
+            name, ext = os.path.splitext(base_name)
+            
+            # Further split in case of double extensions like .nii.gz
+            if ext == ".gz" and name.endswith(".nii"):
+                name, _ = os.path.splitext(name)  # Remove .nii part
+
+            # Add 'dseg' before the extension
+            output_file_name = f"{name}_dseg.nii.gz"
+        else:
+            logging.error(f"Error: input: {args.file_path}. the file_path argument must be the full output file_path with file name OR a working directory.")
+            sys.exit(1)
+
+
+
 
     # Ensure the output directory is absolute
     output_dir = os.path.abspath(output_dir)
@@ -112,9 +154,6 @@ def main():
             'subject': file_name
 
         }
-
-
-
 
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
@@ -180,7 +219,9 @@ def main():
 
 
     # Device config
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
+    logging.info(f"device: {device}")  # Debug statement
+
 
     # Ensure flexibility to handle models with varying label counts
     # Validate post-processing steps based on specific requirements of different models
@@ -207,11 +248,10 @@ def main():
             separate_folder=False, 
             resample=False, 
             output_postfix="",
-            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, args.file_path)
+            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, output_file_name)
 
     )
     ])
-
 
     # Create model and set parameters
     model = UNet(
@@ -226,7 +266,6 @@ def main():
         norm=import_norm,
     ).to(device)
 
-    # Load pre-existing model if we want to continue training
     map_location = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Loading model from '{model_path}'...")
     model.load_state_dict(torch.load(model_path, map_location=map_location))
