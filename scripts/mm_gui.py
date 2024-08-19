@@ -131,6 +131,72 @@ def run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_en
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 
+def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chain_use_gui):
+    fat = fat_entry.get()
+    water = water_entry.get()
+    region= region_entry.get()
+    output_dir = chain_output_dir_entry.get()
+    use_gui= chain_use_gui.get()
+
+    segmentation_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
+    extraction_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_extract_metrics.py')
+
+    if water.endswith('.nii.gz'):
+        water_output = os.path.join(output_dir, os.path.basename(water).replace('.nii.gz', '_dseg.nii.gz'))
+    elif water.endswith('.nii'):
+        water_output = os.path.join(output_dir, os.path.basename(water).replace('.nii', '_dseg.nii.gz'))
+
+    # Segmentation command
+    water_command = [
+        sys.executable, segmentation_script_path,
+        '-i', water,
+        '-r', region, 
+        '-g', use_gui,
+        '-f', output_dir
+    ]
+    print("Segmentation command to be executed:", water_command)  # Debug print
+    try:
+        subprocess.run(water_command, check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+    fat_command = [
+        sys.executable, segmentation_script_path,
+        '-i', fat,
+        '-r', region, 
+        '-g', use_gui,
+        '-f', output_dir
+    ]
+    print("Segmentation command to be executed:", fat_command)  # Debug print
+
+    try:
+        subprocess.run(fat_command, check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+
+    # Extraction command
+    command = [
+        sys.executable, extraction_script_path,
+        '-m', 'dixon',
+        '-r', region,
+        '-o', output_dir,
+        '-f', fat,
+        '-w', water,
+        '-s', water_output
+
+    ]
+    print("Extraction command to be executed:", command)  # Debug print
+
+    try:
+        subprocess.run(command, check=True)
+        messagebox.showinfo("Success", "Segmentation and Extraction completed successfully.")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+
 def recreate_method_menu(method_menu, extract_method_var, methods):
     method_menu['menu'].delete(0, 'end')
     for method in methods:
@@ -173,9 +239,11 @@ def main():
     segment_tab = ttk.Frame(tab_control)
     extract_tab = ttk.Frame(tab_control)
     chain_tab = ttk.Frame(tab_control)
+    dixon_tab = ttk.Frame(tab_control)
     tab_control.add(segment_tab, text='Segmentation')
     tab_control.add(extract_tab, text='Extract Metrics')
     tab_control.add(chain_tab, text='Chaining')
+    tab_control.add(dixon_tab, text='Dixon')
     tab_control.pack(expand=1, fill="both")
 
     # Segmentation GUI
@@ -324,11 +392,39 @@ def main():
     chain_output_dir_entry = tk.Entry(chain_tab, width=50)
     chain_output_dir_entry.grid(row=6, column=1)
     ttk.Button(chain_tab, text="Browse...", command=lambda: browse_directory(chain_output_dir_entry)).grid(row=6, column=2)
-
-
-
     ttk.Button(chain_tab, text="Run Chained Workflow", command=lambda: run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gui)).grid(row=7, column=1)
 
+
+        # GUI Elements
+    ttk.Label(dixon_tab, text="Input Fat Image:").grid(row=0, column=0)
+    fat_image_entry = tk.Entry(dixon_tab, width=50)
+    fat_image_entry.grid(row=0, column=1)
+    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_file(fat_image_entry)).grid(row=0, column=2)
+
+    ttk.Label(dixon_tab, text="Input Water Image:").grid(row=1, column=0)
+    water_image_entry = tk.Entry(dixon_tab, width=50)
+    water_image_entry.grid(row=1, column=1)
+    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_file(water_image_entry)).grid(row=1, column=2)
+
+    ttk.Label(dixon_tab, text="Region:").grid(row=2, column=0)
+    region_entry = tk.Entry(dixon_tab, width=50)
+    region_entry.grid(row=2, column=1)
+
+    ttk.Label(dixon_tab, text="Output Directory:").grid(row=3, column=0)
+    output_dir_entry = tk.Entry(dixon_tab, width=50)
+    output_dir_entry.grid(row=3, column=1)
+    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_directory(output_dir_entry)).grid(row=3, column=2)
+
+    ttk.Label(dixon_tab, text="GPU:").grid(row=4, column=0)
+    dixon_use_gui = tk.StringVar(value='Y')
+    dixon_frame = ttk.Frame(dixon_tab)
+    rb2 = ttk.Radiobutton(dixon_frame, text="Yes", variable=dixon_use_gui, value='Y')
+    rb3 = ttk.Radiobutton(dixon_frame, text="No", variable=dixon_use_gui, value='N')
+    rb2.pack(side='left')
+    rb3.pack(side='left')
+    dixon_frame.grid(row=4, column=1)
+    # Button to execute the Dixon Chaining
+    ttk.Button(dixon_tab, text="Run Dixon Workflow", command=lambda: run_dixon(fat_image_entry, water_image_entry, region_entry, output_dir_entry, dixon_use_gui)).grid(row=5, column=1)
     root.mainloop()
 
 if __name__ == "__main__":
