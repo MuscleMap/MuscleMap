@@ -95,6 +95,8 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 ## MuscleMap Toolbox
 
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
+
 ### Dependencies
 
 * Python 3.9.0
