@@ -195,41 +195,6 @@ def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chai
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
-
-
-def recreate_method_menu(method_menu, extract_method_var, methods):
-    method_menu['menu'].delete(0, 'end')
-    for method in methods:
-        method_menu['menu'].add_command(label=method, command=tk._setit(extract_method_var, method, update_extract_fields))
-
-def update_extract_fields(methods, extract_method_var, method_menu, extract_input_image_entry, input_image_browse_button, extract_fat_image_entry, fat_image_browse_button, extract_water_image_entry, water_image_browse_button, rb2, rb3, _=None):
-    method = extract_method_var.get()
-    recreate_method_menu(method_menu, extract_method_var, methods)  # Ensure the menu is updated correctly every time
-    if method == 'dixon':
-        extract_input_image_entry.config(state='disabled')
-        input_image_browse_button.config(state='disabled')
-        
-        extract_fat_image_entry.config(state='normal')
-        fat_image_browse_button.config(state='normal')
-        
-        extract_water_image_entry.config(state='normal')
-        water_image_browse_button.config(state='normal')
-        
-        rb2.config(state='disabled')
-        rb3.config(state='disabled')
-    else:
-        extract_input_image_entry.config(state='normal')
-        input_image_browse_button.config(state='normal')
-        
-        extract_fat_image_entry.config(state='disabled')
-        fat_image_browse_button.config(state='disabled')
-        
-        extract_water_image_entry.config(state='disabled')
-        water_image_browse_button.config(state='disabled')
-        
-        rb2.config(state='normal')
-        rb3.config(state='normal')
-
 def main():
     root = tk.Tk()
     root.title("Muscle Imaging Analysis Tool")
@@ -275,23 +240,9 @@ def main():
     # Extraction GUI
     ttk.Label(extract_tab, text="Method:").grid(row=0, column=0)
     extract_method_var = tk.StringVar(value='dixon')
-    methods = ['dixon', 'kmeans', 'gmm']
-    method_menu = ttk.OptionMenu(
-        extract_tab, extract_method_var, extract_method_var.get(), *methods,
-        command=lambda value: update_extract_fields(methods, 
-            extract_method_var=extract_method_var,
-            method_menu=method_menu,
-            extract_input_image_entry=extract_input_image_entry,
-            input_image_browse_button=input_image_browse_button,
-            extract_fat_image_entry=extract_fat_image_entry,
-            fat_image_browse_button=fat_image_browse_button,
-            extract_water_image_entry=extract_water_image_entry,
-            water_image_browse_button=water_image_browse_button,
-            rb2=rb2,
-            rb3=rb3,
-            _=value  # Passing the newly selected value from the OptionMenu
-        )
-    )    
+    methods = ['dixon', 'kmeans', 'gmm', 'average']
+    method_menu = ttk.OptionMenu(extract_tab, extract_method_var, extract_method_var.get(), *methods)
+
     method_menu.grid(row=0, column=1)
 
     ttk.Label(extract_tab, text="Input Image:").grid(row=1, column=0)
@@ -336,18 +287,7 @@ def main():
     ttk.Button(extract_tab, text="Browse...", command=lambda: browse_directory(extract_output_dir_entry)).grid(row=7, column=2)
 
     ttk.Button(extract_tab, text="Run Extract Metrics", command=lambda: run_extraction(extract_method_var, extract_region_entry, extract_output_dir_entry, extract_segmentation_image_entry, extract_fat_image_entry, extract_water_image_entry, extract_input_image_entry, extract_components_var)).grid(row=8, column=1)
-    update_extract_fields(methods, 
-            extract_method_var=extract_method_var,
-            method_menu=method_menu,
-            extract_input_image_entry=extract_input_image_entry,
-            input_image_browse_button=input_image_browse_button,
-            extract_fat_image_entry=extract_fat_image_entry,
-            fat_image_browse_button=fat_image_browse_button,
-            extract_water_image_entry=extract_water_image_entry,
-            water_image_browse_button=water_image_browse_button,
-            rb2=rb2,
-            rb3=rb3 
-        )
+ 
 
     # Chaining Tab - Full setup for both segmentation and extraction
     ttk.Label(chain_tab, text="Segmentation and Extraction Workflow").grid(row=0, column=0, columnspan=3)
