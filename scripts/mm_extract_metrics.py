@@ -6,16 +6,17 @@ import logging
 import math
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti
+    from .mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti, calculate_segmentation_metrics
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti
+    from mm_util import get_model_and_config_paths, load_model_config, validate_extract_args, extract_image_data, apply_clustering, calculate_thresholds, quantify_muscle_measures, create_image_array, create_output_dir, map_image, save_nifti, calculate_segmentation_metrics
 import nibabel as nib
+
 
 def get_parser():
     parser = argparse.ArgumentParser(description="Muscle and Fat Segmentation in MRI")
 
-    parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm'], 
+    parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm', 'average'], 
                           help="Method to use: dixon, kmeans, or gmm")
 
     parser.add_argument("-i", '--input_image', required=False, type=str, 
@@ -71,7 +72,6 @@ def main():
         combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
         combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
         combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
-
     elif args.method == 'gmm':
         GMM_activate = True
         total_probability_maps = [np.zeros(segmentations_data.shape) for _ in range(args.components)]
@@ -92,7 +92,9 @@ def main():
     id_part = input_filename[:-7] if input_filename.endswith('.nii.gz') else input_filename # This assumes the ID is the first part of the filename
     
     for value in np.unique(segmentations_data):
+
         if value>0: #iterates through muscles 
+            result_entry= None
             logging.info(f"running label {value}")
             if args.region:
                 for label in model_config["labels"]:
@@ -104,20 +106,24 @@ def main():
             mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
             #If no mask, then assign nan
             if mask.sum() == 0:
-                volume = np.nan
-                number_of_slices = np.nan
-                imf_percentage = np.nan
+                continue
             else:
                 number_of_slices = np.sum(np.max(np.max(mask, axis=0), axis=0))
-                if args.method == 'dixon':     
+
+                if args.method == 'dixon': 
+
                     logging.info(f"Fat image: {args.fat_image}")
                     logging.info(f"Water image: {args.water_image}")
-                    water, water_array, water_dim, water_pixdim = extract_image_data(args.water_image)
-                    fat, fat_array, fat_dim, fat_pixdim = extract_image_data(args.fat_image)
-                    volume=np.around(mask.sum() * math.prod(water_pixdim)/ 1000, decimals=2)
-                    imf_percentage = np.around((fat_array[mask].sum() / (fat_array[mask].sum() + water_array[mask].sum())) * 100, decimals=2)
+                    metrics = calculate_segmentation_metrics(args, mask)
+
+                elif args.method == 'average':
+                    image, image_array, im_dim, im_pixdim = extract_image_data(args.input_image)
+                    metrics = calculate_segmentation_metrics(args, mask)
+
+                    pass
 
                 elif args.method == 'kmeans' or 'gmm':
+
                     image, image_array, im_dim, (sx, sy, sz) = extract_image_data(args.input_image) #image array has dimensions of INPUT
                     mask_img = np.reshape(image_array[mask], (-1, 1)) #takes true positions in mask and reshapes the 1D array into 2D array with single column of input values
 
@@ -127,6 +133,7 @@ def main():
                     
                     muscle_max, unknown_max, cluster_intensities, sorted_indices= calculate_thresholds(labels, mask_img, args.components)
                     
+                    package= (muscle_max, unknown_max, label, sx, sy, sz)
                     #begin new segment
                     if args.method == 'gmm':
                         logging.info(f"Input image dimensions: {image.shape}")
@@ -149,7 +156,8 @@ def main():
                             logging.info(f"Updated total_probability_map for component {i}")
 
                     #end of new segment
-                    muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)
+                    muscle_percentage, unknown_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)
+ 
 
                     # Update cumulative masks
                     combined_muscle_mask |= muscle_mask
@@ -157,25 +165,31 @@ def main():
                         combined_unknown_mask |= unknown_mask
                     combined_fat_mask |= fat_mask
 
-                    imf_percentage = np.around((fat_volume_ml / volume) * 100, decimals=2) if volume != 0 else 0 #round to 2 decimals
                     muscle_array, fat_array = create_image_array(image_array,  segmentations_data, value, muscle_max)
                     if value == 1:
                         segmentation_image = muscle_array + fat_array
                     else:
                         segmentation_image += muscle_array + fat_array
-                    
-                results_list.append({
+                    results = {}
+                    results['Muscle percentage'] = muscle_percentage
+                    results['Fat percentage'] = fat_percentage
+                    if args.components == 3:
+                        results['Unknown percentage'] = unknown_percentage
+                    results['Volume in mL'] = volume
+                    metrics=results
+
+                result_entry={
                     'muscle': muscle_side_info,
                     'Label': value, #current val iterating through, "muscle number",
-                    'Volume (mL)': volume, 
                     'Number_of_slices': number_of_slices,
-                    'IMF_percentage': imf_percentage,
 
-                })
-                #if args.method =="kmeans" or 'gmm':
-                #map_image(id_part, segmentation_image,image, kmeans_activate, GMM_activate)
 
-            # Convert results list to DataFrame
+                }
+                result_entry.update(metrics)
+                results_list.append(result_entry)
+
+        
+        
         results_df = pd.DataFrame(results_list)
 
     if args.method == 'gmm':
@@ -190,7 +204,7 @@ def main():
             prob_map_img.to_filename(prob_output_file_path)
             logging.info(f"Saved total probability map for {component_name} to {prob_output_file_path}")
 
-    if args.method != 'dixon':
+    if args.method != 'dixon' and args.method != 'average':
         save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_muscle_seg.nii.gz'))
         if args.components == 3:
             save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_undefined_seg.nii.gz'))

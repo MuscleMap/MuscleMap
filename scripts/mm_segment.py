@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # For usage, type: python mm_segment.py -h
@@ -20,7 +20,6 @@ from monai.transforms import (
     AsDiscreted,
     Compose,
     Invertd,
-    CropForegroundd,
     LoadImaged,
     Orientationd,
     Spacingd,
@@ -200,7 +199,6 @@ def main():
             pixdim=pix_dim,
             mode=("bilinear")),
         Orientationd(keys=["image"], axcodes="RAS"),
-        CropForegroundd(keys=["image"], source_key="image"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
         EnsureTyped(keys=["image"])
     ])
