@@ -95,7 +95,6 @@ def main():
 
         if value>0: #iterates through muscles 
             result_entry= None
-            logging.info(f"running label {value}")
             if args.region:
                 for label in model_config["labels"]:
                     if label["value"] == value:
@@ -112,8 +111,7 @@ def main():
 
                 if args.method == 'dixon': 
 
-                    logging.info(f"Fat image: {args.fat_image}")
-                    logging.info(f"Water image: {args.water_image}")
+
                     metrics = calculate_segmentation_metrics(args, mask)
 
                 elif args.method == 'average':
@@ -136,7 +134,6 @@ def main():
                     package= (muscle_max, unknown_max, label, sx, sy, sz)
                     #begin new segment
                     if args.method == 'gmm':
-                        logging.info(f"Input image dimensions: {image.shape}")
 
                         # Get probability maps for each component
                         probability_maps = clustering.predict_proba(mask_img) #mask_img is 2D for clustering
@@ -145,15 +142,12 @@ def main():
 
                         for i in range(args.components): 
                             prob_map = sorted_probability_maps[:, i] #returns 1D array, taking all rows and the ith column from probability_maps (a 2D array->1D array)
-                            logging.info(f"Dimensions of prob_map for component {i}: {prob_map.shape}") 
 
                             prob_map_reshaped = np.zeros(image.shape) #creates a 0 array with dimensions of original image
                             prob_map_reshaped[mask] = prob_map #prob_map_reshaped[mask] assigns the items in 3D array that belong to mask to the value from prob_map
-                            logging.info(f"Dimensions of prob_map_reshaped for component {i}: {prob_map_reshaped.shape}")
 
                             # Update the total probability map for the current component
                             total_probability_maps[i] += prob_map_reshaped
-                            logging.info(f"Updated total_probability_map for component {i}")
 
                     #end of new segment
                     muscle_percentage, unknown_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)

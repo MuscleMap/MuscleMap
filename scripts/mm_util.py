@@ -1,4 +1,3 @@
-#TO DO: add descriptions to functions
 import os
 import logging
 import sys
@@ -9,7 +8,7 @@ import math
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 
-#check_image_exists (DESCRIPTION)
+#check_image_exists 
 def check_image_exists(image_path):
     if not os.path.isfile(image_path):
         logging.error(f"Image file '{image_path}' does not exist or is not a file.")
@@ -159,7 +158,6 @@ def calculate_thresholds(labels, mask_img, num_clusters):
         unknown_img= None
         unknown_max= None
         sorted_indices = [0, 1] if means[0] < means[1] else [1, 0]
-        logging.info(f"NUMCLUSTERS=2")
 
     elif num_clusters == 3:
         sorted_clusters = sorted(zip(means, clusters, range(len(clusters))), key=lambda x: x[0])
@@ -169,15 +167,8 @@ def calculate_thresholds(labels, mask_img, num_clusters):
         muscle_max = np.max(muscle_img)
         unknown_max= np.max(unknown_img)
 
-        logging.info(f"Cluster means: {means}")
-        logging.info(f"Sorted means: {sorted([mean for mean, _, _ in sorted_clusters])}")
-        logging.info(f"muscle max: {np.max(muscle_img)} ")
-        logging.info(f"unk min: {np.min(unknown_img)} ")
-        logging.info(f"unk max: {np.max(unknown_img)}")
-        logging.info(f"fat min: {np.min(fat_img)}")
         sorted_indices = [x[2] for x in sorted_clusters]
 
-        logging.info(f"Sorted indices: {sorted_indices}")
 
 
     cluster_intensities = {

@@ -204,7 +204,6 @@ def main():
     ])
     # Process all images at once
     test_files = [{"image": img} for img in image_paths]
-    logging.info(f"Test files: {test_files}")  # Debug statement
 
 
     # Create iterable dataset and dataloader, identical to training part
@@ -218,7 +217,6 @@ def main():
 
     # Device config
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
-    logging.info(f"device: {device}")  # Debug statement
 
 
     # Ensure flexibility to handle models with varying label counts
@@ -265,11 +263,9 @@ def main():
     ).to(device)
 
     map_location = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Loading model from '{model_path}'...")
     model.load_state_dict(torch.load(model_path, map_location=map_location))
     model.eval()
 
-    logging.info("model loaded ...")
 
 
 
@@ -278,13 +274,11 @@ def main():
         for i, input_data in enumerate(inference_transforms_loader):
             if 'image_meta_dict' not in input_data:
                 input_data['image_meta_dict'] = {'filename_or_obj': 'unknown'}
-            logging.info(f"Running inference on batch {i+1}/{len(inference_transforms_loader)} for image '{input_data['image_meta_dict']['filename_or_obj']}'...")
             val_inputs = input_data["image"].to(device)
             axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
             input_data["pred"] = axial_inferer(val_inputs, model)
             val_data = [post_transforms(i) for i in decollate_batch(input_data)]
 
-            logging.info(f"Inference and post-processing completed for batch {i+1}/{len(inference_transforms_loader)}.")
     
 
 
