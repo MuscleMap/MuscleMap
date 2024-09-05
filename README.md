@@ -182,15 +182,21 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
     * Users may specifcy 2 or 3 components with -c.
-    * For gmm, probability maps are ouput for each component and label.
-    * For gmm and kmeans, binarized segmentations are ouput for each component and label.
+    * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
+    * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
 
-    2. For Dixon fat-water MRI:
+    2. For Dixon Fat-Water MRI:
 
         ~~~
         mm_extract_metrics -m dixon -r abdomen -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
         ~~~
 
+   3. For Dixon Fat Fraction MRI or CT:
+
+        ~~~
+        mm_extract_metrics -m average -r abdomen -i image.nii.gz -s image_dseg.nii.gz
+        ~~~
+     
 4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
 
      ~~~
