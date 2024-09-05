@@ -1,14 +1,14 @@
-#TO DO: add descriptions to functions
 import os
 import logging
 import sys
 import json
 import numpy as np
 import nibabel as nib
+import math
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 
-#check_image_exists (DESCRIPTION)
+#check_image_exists 
 def check_image_exists(image_path):
     if not os.path.isfile(image_path):
         logging.error(f"Image file '{image_path}' does not exist or is not a file.")
@@ -106,6 +106,9 @@ def validate_extract_args(args):
         if not args.input_image or not args.components or not args.segmentation_image:
             print("For kmeans or gmm method, you must provide -i (input image), -c (number of components), and -s (segmentation image).")
             exit(1)
+    elif args.method == 'average':
+        if not args.input_image or not args.segmentation_image:
+            print("for average, requires segmentation and original image")
     string_args = ['fat_image', 'water_image', 'segmentation_image', 'input_image', 'region', 'output_dir']
     for arg_name in string_args:
         arg_value = getattr(args, arg_name, None)
@@ -116,6 +119,8 @@ def validate_extract_args(args):
         
 
 def extract_image_data(image_path):
+
+
     img = nib.load(image_path)
     img_array = img.get_fdata()
     
@@ -153,7 +158,6 @@ def calculate_thresholds(labels, mask_img, num_clusters):
         unknown_img= None
         unknown_max= None
         sorted_indices = [0, 1] if means[0] < means[1] else [1, 0]
-        logging.info(f"NUMCLUSTERS=2")
 
     elif num_clusters == 3:
         sorted_clusters = sorted(zip(means, clusters, range(len(clusters))), key=lambda x: x[0])
@@ -163,15 +167,8 @@ def calculate_thresholds(labels, mask_img, num_clusters):
         muscle_max = np.max(muscle_img)
         unknown_max= np.max(unknown_img)
 
-        logging.info(f"Cluster means: {means}")
-        logging.info(f"Sorted means: {sorted([mean for mean, _, _ in sorted_clusters])}")
-        logging.info(f"muscle max: {np.max(muscle_img)} ")
-        logging.info(f"unk min: {np.min(unknown_img)} ")
-        logging.info(f"unk max: {np.max(unknown_img)}")
-        logging.info(f"fat min: {np.min(fat_img)}")
         sorted_indices = [x[2] for x in sorted_clusters]
 
-        logging.info(f"Sorted indices: {sorted_indices}")
 
 
     cluster_intensities = {
@@ -187,20 +184,24 @@ def calculate_thresholds(labels, mask_img, num_clusters):
 
 #this label is the muscle label
 def quantify_muscle_measures(img_array, mask_array, muscle_max, unknown_max, label, sx, sy, sz):
+    total_mask = (mask_array == label)
 
     if unknown_max!= None: #3 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) #muscle_mask is values where mask_array equals label AND intensity<=upper threshold
         unknown_mask = (mask_array == label) & (img_array <=unknown_max) & (img_array > muscle_max)
         fat_mask = (mask_array == label) & (img_array > unknown_max)
+        unknown_percentage = round(100 * (np.sum(unknown_mask) / np.sum(total_mask)),2)
+
 
     else: #2 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) 
         fat_mask = (mask_array == label) & (img_array > muscle_max)
         unknown_mask=None
+        unknown_percentage=None
     
-    total_mask = (mask_array == label)
 
     muscle_percentage = round(100 * (np.sum(muscle_mask) / np.sum(total_mask)),2)
+
     fat_percentage = round(100 * (np.sum(fat_mask) / np.sum(total_mask)),2)
 
     muscle_volume_ml = round((np.sum(muscle_mask) * (sx * sy * sz)) / 1000,2)
@@ -208,7 +209,7 @@ def quantify_muscle_measures(img_array, mask_array, muscle_max, unknown_max, lab
     total_volume_ml = round((np.sum(total_mask) *(sx * sy * sz)) / 1000,2)
 
         
-    return muscle_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml, muscle_mask, unknown_mask, fat_mask
+    return muscle_percentage, unknown_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml, muscle_mask, unknown_mask, fat_mask
 
 
 def create_image_array(img_array, mask_array,label,upper_threshold):
@@ -254,3 +255,27 @@ def map_image(ID_name_file, segmentation_image, img, kmeans_activate, GMM_activa
 
     gt_img.to_filename(output_file_path)
 
+
+def calculate_segmentation_metrics(args, mask):
+    results = {}
+    if args.method == 'dixon':
+        water, water_array, water_dim, water_pixdim = extract_image_data(args.water_image)
+        fat, fat_array, fat_dim, fat_pixdim = extract_image_data(args.fat_image)
+        volume = np.around(mask.sum() * math.prod(water_pixdim) / 1000, decimals=2)
+        imf_percentage = np.around((fat_array[mask].sum() / (fat_array[mask].sum() + water_array[mask].sum())) * 100, decimals=2)
+        results['Volume in ML'] = volume
+        results['IMF percentage'] = imf_percentage
+    elif args.method == 'average':
+        image, image_array, im_dim, im_pixdim = extract_image_data(args.input_image)
+
+        masked_image_array = image_array[mask]  # Apply mask to image array
+        average_intensity = np.around(np.mean(masked_image_array), decimals=3)
+        volume = np.around(mask.sum() * np.prod(im_pixdim) / 1000, decimals=3)  # Convert from mm^3 to mL
+        results['Volume in mL'] = volume
+        results['Average intensity'] = average_intensity
+
+    return results
+
+def absolute_path(relative_path):
+    base_path = os.path.dirname(__file__)  # Gets the directory where the script is located
+    return os.path.join(base_path, relative_path)
