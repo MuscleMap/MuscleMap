@@ -265,16 +265,19 @@ def main():
     ttk.Button(segment_tab, text="Browse...", command=lambda: browse_file(segment_input_image_entry)).grid(row=0, column=2)
 
     ttk.Label(segment_tab, text="Region:").grid(row=1, column=0)
-    segment_region_entry = tk.Entry(segment_tab, width=50)
-    segment_region_entry.grid(row=1, column=1)
+    segment_region_entry = tk.StringVar()
+    regions = ['abdomen']
+    region_menu = ttk.OptionMenu(segment_tab, segment_region_entry, segment_region_entry.get(), *regions)
+    region_menu.grid(row=1, column=1)
 
     ttk.Label(segment_tab, text="Output File Path:").grid(row=2, column=0)
     segment_file_path_entry = tk.Entry(segment_tab, width=50)
+    segment_file_path_entry.insert(0, str(os.getcwd()))
     segment_file_path_entry.grid(row=2, column=1)
     ttk.Button(segment_tab, text="Browse...", command=lambda: browse_directory(segment_file_path_entry)).grid(row=2, column=2)
 
     ttk.Label(segment_tab, text="GPU:").grid(row=3, column=0)
-    segment_use_gpu = tk.StringVar()
+    segment_use_gpu = tk.StringVar(value='Y')
     segments_frame = ttk.Frame(segment_tab)
     rb2 = ttk.Radiobutton(segments_frame, text="Yes", variable=segment_use_gpu, value='Y')
     rb3 = ttk.Radiobutton(segments_frame, text="No", variable=segment_use_gpu, value='N')
@@ -282,14 +285,13 @@ def main():
     rb3.pack(side='left')
     segments_frame.grid(row=3, column=1)
 
-    ttk.Button(segment_tab, text="Run Segmentation", command=lambda: run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_use_gpu)).grid(row=4, column=1)
+    ttk.Button(segment_tab, text="Run", command=lambda: run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_use_gpu)).grid(row=4, column=1)
 
     # Extraction GUI
     ttk.Label(extract_tab, text="Method:").grid(row=0, column=0)
-    extract_method_var = tk.StringVar(value='dixon')
+    extract_method_var = tk.StringVar()
     methods = ['dixon', 'kmeans', 'gmm', 'average']
     method_menu = ttk.OptionMenu(extract_tab, extract_method_var, extract_method_var.get(), *methods)
-
     method_menu.grid(row=0, column=1)
 
     ttk.Label(extract_tab, text="Input Image:").grid(row=1, column=0)
@@ -324,16 +326,19 @@ def main():
     rb3.pack(side='left')
     components_frame.grid(row=5, column=1)
 
-    ttk.Label(extract_tab, text="Region: (optional)").grid(row=6, column=0)
-    extract_region_entry = tk.Entry(extract_tab, width=50)
-    extract_region_entry.grid(row=6, column=1)
+    ttk.Label(extract_tab, text="Region:").grid(row=6, column=0)
+    extract_region_entry = tk.StringVar()
+    extract_regions = ['abdomen']
+    extract_region_menu = ttk.OptionMenu(extract_tab, extract_region_entry, extract_region_entry.get(), *extract_regions)
+    extract_region_menu.grid(row=6, column=1)
 
     ttk.Label(extract_tab, text="Output Directory:").grid(row=7, column=0)
     extract_output_dir_entry = tk.Entry(extract_tab, width=50)
+    extract_output_dir_entry.insert(0, str(os.getcwd()))
     extract_output_dir_entry.grid(row=7, column=1)
     ttk.Button(extract_tab, text="Browse...", command=lambda: browse_directory(extract_output_dir_entry)).grid(row=7, column=2)
 
-    ttk.Button(extract_tab, text="Run Extract Metrics", command=lambda: run_extraction(extract_method_var, extract_region_entry, extract_output_dir_entry, extract_segmentation_image_entry, extract_fat_image_entry, extract_water_image_entry, extract_input_image_entry, extract_components_var)).grid(row=8, column=1)
+    ttk.Button(extract_tab, text="Run", command=lambda: run_extraction(extract_method_var, extract_region_entry, extract_output_dir_entry, extract_segmentation_image_entry, extract_fat_image_entry, extract_water_image_entry, extract_input_image_entry, extract_components_var)).grid(row=8, column=1)
  
 
     # Gmm kmean chaining tab
@@ -346,11 +351,13 @@ def main():
     ttk.Button(chain_gmm_kmeans_tab, text="Browse...", command=lambda: browse_file(chain_input_image_entry)).grid(row=1, column=2)
 
     ttk.Label(chain_gmm_kmeans_tab, text="Region:").grid(row=2, column=0)
-    chain_region_entry = tk.Entry(chain_gmm_kmeans_tab, width=50)
-    chain_region_entry.grid(row=2, column=1)
+    chain_region_entry = tk.StringVar()
+    chain_regions = ['abdomen']
+    chain_region_menu = ttk.OptionMenu(chain_gmm_kmeans_tab, chain_region_entry, chain_region_entry.get(), *chain_regions)
+    chain_region_menu.grid(row=2, column=1)
 
     ttk.Label(chain_gmm_kmeans_tab, text="GPU:").grid(row=3, column=0)
-    chain_use_gpu = tk.StringVar()
+    chain_use_gpu = tk.StringVar(value='Y')
     chain_GPU_frame = ttk.Frame(chain_gmm_kmeans_tab)
     rb2 = ttk.Radiobutton(chain_GPU_frame, text="Yes", variable=chain_use_gpu, value='Y')
     rb3 = ttk.Radiobutton(chain_GPU_frame, text="No", variable=chain_use_gpu, value='N')
@@ -360,7 +367,7 @@ def main():
 
     # Extraction fields in the Chaining tab
     ttk.Label(chain_gmm_kmeans_tab, text="Method:").grid(row=4, column=0)
-    chain_method_var = tk.StringVar(value='kmeans')
+    chain_method_var = tk.StringVar()
     chaining_methods = ['kmeans', 'gmm']
     chain_method_menu = ttk.OptionMenu(chain_gmm_kmeans_tab, chain_method_var, chain_method_var.get(), *chaining_methods)
     chain_method_menu.grid(row=4, column=1)
@@ -377,6 +384,7 @@ def main():
 
     ttk.Label(chain_gmm_kmeans_tab, text="Output Directory:").grid(row=6, column=0)
     chain_output_dir_entry = tk.Entry(chain_gmm_kmeans_tab, width=50)
+    chain_output_dir_entry.insert(0, str(os.getcwd()))
     chain_output_dir_entry.grid(row=6, column=1)
     ttk.Button(chain_gmm_kmeans_tab, text="Browse...", command=lambda: browse_directory(chain_output_dir_entry)).grid(row=6, column=2)
     ttk.Button(chain_gmm_kmeans_tab, text="Run", command=lambda: run_gmm_kmeans_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gpu)).grid(row=7, column=1)
@@ -396,11 +404,14 @@ def main():
     ttk.Button(chain_dixon_tab, text="Browse...", command=lambda: browse_file(dixon_water_image_entry)).grid(row=2, column=2)
 
     ttk.Label(chain_dixon_tab, text="Region:").grid(row=3, column=0)
-    dixon_region_entry = tk.Entry(chain_dixon_tab, width=50)
-    dixon_region_entry.grid(row=3, column=1)
+    dixon_region_entry = tk.StringVar()
+    dixon_regions = ['abdomen']
+    dixon_region_menu = ttk.OptionMenu(chain_dixon_tab, dixon_region_entry, dixon_region_entry.get(), *dixon_regions)
+    dixon_region_menu.grid(row=3, column=1)
 
     ttk.Label(chain_dixon_tab, text="Output Directory:").grid(row=4, column=0)
     dixon_output_dir_entry = tk.Entry(chain_dixon_tab, width=50)
+    dixon_output_dir_entry.insert(0, str(os.getcwd()))
     dixon_output_dir_entry.grid(row=4, column=1)
     ttk.Button(chain_dixon_tab, text="Browse...", command=lambda: browse_directory(dixon_output_dir_entry)).grid(row=4, column=2)
 
@@ -425,11 +436,14 @@ def main():
     ttk.Button(chain_average_tab, text="Browse...", command=lambda: browse_file(average_image_entry)).grid(row=1, column=2)
 
     ttk.Label(chain_average_tab, text="Region:").grid(row=2, column=0)
-    average_region_entry = tk.Entry(chain_average_tab, width=50)
-    average_region_entry.grid(row=2, column=1)
+    average_region_entry = tk.StringVar()
+    average_regions = ['abdomen']
+    average_region_menu = ttk.OptionMenu(chain_average_tab, average_region_entry, average_region_entry.get(), *average_regions)
+    average_region_menu.grid(row=2, column=1)
 
     ttk.Label(chain_average_tab, text="Output Directory:").grid(row=3, column=0)
     average_output_dir_entry = tk.Entry(chain_average_tab, width=50)
+    average_output_dir_entry.insert(0, str(os.getcwd()))
     average_output_dir_entry.grid(row=3, column=1)
     ttk.Button(chain_average_tab, text="Browse...", command=lambda: browse_directory(average_output_dir_entry)).grid(row=3, column=2)
 
@@ -445,7 +459,6 @@ def main():
     # Button to execute the average Chaining
     ttk.Button(chain_average_tab, text="Run", command=lambda: run_average_chained(average_image_entry, average_region_entry, average_output_dir_entry, average_use_gpu)).grid(row=5, column=1)
     
-
     root.mainloop()
 
 if __name__ == "__main__":
