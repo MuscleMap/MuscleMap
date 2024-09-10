@@ -16,7 +16,7 @@ def browse_directory(entry):
         entry.delete(0, tk.END)
         entry.insert(0, directory)
 
-def run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_use_gui):
+def run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_average):
     # Start with the mandatory arguments
     # Assuming mm_segment.py is in the same directory as your current script
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
@@ -25,12 +25,12 @@ def run_segmentation(segment_input_image_entry, segment_region_entry, segment_fi
         sys.executable, script_path,  # Use the full path to the mm_segment.py script
         '-i', segment_input_image_entry.get(),
         '-r', segment_region_entry.get(), 
-        '-g', segment_use_gui.get()
+        '-g', segment_average.get()
     ]
 
     # Add optional arguments only if they have values
     if segment_file_path_entry.get():
-        command.extend(['-f', segment_file_path_entry.get()])
+        command.extend(['-o', segment_file_path_entry.get()])
 
     print("Segmentation command to be executed:", command)  # Debug print
 
@@ -80,13 +80,13 @@ def run_extraction(extract_method_var, extract_region_entry, extract_output_dir_
 
 
 
-def run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gui):
+def run_gmm_kmeans_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gpu):
     input_image = chain_input_image_entry.get()
     region = chain_region_entry.get()
     output_dir = chain_output_dir_entry.get()
     method = chain_method_var.get()
     components = chain_components_var.get()
-    use_gui= chain_use_gui.get()
+    use_gpu= chain_use_gpu.get()
 
     segmentation_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
     extraction_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_extract_metrics.py')
@@ -101,8 +101,8 @@ def run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_en
         sys.executable, segmentation_script_path,
         '-i', input_image,
         '-r', region, 
-        '-g', use_gui,
-        '-f', segmentation_output
+        '-g', use_gpu,
+        '-o', output_dir
     ]
     print("Segmentation command to be executed:", command)  # Debug print
 
@@ -120,23 +120,23 @@ def run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_en
         '-i', input_image,
         '-c', components, 
         '-s', segmentation_output
-
     ]
+
     print("Extraction command to be executed:", command)  # Debug print
 
     try:
         subprocess.run(command, check=True)
-        messagebox.showinfo("Success", "Segmentation and Extraction completed successfully.")
+        messagebox.showinfo("Success", "Segmentation and Extract Metrics completed successfully.")
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 
-def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chain_use_gui):
+def run_dixon_chained(fat_entry, water_entry, region_entry, chain_output_dir_entry, chain_use_gpu):
     fat = fat_entry.get()
     water = water_entry.get()
     region= region_entry.get()
     output_dir = chain_output_dir_entry.get()
-    use_gui= chain_use_gui.get()
+    use_gpu= chain_use_gpu.get()
 
     segmentation_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
     extraction_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_extract_metrics.py')
@@ -151,8 +151,8 @@ def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chai
         sys.executable, segmentation_script_path,
         '-i', water,
         '-r', region, 
-        '-g', use_gui,
-        '-f', output_dir
+        '-g', use_gpu,
+        '-o', output_dir
     ]
     print("Segmentation command to be executed:", water_command)  # Debug print
     try:
@@ -164,8 +164,8 @@ def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chai
         sys.executable, segmentation_script_path,
         '-i', fat,
         '-r', region, 
-        '-g', use_gui,
-        '-f', output_dir
+        '-g', use_gpu,
+        '-o', output_dir
     ]
     print("Segmentation command to be executed:", fat_command)  # Debug print
 
@@ -191,24 +191,71 @@ def run_dixon(fat_entry, water_entry, region_entry, chain_output_dir_entry, chai
 
     try:
         subprocess.run(command, check=True)
-        messagebox.showinfo("Success", "Segmentation and Extraction completed successfully.")
+        messagebox.showinfo("Success", "Segmentation and Extract Metrics completed successfully.")
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+def run_average_chained(input_entry, region_entry, chain_output_dir_entry, chain_use_gpu):
+    input = input_entry.get()
+    region= region_entry.get()
+    output_dir = chain_output_dir_entry.get()
+    use_gpu= chain_use_gpu.get()
+
+    segmentation_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_segment.py')
+    extraction_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mm_extract_metrics.py')
+
+    if input.endswith('.nii.gz'):
+        output = os.path.join(output_dir, os.path.basename(input).replace('.nii.gz', '_dseg.nii.gz'))
+    
+    # Segmentation command
+    command = [
+        sys.executable, segmentation_script_path,
+        '-i', input,
+        '-r', region, 
+        '-g', use_gpu,
+        '-o', output_dir
+    ]
+    print("Segmentation command to be executed:", command)  # Debug print
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+    # Extraction command
+    command = [
+        sys.executable, extraction_script_path,
+        '-m', 'average',
+        '-r', region,
+        '-o', output_dir,
+        '-i', input,
+        '-s', output
+
+    ]
+    print("Extraction command to be executed:", command)  # Debug print
+
+    try:
+        subprocess.run(command, check=True)
+        messagebox.showinfo("Success", "Segmentation and Extract Metrics completed successfully.")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+
 def main():
     root = tk.Tk()
-    root.title("Muscle Imaging Analysis Tool")
+    root.title("MuscleMap Toolbox")
 
     # Tab Control
     tab_control = ttk.Notebook(root)
     segment_tab = ttk.Frame(tab_control)
     extract_tab = ttk.Frame(tab_control)
-    chain_tab = ttk.Frame(tab_control)
-    dixon_tab = ttk.Frame(tab_control)
+    chain_gmm_kmeans_tab = ttk.Frame(tab_control)
+    chain_dixon_tab = ttk.Frame(tab_control)
+    chain_average_tab = ttk.Frame(tab_control)
     tab_control.add(segment_tab, text='Segmentation')
     tab_control.add(extract_tab, text='Extract Metrics')
-    tab_control.add(chain_tab, text='Chaining')
-    tab_control.add(dixon_tab, text='Dixon')
+    tab_control.add(chain_gmm_kmeans_tab, text='Chaining GMM or Kmeans')
+    tab_control.add(chain_dixon_tab, text='Chaining Dixon')
+    tab_control.add(chain_average_tab, text='Chaining Average')
     tab_control.pack(expand=1, fill="both")
 
     # Segmentation GUI
@@ -227,15 +274,15 @@ def main():
     ttk.Button(segment_tab, text="Browse...", command=lambda: browse_directory(segment_file_path_entry)).grid(row=2, column=2)
 
     ttk.Label(segment_tab, text="GPU:").grid(row=3, column=0)
-    segment_use_gui = tk.StringVar()
+    segment_use_gpu = tk.StringVar()
     segments_frame = ttk.Frame(segment_tab)
-    rb2 = ttk.Radiobutton(segments_frame, text="Yes", variable=segment_use_gui, value='Y')
-    rb3 = ttk.Radiobutton(segments_frame, text="No", variable=segment_use_gui, value='N')
+    rb2 = ttk.Radiobutton(segments_frame, text="Yes", variable=segment_use_gpu, value='Y')
+    rb3 = ttk.Radiobutton(segments_frame, text="No", variable=segment_use_gpu, value='N')
     rb2.pack(side='left')
     rb3.pack(side='left')
     segments_frame.grid(row=3, column=1)
 
-    ttk.Button(segment_tab, text="Run Segmentation", command=lambda: run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_use_gui)).grid(row=4, column=1)
+    ttk.Button(segment_tab, text="Run Segmentation", command=lambda: run_segmentation(segment_input_image_entry, segment_region_entry, segment_file_path_entry, segment_use_gpu)).grid(row=4, column=1)
 
     # Extraction GUI
     ttk.Label(extract_tab, text="Method:").grid(row=0, column=0)
@@ -289,82 +336,116 @@ def main():
     ttk.Button(extract_tab, text="Run Extract Metrics", command=lambda: run_extraction(extract_method_var, extract_region_entry, extract_output_dir_entry, extract_segmentation_image_entry, extract_fat_image_entry, extract_water_image_entry, extract_input_image_entry, extract_components_var)).grid(row=8, column=1)
  
 
-    # Chaining Tab - Full setup for both segmentation and extraction
-    ttk.Label(chain_tab, text="Segmentation and Extraction Workflow").grid(row=0, column=0, columnspan=3)
+    # Gmm kmean chaining tab
+    ttk.Label(chain_gmm_kmeans_tab, text="Segmentation and Extract Metrics").grid(row=0, column=0, columnspan=3)
 
     # Segmentation fields in the Chaining tab
-    ttk.Label(chain_tab, text="Input Image:").grid(row=1, column=0)
-    chain_input_image_entry = tk.Entry(chain_tab, width=50)
+    ttk.Label(chain_gmm_kmeans_tab, text="Input Image:").grid(row=1, column=0)
+    chain_input_image_entry = tk.Entry(chain_gmm_kmeans_tab, width=50)
     chain_input_image_entry.grid(row=1, column=1)
-    ttk.Button(chain_tab, text="Browse...", command=lambda: browse_file(chain_input_image_entry)).grid(row=1, column=2)
+    ttk.Button(chain_gmm_kmeans_tab, text="Browse...", command=lambda: browse_file(chain_input_image_entry)).grid(row=1, column=2)
 
-    ttk.Label(chain_tab, text="Region:").grid(row=2, column=0)
-    chain_region_entry = tk.Entry(chain_tab, width=50)
+    ttk.Label(chain_gmm_kmeans_tab, text="Region:").grid(row=2, column=0)
+    chain_region_entry = tk.Entry(chain_gmm_kmeans_tab, width=50)
     chain_region_entry.grid(row=2, column=1)
 
-    ttk.Label(chain_tab, text="GPU:").grid(row=3, column=0)
-    chain_use_gui = tk.StringVar()
-    chain_GPU_frame = ttk.Frame(chain_tab)
-    rb2 = ttk.Radiobutton(chain_GPU_frame, text="Yes", variable=chain_use_gui, value='Y')
-    rb3 = ttk.Radiobutton(chain_GPU_frame, text="No", variable=chain_use_gui, value='N')
+    ttk.Label(chain_gmm_kmeans_tab, text="GPU:").grid(row=3, column=0)
+    chain_use_gpu = tk.StringVar()
+    chain_GPU_frame = ttk.Frame(chain_gmm_kmeans_tab)
+    rb2 = ttk.Radiobutton(chain_GPU_frame, text="Yes", variable=chain_use_gpu, value='Y')
+    rb3 = ttk.Radiobutton(chain_GPU_frame, text="No", variable=chain_use_gpu, value='N')
     rb2.pack(side='left')
     rb3.pack(side='left')
     chain_GPU_frame.grid(row=3, column=1)
 
     # Extraction fields in the Chaining tab
-    ttk.Label(chain_tab, text="Method:").grid(row=4, column=0)
+    ttk.Label(chain_gmm_kmeans_tab, text="Method:").grid(row=4, column=0)
     chain_method_var = tk.StringVar(value='kmeans')
     chaining_methods = ['kmeans', 'gmm']
-    chain_method_menu = ttk.OptionMenu(chain_tab, chain_method_var, chain_method_var.get(), *chaining_methods)
+    chain_method_menu = ttk.OptionMenu(chain_gmm_kmeans_tab, chain_method_var, chain_method_var.get(), *chaining_methods)
     chain_method_menu.grid(row=4, column=1)
 
 
-    ttk.Label(chain_tab, text="Components:").grid(row=5, column=0)
+    ttk.Label(chain_gmm_kmeans_tab, text="Components:").grid(row=5, column=0)
     chain_components_var = tk.StringVar()
-    chain_components_frame = ttk.Frame(chain_tab)
+    chain_components_frame = ttk.Frame(chain_gmm_kmeans_tab)
     chain_rb2 = ttk.Radiobutton(chain_components_frame, text="2", variable=chain_components_var, value='2')
     chain_rb3 = ttk.Radiobutton(chain_components_frame, text="3", variable=chain_components_var, value='3')
     chain_rb2.pack(side='left')
     chain_rb3.pack(side='left')
     chain_components_frame.grid(row=5, column=1)
 
-    ttk.Label(chain_tab, text="Output Directory:").grid(row=6, column=0)
-    chain_output_dir_entry = tk.Entry(chain_tab, width=50)
+    ttk.Label(chain_gmm_kmeans_tab, text="Output Directory:").grid(row=6, column=0)
+    chain_output_dir_entry = tk.Entry(chain_gmm_kmeans_tab, width=50)
     chain_output_dir_entry.grid(row=6, column=1)
-    ttk.Button(chain_tab, text="Browse...", command=lambda: browse_directory(chain_output_dir_entry)).grid(row=6, column=2)
-    ttk.Button(chain_tab, text="Run Chained Workflow", command=lambda: run_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gui)).grid(row=7, column=1)
+    ttk.Button(chain_gmm_kmeans_tab, text="Browse...", command=lambda: browse_directory(chain_output_dir_entry)).grid(row=6, column=2)
+    ttk.Button(chain_gmm_kmeans_tab, text="Run", command=lambda: run_gmm_kmeans_chained(chain_input_image_entry, chain_region_entry, chain_output_dir_entry, chain_method_var, chain_components_var, chain_use_gpu)).grid(row=7, column=1)
 
 
-        # GUI Elements
-    ttk.Label(dixon_tab, text="Input Fat Image:").grid(row=0, column=0)
-    fat_image_entry = tk.Entry(dixon_tab, width=50)
-    fat_image_entry.grid(row=0, column=1)
-    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_file(fat_image_entry)).grid(row=0, column=2)
+    # Dixon Chaining GUI Elements
+    ttk.Label(chain_dixon_tab, text="Segmentation and Extract Metrics").grid(row=0, column=0, columnspan=3)
+    
+    ttk.Label(chain_dixon_tab, text="Input Fat Image:").grid(row=1, column=0)
+    dixon_fat_image_entry = tk.Entry(chain_dixon_tab, width=50)
+    dixon_fat_image_entry.grid(row=1, column=1)
+    ttk.Button(chain_dixon_tab, text="Browse...", command=lambda: browse_file(dixon_fat_image_entry)).grid(row=1, column=2)
 
-    ttk.Label(dixon_tab, text="Input Water Image:").grid(row=1, column=0)
-    water_image_entry = tk.Entry(dixon_tab, width=50)
-    water_image_entry.grid(row=1, column=1)
-    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_file(water_image_entry)).grid(row=1, column=2)
+    ttk.Label(chain_dixon_tab, text="Input Water Image:").grid(row=2, column=0)
+    dixon_water_image_entry = tk.Entry(chain_dixon_tab, width=50)
+    dixon_water_image_entry.grid(row=2, column=1)
+    ttk.Button(chain_dixon_tab, text="Browse...", command=lambda: browse_file(dixon_water_image_entry)).grid(row=2, column=2)
 
-    ttk.Label(dixon_tab, text="Region:").grid(row=2, column=0)
-    region_entry = tk.Entry(dixon_tab, width=50)
-    region_entry.grid(row=2, column=1)
+    ttk.Label(chain_dixon_tab, text="Region:").grid(row=3, column=0)
+    dixon_region_entry = tk.Entry(chain_dixon_tab, width=50)
+    dixon_region_entry.grid(row=3, column=1)
 
-    ttk.Label(dixon_tab, text="Output Directory:").grid(row=3, column=0)
-    output_dir_entry = tk.Entry(dixon_tab, width=50)
-    output_dir_entry.grid(row=3, column=1)
-    ttk.Button(dixon_tab, text="Browse...", command=lambda: browse_directory(output_dir_entry)).grid(row=3, column=2)
+    ttk.Label(chain_dixon_tab, text="Output Directory:").grid(row=4, column=0)
+    dixon_output_dir_entry = tk.Entry(chain_dixon_tab, width=50)
+    dixon_output_dir_entry.grid(row=4, column=1)
+    ttk.Button(chain_dixon_tab, text="Browse...", command=lambda: browse_directory(dixon_output_dir_entry)).grid(row=4, column=2)
 
-    ttk.Label(dixon_tab, text="GPU:").grid(row=4, column=0)
-    dixon_use_gui = tk.StringVar(value='Y')
-    dixon_frame = ttk.Frame(dixon_tab)
-    rb2 = ttk.Radiobutton(dixon_frame, text="Yes", variable=dixon_use_gui, value='Y')
-    rb3 = ttk.Radiobutton(dixon_frame, text="No", variable=dixon_use_gui, value='N')
-    rb2.pack(side='left')
-    rb3.pack(side='left')
-    dixon_frame.grid(row=4, column=1)
+    ttk.Label(chain_dixon_tab, text="GPU:").grid(row=5, column=0)
+    dixon_use_gpu = tk.StringVar(value='Y')
+    dixon_frame = ttk.Frame(chain_dixon_tab)
+    dixon_rb2 = ttk.Radiobutton(dixon_frame, text="Yes", variable=dixon_use_gpu, value='Y')
+    dixon_rb3 = ttk.Radiobutton(dixon_frame, text="No", variable=dixon_use_gpu, value='N')
+    dixon_rb2.pack(side='left')
+    dixon_rb3.pack(side='left')
+    dixon_frame.grid(row=5, column=1)
+
     # Button to execute the Dixon Chaining
-    ttk.Button(dixon_tab, text="Run Dixon Workflow", command=lambda: run_dixon(fat_image_entry, water_image_entry, region_entry, output_dir_entry, dixon_use_gui)).grid(row=5, column=1)
+    ttk.Button(chain_dixon_tab, text="Run", command=lambda: run_dixon_chained(dixon_fat_image_entry, dixon_water_image_entry, dixon_region_entry, dixon_output_dir_entry, dixon_use_gpu)).grid(row=6, column=1)
+    
+    # Average Chaining GUI Elements
+    ttk.Label(chain_average_tab, text="Segmentation and Extract Metrics").grid(row=0, column=0, columnspan=3)
+
+    ttk.Label(chain_average_tab, text="Input Image:").grid(row=1, column=0)
+    average_image_entry = tk.Entry(chain_average_tab, width=50)
+    average_image_entry.grid(row=1, column=1)
+    ttk.Button(chain_average_tab, text="Browse...", command=lambda: browse_file(average_image_entry)).grid(row=1, column=2)
+
+    ttk.Label(chain_average_tab, text="Region:").grid(row=2, column=0)
+    average_region_entry = tk.Entry(chain_average_tab, width=50)
+    average_region_entry.grid(row=2, column=1)
+
+    ttk.Label(chain_average_tab, text="Output Directory:").grid(row=3, column=0)
+    average_output_dir_entry = tk.Entry(chain_average_tab, width=50)
+    average_output_dir_entry.grid(row=3, column=1)
+    ttk.Button(chain_average_tab, text="Browse...", command=lambda: browse_directory(average_output_dir_entry)).grid(row=3, column=2)
+
+    ttk.Label(chain_average_tab, text="GPU:").grid(row=4, column=0)
+    average_use_gpu = tk.StringVar(value='Y')
+    average_frame = ttk.Frame(chain_average_tab)
+    average_rb2 = ttk.Radiobutton(average_frame, text="Yes", variable=average_use_gpu, value='Y')
+    average_rb3 = ttk.Radiobutton(average_frame, text="No", variable=average_use_gpu, value='N')
+    average_rb2.pack(side='left')
+    average_rb3.pack(side='left')
+    average_frame.grid(row=4, column=1)
+    
+    # Button to execute the average Chaining
+    ttk.Button(chain_average_tab, text="Run", command=lambda: run_average_chained(average_image_entry, average_region_entry, average_output_dir_entry, average_use_gpu)).grid(row=5, column=1)
+    
+
     root.mainloop()
 
 if __name__ == "__main__":
