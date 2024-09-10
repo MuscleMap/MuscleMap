@@ -69,7 +69,7 @@ def load_model_config(config_path):
 
 
 def validate_seg_arguments(args):
-    required_args = {'input_images': "-i", 'region': "-r"}
+    required_args = {'input_image': "-i", 'region': "-r"}
     for arg_name, flag in required_args.items():
         arg_value = getattr(args, arg_name, None)
         if not arg_value:
@@ -89,13 +89,10 @@ def validate_seg_arguments(args):
     
 
 
-##########################################################################################
-
-
 def save_nifti(data, affine, filename):
     nifti_img = nib.Nifti1Image(data, affine)
     nib.save(nifti_img, filename)
-##########################################################################################
+
 
 def validate_extract_args(args):
     if args.method == 'dixon':
@@ -108,7 +105,7 @@ def validate_extract_args(args):
             exit(1)
     elif args.method == 'average':
         if not args.input_image or not args.segmentation_image:
-            print("for average, requires segmentation and original image")
+            print("For average, you must provide -i (input image) and -s (segmentation image).")
     string_args = ['fat_image', 'water_image', 'segmentation_image', 'input_image', 'region', 'output_dir']
     for arg_name in string_args:
         arg_value = getattr(args, arg_name, None)
@@ -119,8 +116,6 @@ def validate_extract_args(args):
         
 
 def extract_image_data(image_path):
-
-
     img = nib.load(image_path)
     img_array = img.get_fdata()
     
@@ -137,7 +132,7 @@ def apply_clustering(mask_img, kmeans_activate, GMM_activate, components): #outp
         labels = clustering.labels_ #labels is 1D, has length as number of values in mask_img, and has value corresponding to cluster assignment (0 through components-1)
 
     elif GMM_activate:
-        clustering = GaussianMixture(n_components = components, covariance_type= 'full', init_params = 'kmeans', tol=(0.001), n_init = 20, max_iter = 1000).fit(mask_img)
+        clustering = GaussianMixture(n_components = components, covariance_type = 'full', init_params = 'kmeans', tol = 0.001, n_init = 20, max_iter = 1000).fit(mask_img)
         labels = clustering.predict(mask_img)
     else:
         raise ValueError("Either KMeans or GMM must be activated.")
@@ -155,61 +150,53 @@ def calculate_thresholds(labels, mask_img, num_clusters):
         muscle_max = np.max(clusters[0]) if means[0] < means[1] else np.max(clusters[1])
         muscle_img = mask_img[mask_img <= muscle_max]
         fat_img = mask_img[mask_img > muscle_max]
-        unknown_img= None
-        unknown_max= None
+        undefined_img= None
+        undefined_max= None
         sorted_indices = [0, 1] if means[0] < means[1] else [1, 0]
 
     elif num_clusters == 3:
         sorted_clusters = sorted(zip(means, clusters, range(len(clusters))), key=lambda x: x[0])
         muscle_img = sorted_clusters[0][1]
-        unknown_img =sorted_clusters[1][1]
+        undefined_img =sorted_clusters[1][1]
         fat_img = sorted_clusters[2][1]
         muscle_max = np.max(muscle_img)
-        unknown_max= np.max(unknown_img)
+        undefined_max= np.max(undefined_img)
 
         sorted_indices = [x[2] for x in sorted_clusters]
 
-
-
     cluster_intensities = {
         'muscle': muscle_img,
-        'unknown': unknown_img,
+        'undefined': undefined_img,
         'fat': fat_img
     }
     
-    return muscle_max, unknown_max, cluster_intensities, sorted_indices
-
-
+    return muscle_max, undefined_max, cluster_intensities, sorted_indices
 
 
 #this label is the muscle label
-def quantify_muscle_measures(img_array, mask_array, muscle_max, unknown_max, label, sx, sy, sz):
+def quantify_muscle_measures(img_array, mask_array, muscle_max, undefined_max, label, pixdim_x, pixdim_y, pixdim_z):
     total_mask = (mask_array == label)
 
-    if unknown_max!= None: #3 component
+    if undefined_max!= None: #3 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) #muscle_mask is values where mask_array equals label AND intensity<=upper threshold
-        unknown_mask = (mask_array == label) & (img_array <=unknown_max) & (img_array > muscle_max)
-        fat_mask = (mask_array == label) & (img_array > unknown_max)
-        unknown_percentage = round(100 * (np.sum(unknown_mask) / np.sum(total_mask)),2)
+        undefined_mask = (mask_array == label) & (img_array <=undefined_max) & (img_array > muscle_max)
+        fat_mask = (mask_array == label) & (img_array > undefined_max)
+        undefined_percentage = round(100 * (np.sum(undefined_mask) / np.sum(total_mask)),2)
 
 
     else: #2 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) 
         fat_mask = (mask_array == label) & (img_array > muscle_max)
-        unknown_mask=None
-        unknown_percentage=None
+        undefined_mask=None
+        undefined_percentage=None
     
-
     muscle_percentage = round(100 * (np.sum(muscle_mask) / np.sum(total_mask)),2)
-
     fat_percentage = round(100 * (np.sum(fat_mask) / np.sum(total_mask)),2)
-
-    muscle_volume_ml = round((np.sum(muscle_mask) * (sx * sy * sz)) / 1000,2)
-    fat_volume_ml = round((np.sum(fat_mask) *(sx * sy * sz)) / 1000,2)
-    total_volume_ml = round((np.sum(total_mask) *(sx * sy * sz)) / 1000,2)
-
+    muscle_volume = round((np.sum(muscle_mask) * (pixdim_x * pixdim_y * pixdim_z)) / 1000,2) #Volume in ml
+    fat_volume = round((np.sum(fat_mask) *(pixdim_x * pixdim_y * pixdim_z)) / 1000,2) #Volume in ml
+    total_volume = round((np.sum(total_mask) *(pixdim_x * pixdim_y * pixdim_z)) / 1000,2) #Volume in ml
         
-    return muscle_percentage, unknown_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, total_volume_ml, muscle_mask, unknown_mask, fat_mask
+    return muscle_percentage, undefined_percentage, fat_percentage, muscle_volume, fat_volume, total_volume, muscle_mask, undefined_mask, fat_mask
 
 
 def create_image_array(img_array, mask_array,label,upper_threshold):
@@ -219,11 +206,13 @@ def create_image_array(img_array, mask_array,label,upper_threshold):
     # Mask for fat
     fat_array = np.where(img_array >= upper_threshold, muscle_label * (label), 0)
     
-    return muscle_array,fat_array
+    return muscle_array, fat_array
+
 
 def create_output_dir(output_dir=None):
     if not output_dir:
         output_dir = os.getcwd()  # Use the current working directory if no output directory is provided
+    
     else:
         # Construct the path to the output directory from the current working directory
         output_dir = os.path.abspath(output_dir)
@@ -231,7 +220,9 @@ def create_output_dir(output_dir=None):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
         logging.info(f"Output directory {output_dir} created")
+
     return output_dir
+
 
 def map_image(ID_name_file, segmentation_image, img, kmeans_activate, GMM_activate):
     if kmeans_activate:
@@ -252,7 +243,6 @@ def map_image(ID_name_file, segmentation_image, img, kmeans_activate, GMM_activa
     musclemaps_dir = os.path.dirname(script_dir)
     output_dir = os.path.join(musclemaps_dir, 'output')
     output_file_path = os.path.join(output_dir, gt_file)
-
     gt_img.to_filename(output_file_path)
 
 
@@ -263,16 +253,17 @@ def calculate_segmentation_metrics(args, mask):
         fat, fat_array, fat_dim, fat_pixdim = extract_image_data(args.fat_image)
         volume = np.around(mask.sum() * math.prod(water_pixdim) / 1000, decimals=2)
         imf_percentage = np.around((fat_array[mask].sum() / (fat_array[mask].sum() + water_array[mask].sum())) * 100, decimals=2)
-        results['Volume in ML'] = volume
-        results['IMF percentage'] = imf_percentage
+        results['Volume (ml)'] = volume
+        results['IMF (%)'] = imf_percentage
+
     elif args.method == 'average':
         image, image_array, im_dim, im_pixdim = extract_image_data(args.input_image)
 
         masked_image_array = image_array[mask]  # Apply mask to image array
         average_intensity = np.around(np.mean(masked_image_array), decimals=3)
         volume = np.around(mask.sum() * np.prod(im_pixdim) / 1000, decimals=3)  # Convert from mm^3 to mL
-        results['Volume in mL'] = volume
-        results['Average intensity'] = average_intensity
+        results['Volume (ml)'] = volume
+        results['Average Intensity'] = average_intensity
 
     return results
 

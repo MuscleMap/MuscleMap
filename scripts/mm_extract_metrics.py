@@ -14,7 +14,7 @@ import nibabel as nib
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="Muscle and Fat Segmentation in MRI")
+    parser = argparse.ArgumentParser(description="Extract metrics of muscle size and composition")
 
     parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm', 'average'], 
                           help="Method to use: dixon, kmeans, or gmm")
@@ -22,28 +22,25 @@ def get_parser():
     parser.add_argument("-i", '--input_image', required=False, type=str, 
                           help="Input image for kmeans or gmm")
     
-
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
-                          help="Fat image for dixon method")
-    parser.add_argument("-w", '--water_image', required=False, type=str, 
-                          help="Water image for dixon method")
-    
+                          help="Fat image for Dixon method")
 
+    parser.add_argument("-w", '--water_image', required=False, type=str, 
+                          help="Water image for Dixon method")
+    
     parser.add_argument("-s", '--segmentation_image', required=False, type=str, 
                           help="Segmentation image for any method")
+    
     parser.add_argument("-c", '--components', required=False, default=None, type=int, choices=[2, 3], 
                           help="Number of components for kmeans or gmm (2 or 3)")
     
     parser.add_argument("-r", '--region', required=False, type=str,
-                          help="output name.")
-
-
+                          help="Anatomical region. Supported regions: abdomen")
 
     parser.add_argument("-o", '--output_dir', required=False, type=str, 
-                          help="Output directory to save the results, can be absolute or relative")
+                          help="Output directory to save the results")
+
     return parser
-
-
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -70,18 +67,18 @@ def main():
         kmeans_activate = True
         total_probability_maps = None
         combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
-        combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_undefined_mask = np.zeros(segmentations_data.shape, dtype=bool)
         combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
     elif args.method == 'gmm':
         GMM_activate = True
         total_probability_maps = [np.zeros(segmentations_data.shape) for _ in range(args.components)]
         combined_muscle_mask = np.zeros(segmentations_data.shape, dtype=bool)
-        combined_unknown_mask = np.zeros(segmentations_data.shape, dtype=bool)
+        combined_undefined_mask = np.zeros(segmentations_data.shape, dtype=bool)
         combined_fat_mask = np.zeros(segmentations_data.shape, dtype=bool)
     else:
         total_probability_maps = None
         combined_muscle_mask = None
-        combined_unknown_mask = None
+        combined_undefined_mask = None
         combined_fat_mask = None
 
     # Extract the ID from the input filename
@@ -111,7 +108,6 @@ def main():
 
                 if args.method == 'dixon': 
 
-
                     metrics = calculate_segmentation_metrics(args, mask)
 
                 elif args.method == 'average':
@@ -122,16 +118,16 @@ def main():
 
                 elif args.method == 'kmeans' or 'gmm':
 
-                    image, image_array, im_dim, (sx, sy, sz) = extract_image_data(args.input_image) #image array has dimensions of INPUT
+                    image, image_array, im_dim, (pixdim_x, pixdim_y, pixdim_z) = extract_image_data(args.input_image) #image array has dimensions of INPUT
                     mask_img = np.reshape(image_array[mask], (-1, 1)) #takes true positions in mask and reshapes the 1D array into 2D array with single column of input values
 
                     #image_array has original input dimensions, mask does too (but is boolean array). image_array[mask] gives a 1D array of intensity values for the masked regions, reshape makes it into a 2D array suitable for clustering, so mask_img is 2D
 
                     labels, clustering = apply_clustering(mask_img, kmeans_activate, GMM_activate, args.components) #, args.output_dir, image, id_part) #added output_dir for gmm, kmeans mask saving
                     
-                    muscle_max, unknown_max, cluster_intensities, sorted_indices= calculate_thresholds(labels, mask_img, args.components)
+                    muscle_max, undefined_max, cluster_intensities, sorted_indices= calculate_thresholds(labels, mask_img, args.components)
                     
-                    package= (muscle_max, unknown_max, label, sx, sy, sz)
+                    package= (muscle_max, undefined_max, label, pixdim_x, pixdim_y, pixdim_z)
                     #begin new segment
                     if args.method == 'gmm':
 
@@ -150,13 +146,12 @@ def main():
                             total_probability_maps[i] += prob_map_reshaped
 
                     #end of new segment
-                    muscle_percentage, unknown_percentage, fat_percentage, muscle_volume_ml, fat_volume_ml, volume,  muscle_mask, unknown_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, unknown_max, value, sx, sy, sz)
- 
+                    muscle_percentage, undefined_percentage, fat_percentage, muscle_volume, fat_volume, total_volume,  muscle_mask, undefined_mask, fat_mask = quantify_muscle_measures(image_array, segmentations_data, muscle_max, undefined_max, value, pixdim_x, pixdim_y, pixdim_z)
 
                     # Update cumulative masks
                     combined_muscle_mask |= muscle_mask
                     if args.components ==3:
-                        combined_unknown_mask |= unknown_mask
+                        combined_undefined_mask |= undefined_mask
                     combined_fat_mask |= fat_mask
 
                     muscle_array, fat_array = create_image_array(image_array,  segmentations_data, value, muscle_max)
@@ -165,24 +160,20 @@ def main():
                     else:
                         segmentation_image += muscle_array + fat_array
                     results = {}
-                    results['Muscle percentage'] = muscle_percentage
-                    results['Fat percentage'] = fat_percentage
+                    results['Muscle (%)'] = muscle_percentage
+                    results['Fat (%)'] = fat_percentage
                     if args.components == 3:
-                        results['Unknown percentage'] = unknown_percentage
-                    results['Volume in mL'] = volume
+                        results['Undefined (%)'] = undefined_percentage
+                    results['Volume (ml)'] = total_volume
                     metrics=results
 
                 result_entry={
                     'muscle': muscle_side_info,
                     'Label': value, #current val iterating through, "muscle number",
-                    'Number_of_slices': number_of_slices,
-
-
+                    'Number_of_Slices': number_of_slices,
                 }
                 result_entry.update(metrics)
                 results_list.append(result_entry)
-
-        
         
         results_df = pd.DataFrame(results_list)
 
@@ -201,12 +192,15 @@ def main():
     if args.method != 'dixon' and args.method != 'average':
         save_nifti(combined_muscle_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_muscle_seg.nii.gz'))
         if args.components == 3:
-            save_nifti(combined_unknown_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_undefined_seg.nii.gz'))
+            save_nifti(combined_undefined_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_undefined_seg.nii.gz'))
         save_nifti(combined_fat_mask.astype(np.uint8), image.affine, os.path.join(output_dir, f'{id_part}_{args.method}_{args.components}component_fat_seg.nii.gz'))
 
     # Construct the path to the output CSV file
-    
-    output_filename = f"{id_part}_{args.method}_{args.components}component_results.csv"
+    if args.method != 'dixon' and args.method != 'average':
+        output_filename = f"{id_part}_{args.method}_{args.components}component_results.csv"
+    else:
+        output_filename = f"{id_part}_{args.method}_results.csv"
+
     output_file_path = os.path.join(output_dir, output_filename)
 
     # Export the results
