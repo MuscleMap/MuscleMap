@@ -41,29 +41,31 @@ except ImportError:
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
 import torch
 
-
 #naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
 def get_parser():
     parser = argparse.ArgumentParser(
-        description="Segment an input image according to the specified deep learning model.")
+        description="Segment an input image according to the specified region.")
     
     # Required arguments
     required = parser.add_argument_group("Required")
-    required.add_argument("-i", '--input_images', required=True, type=str,
-                          help="Image to segment. Can be multiple images separated with commas.")
+    
+    required.add_argument("-i", '--input_image', required=True, type=str,
+                          help="Input image to segment. Can be single image or list of images separated by commas.")
+    
     required.add_argument("-r", '--region', required=True, type=str,
-                          help="output name.")
-    required.add_argument("-f", '--file_path', required=False, type=str,
-                            help="full absolute file path with output file name OR path to output directory, output file name=input_image+dseg. if left empty, saves to cwd ")
+                          help="Anatomical region to segment. Supported regions: abdomen")
     
     # Optional arguments
     optional = parser.add_argument_group("Optional")
+    required.add_argument("-o", '--output_dir', required=False, type=str,
+                            help="Output directory to save the results, output file name suffix = dseg. If left empty, saves to current working directory.")
+    
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
-                        help="select Y or N, default is Y, if N monai will use the cpu even if a cuda enabled device is identified.")
+                        help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -77,52 +79,34 @@ def main():
     args = parser.parse_args()
     print(f"GPU arg: {args.use_GPU}")
 
-    if args.file_path is None:
-        output_dir = os.getcwd()
-        base_name = os.path.basename(args.input_images)
+    base_name = os.path.basename(args.input_image)
 
-        # Split the name from its extension
-        name, ext = os.path.splitext(base_name)
-        
-        # Further split in case of double extensions like .nii.gz
-        if ext == ".gz" and name.endswith(".nii"):
-            name, _ = os.path.splitext(name)  # Remove .nii part
-
-        # Add 'dseg' before the extension
-        output_file_name = f"{name}_dseg.nii.gz"
-    elif args.file_path.endswith('.nii.gz') or args.file_path.endswith('.nii'):
-        output_dir, output_file_name = os.path.split(args.file_path)
-    else: 
-        if os.path.isdir(args.file_path):
-            output_dir=args.file_path
-            base_name = os.path.basename(args.input_images)
+    # Split the name from its extension
+    name, ext = os.path.splitext(base_name)
     
-            # Split the name from its extension
-            name, ext = os.path.splitext(base_name)
-            
-            # Further split in case of double extensions like .nii.gz
-            if ext == ".gz" and name.endswith(".nii"):
-                name, _ = os.path.splitext(name)  # Remove .nii part
+    # Further split in case of double extensions like .nii.gz
+    if ext == ".gz" and name.endswith(".nii"):
+        name, _ = os.path.splitext(name)  # Remove .nii part
 
-            # Add 'dseg' before the extension
-            output_file_name = f"{name}_dseg.nii.gz"
-        else:
-            logging.error(f"Error: input: {args.file_path}. the file_path argument must be the full output file_path with file name OR a working directory.")
-            sys.exit(1)
+    if args.output_dir is None:
+        output_dir = os.getcwd()
 
-
-
-
-    # Ensure the output directory is absolute
-    output_dir = os.path.abspath(output_dir)
-    if not os.path.exists(output_dir):
+    elif not os.path.exists(args.output_dir):
+        output_dir = os.path.abspath(args.output_dir) 
         os.makedirs(output_dir)
+
+    elif os.path.exists(args.output_dir):
+       output_dir=args.output_dir
+
+    else:
+        logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
+        sys.exit(1)
 
     # Validate Arguments
     validate_seg_arguments(args)
 
     # Process multiple images
-    image_paths = [img.strip() for img in args.input_images.split(',')]
+    image_paths = [image.strip() for image in args.input_image.split(',')]
     for image_path in image_paths:
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
@@ -146,13 +130,14 @@ def main():
     # Add other normalization types if needed
     }
 
-    def custom_name_formatter(metadata, saver, output_file_path):
-        base_dir, base_file = os.path.split(output_file_path)
-        file_name, ext = os.path.splitext(base_file)
-        return {
-            'subject': file_name
+    #Custom Name Splitter Not Used
+    # def custom_name_formatter(metadata, saver, output_file_path):
+    #     base_dir, base_file = os.path.split(output_file_path)
+    #     file_name, ext = os.path.splitext(base_file)
+    #     return {
+    #         'subject': file_name
 
-        }
+    #     }
 
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
@@ -183,9 +168,6 @@ def main():
         logging.error(f"Unknown normalization type: {import_norm_str}")
         sys.exit(1) 
 
-        
-
-
     # Use os.path.join for all path constructions to ensure cross-platform compatibility
     # Set seed for reproducibility (identical to training part)
     set_determinism(seed=0)  # Seed for reproducibility (identical to training part)
@@ -203,8 +185,7 @@ def main():
         EnsureTyped(keys=["image"])
     ])
     # Process all images at once
-    test_files = [{"image": img} for img in image_paths]
-
+    test_files = [{"image": image} for image in image_paths]
 
     # Create iterable dataset and dataloader, identical to training part
     inference_transforms_dataset = Dataset(
@@ -243,8 +224,8 @@ def main():
             output_dtype=('int16'), 
             separate_folder=False, 
             resample=False, 
-            output_postfix="",
-            output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, output_file_name)
+            output_postfix="dseg",
+            #output_name_formatter=lambda meta, saver: custom_name_formatter(meta, saver, output_file_name)
 
     )
     ])
@@ -263,7 +244,7 @@ def main():
     ).to(device)
 
     map_location = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.load_state_dict(torch.load(model_path, map_location=map_location))
+    model.load_state_dict(torch.load(model_path, map_location=map_location, weights_only=True))
     model.eval()
 
 
@@ -278,9 +259,6 @@ def main():
             axial_inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2)
             input_data["pred"] = axial_inferer(val_inputs, model)
             val_data = [post_transforms(i) for i in decollate_batch(input_data)]
-
-    
-
 
     logging.info("Inference completed. All outputs saved.")
 
