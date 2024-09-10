@@ -25,7 +25,8 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
 
-3. Here is an example [BIDS](https://bids.neuroimaging.io/) directory structure:
+<details>
+ <summary>Click to see an example BIDS directory structure.</summary>
 
     ```
     dataset
@@ -86,12 +87,12 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
                     ├── sub-example02_ses-neck_T2w.nii.gz
                     ├── sub-example02_ses-neck_water.json
                     └── sub-example02_ses-neck_water.nii.gz
-
     ```
 
     * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
     * derivatives = contains segmentation images and any other derivatives
     * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
+</details>
 
 ## MuscleMap Toolbox
 
