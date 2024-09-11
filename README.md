@@ -182,7 +182,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         ~~~
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
-    * Users may specifcy 2 or 3 components with -c.
+    * Users may specify 2 or 3 components with -c.
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
 
@@ -204,7 +204,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
      mm_gui
      ~~~
     
-* To run mm_segment followed by mm_extract metrics use the chaining option in the GUI (only available for gmm and kmeans).
+* To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
 ## Citing MuscleMap
 
