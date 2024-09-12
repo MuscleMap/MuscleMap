@@ -12,7 +12,7 @@
 
 ## Standardized Acquisition Protocol
 
-We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of Muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:kenweber@stanford.edu).
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:kenweber@stanford.edu).
 
 ## Data Curation
 We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
