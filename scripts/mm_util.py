@@ -54,6 +54,42 @@ def get_model_and_config_paths(region, specified_model=None):
 
     return model_path, config_path
 
+def get_template_paths(region, specified_template=None):
+    templates_base_dir = os.path.join(os.path.dirname(__file__), "templates", region)
+    
+    if specified_template:
+        template_path = os.path.join(templates_base_dir, specified_template)
+        template_segmentation_path = os.path.splitext(template_path)[0] + "_dseg.nii.gz"
+        if not os.path.isfile(template_path):
+            logging.error(f"Specified model '{specified_template}' does not exist.")
+            sys.exit(1)
+        if not os.path.isfile(config_path):
+            logging.error(f"Config file for model '{specified_template}' does not exist.")
+            sys.exit(1)
+    else:
+        if not os.path.isdir(templates_base_dir):
+            logging.error(f"Region folder '{region}' does not exist.")
+            sys.exit(1)
+        
+        # Assuming only one model file and one config file in each region folder
+        template_path = None
+        config_path = None
+
+        for file in os.listdir(templates_base_dir):
+            if file.endswith(".pth"):
+                template_path = os.path.join(templates_base_dir, file)
+            elif file.endswith(".json"):
+                config_path = os.path.join(templates_base_dir, file)
+
+        if not template_path:
+            logging.error(f"No model file found in region folder '{region}'.")
+            sys.exit(1)
+        if not config_path:
+            logging.error(f"No config file found in region folder '{region}'.")
+            sys.exit(1)
+
+    return template_path, config_path
+
 
 def load_model_config(config_path):
     try:
@@ -86,13 +122,10 @@ def validate_seg_arguments(args):
         if arg_value and not isinstance(arg_value, str):
             logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
             sys.exit(1)
-    
-
 
 def save_nifti(data, affine, filename):
     nifti_img = nib.Nifti1Image(data, affine)
     nib.save(nifti_img, filename)
-
 
 def validate_extract_args(args):
     if args.method == 'dixon':
@@ -113,7 +146,16 @@ def validate_extract_args(args):
             logging.error(f"Error: The {arg_name} argument must be a string.")
             sys.exit(1)
 
-        
+def validate_register_to_template_args(args):
+    if not args.input_image or not args.components or not args.segmentation_image:
+        print("You must provide -i (input image), -s (segmentation image), and -r (region).")
+        exit(1)
+    string_args = ['input_image', 'segmentation_image', 'region', 'output_dir']
+    for arg_name in string_args:
+        arg_value = getattr(args, arg_name, None)
+        if arg_value and not isinstance(arg_value, str):
+            logging.error(f"Error: The {arg_name} argument must be a string.")
+            sys.exit(1)
 
 def extract_image_data(image_path):
     img = nib.load(image_path)
