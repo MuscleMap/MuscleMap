@@ -57,38 +57,29 @@ def get_model_and_config_paths(region, specified_model=None):
 def get_template_paths(region, specified_template=None):
     templates_base_dir = os.path.join(os.path.dirname(__file__), "templates", region)
     
+    if not os.path.isdir(templates_base_dir):
+        logging.error(f"Region folder '{region}' does not exist.")
+        sys.exit(1)
+    
+    print(templates_base_dir)
+
     if specified_template:
-        template_path = os.path.join(templates_base_dir, specified_template)
-        template_segmentation_path = os.path.splitext(template_path)[0] + "_dseg.nii.gz"
-        if not os.path.isfile(template_path):
-            logging.error(f"Specified model '{specified_template}' does not exist.")
-            sys.exit(1)
-        if not os.path.isfile(config_path):
-            logging.error(f"Config file for model '{specified_template}' does not exist.")
-            sys.exit(1)
+        template_path = os.path.join(templates_base_dir, specified_template + '.nii.gz')
+        template_segmentation_path = os.path.join(templates_base_dir, specified_template + '_dseg.nii.gz')
     else:
-        if not os.path.isdir(templates_base_dir):
-            logging.error(f"Region folder '{region}' does not exist.")
-            sys.exit(1)
+        template_path = os.path.join(templates_base_dir, region + '_template.nii.gz')
+        template_segmentation_path = os.path.join(templates_base_dir, region + '_template_dseg.nii.gz')
         
-        # Assuming only one model file and one config file in each region folder
-        template_path = None
-        config_path = None
-
-        for file in os.listdir(templates_base_dir):
-            if file.endswith(".pth"):
-                template_path = os.path.join(templates_base_dir, file)
-            elif file.endswith(".json"):
-                config_path = os.path.join(templates_base_dir, file)
-
-        if not template_path:
-            logging.error(f"No model file found in region folder '{region}'.")
+    
+        if not os.path.isfile(template_path):
+            logging.error(f"No template file found in region folder '{region}': ${template_path}.")
             sys.exit(1)
-        if not config_path:
-            logging.error(f"No config file found in region folder '{region}'.")
+            
+        if not os.path.isfile(template_segmentation_path):
+            logging.error(f"No template segmentation file found in region folder '{region}': ${template_segmentation_path}.")
             sys.exit(1)
 
-    return template_path, config_path
+    return template_path, template_segmentation_path
 
 
 def load_model_config(config_path):
