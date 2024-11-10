@@ -133,19 +133,19 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
         4. Unzip the MuscleMap repository
 
-    3. Navigate to MuscleMap repository:
+5. Navigate to MuscleMap repository:
 
-        ~~~
-        cd ./MuscleMap
-        ~~~
+   ~~~
+   cd ./MuscleMap
+   ~~~
 
-    4. Install python packages:
+6. Install python packages:
     
-        ~~~
-        pip install .
-        ~~~
+   ~~~
+   pip install .
+   ~~~
 
-   5. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
+7. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
 ### Usage
 
