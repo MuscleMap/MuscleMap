@@ -208,7 +208,11 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 ## Citing MuscleMap
 
-When using the MuscleMap Toolbox please cite the following publications:
+When citing MuscleMap, please cite the following publication:
+
+* McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. The MuscleMap Consortium: Enhancing AI model efficacy for MRI analysis through open-source, data-driven methodology. J Imaging 2024;10(11):262. <https://doi.org/10.3390/jimaging10110262>
+
+When using the MuscleMap Toolbox, please cite the following publications:
 
 ## mm_segment
 
@@ -226,13 +230,19 @@ When using the MuscleMap Toolbox please cite the following publications:
 
 ### 2024
 
-* Marnee J McKay, Ken A Weber II, Eddo Wesselink, Zachary A Smith, Rebecca Abbott, David Anderson, Claire E Ashton-James, John Atyeo, Aaron Beach, Josh Burns, Stephen Clarke, Natalie Collins, Michel W Coppieters, Jon Cornwall, Rebecca J Crawford, Enrico De Martino, Adam G. Dunn, Jillian Eyles, Henry J Feng, Maryse Fortin, Melinda M Franettovich Smith, Graham Galloway, Ziba Gandomkar, Sarah Glastras, Luke Henderson, Julie Hides, Claire Hiller, Sarah N Hilmer, Mark A Hoggarth, Brian Kim, Navneet Lal, Laura LaPorta, John Magnussen, Lyn March, Sarah Maloney, Andrea G Nackley, Shaun P O’Leary, Anneli Peolsson, Zuzana Perraton, Annelies Pool-Goudzwaard, Margaret Schnitzler, Amee Seitz, Adam Semciw, Phil Sheard, Suzanne Snodgrass, Andrew C Smith, Justin Sullivan, Vienna Tran, Stephanie Valentin, David M Walton, Laurelie R. Wishart, James M Elliott. The MuscleMap Consortium: Enhancing AI model efficacy for MRI analysis through open-source, data-driven methodology. J Imaging 2024, 10, 262. https://doi.org/10.3390/jimaging10110262.
+* Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI.Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach. J Cachexia Sarcopenia Muscle, In Press. <https://doi.org/10.1002/jcsm.13608>
+
+* Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J, In Press. <https://doi.org/10.1007/s00586-024-08559-1>
+
+* McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. The MuscleMap Consortium: Enhancing AI model efficacy for MRI analysis through open-source, data-driven methodology. J Imaging 2024;10(11):262. <https://doi.org/10.3390/jimaging10110262>
   
 * Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM, Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd. Investigating the associations between lumbar paraspinal muscle health and age, BMI, sex, physical activity, and back pain using an automated computer-vision model: a UK Biobank study. Spine J. 2024;24(7):1253-1266. <https://doi.org/10.1016/j.spinee.2024.02.013>
 
 * Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP, Di Ieva A, Weber II KA. Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability of automated thresholding models. N Am Spine Soc J. 2024;17:100313. <https://doi.org/10.1016/j.xnsj.2024.100313>
 
 * Perraton Z, Mosler AB, Lawrenson PR, Weber II K, Elliott JM, Wesselink EO, Crossley KM, Kemp JL, Stewart C, Girdwood M, King MG, Heerey JJ, Scholes MJ, Mentiplay BF, Semciw AI. The association between lateral hip muscle size/intramuscular fat infiltration and hip strength in active young adults with long standing hip/groin pain. Phys Ther Sport. 2024;65:95-101. <https://doi.org/10.1016/j.ptsp.2023.11.007>
+
+* Snodgrass SJ, Weber KA 2nd, Wesselink EO, Stanwell P, Elliott JM. Reduced Cervical Muscle Fat Infiltrate Is Associated with Self-Reported Recovery from Chronic Idiopathic Neck Pain Over Six Months: A Magnetic Resonance Imaging Longitudinal Cohort Study. J Clin Med. 2024;13(15):4485. <https://doi.org/10.3390/jcm13154485>
 
 ### 2023
 
