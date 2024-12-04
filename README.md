@@ -91,9 +91,9 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
                     └── sub-example02_ses-neck_water.nii.gz
     ```
 
-    * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
-    * derivatives = contains segmentation images and any other derivatives
-    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
+* sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+* derivatives = contains segmentation images and any other derivatives
+* If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
 </details>
 
 ## MuscleMap Toolbox
