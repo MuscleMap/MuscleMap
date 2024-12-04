@@ -1,14 +1,16 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
+<p align="center">
+   <img width="50%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+</p>
+
 ## Planned MuscleMap Phases
-\
-<img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+
 1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
 2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
 3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the hetergenous whole-body muscle MRI dataset.
-<br />
 
 ## Standardized Acquisition Protocol
 
