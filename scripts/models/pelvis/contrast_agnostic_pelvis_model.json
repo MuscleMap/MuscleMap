@@ -1,0 +1,36 @@
+{
+  "parameters": {
+    "num_workers": 4,
+    "roi_size": [128, 128],
+    "spatial_window_batch_size": 1,
+    "amount_of_labels": 14,
+    "pix_dim": [1, 1, -1],
+    "model_continue_training": "FILLER_NAME_continue_training.pth"
+  },
+  "model": {
+    "num_labels": 14,
+    "spatial_dims": 2,
+    "in_channels": 1,
+    "out_channels": 14,
+    "channels": [64, 128, 256, 512, 1024],
+    "act": "LeakyReLU",
+    "strides": [2, 2, 2, 2],
+    "num_res_units": 2,
+    "norm": "instance"
+  },
+  "labels": [
+    { "muscle": "gluteus_minimus", "side": "left", "value": 1 },
+    { "muscle": "gluteus_minimus", "side": "right", "value": 2 },
+    { "muscle": "gluteus_medius", "side": "left", "value": 3 },
+    { "muscle": "gluteus_medius", "side": "right", "value": 4 },
+    { "muscle": "gluteus_maximus", "side": "left", "value": 5 },
+    { "muscle": "gluteus_maximus", "side": "right", "value": 6 },
+    { "muscle": "tensor", "side": "left", "value": 7 },
+    { "muscle": "tensor", "side": "right", "value": 8 },
+    { "bone": "femur", "side": "left", "value": 9 },
+    { "bone": "femur", "side": "right", "value": 10 },
+    { "bone": "pelvis", "side": "left", "value": 11 },
+    { "bone": "pelvis", "side": "right", "value": 12 },
+    { "bone": "sacrum", "value": 13 }
+  ]
+}
