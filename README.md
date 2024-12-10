@@ -169,7 +169,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     * Pelvis
-        * Left and right gluteus minimus, gluteus medius, gluteus maximus, tensor fasciae latae, sacrum, 
+        * Left and right gluteus minimus, gluteus medius, gluteus maximus, tensor fasciae latae, femur, pelvic girdle, and sacrum
     * Thigh
         * Left and right vastus lateralis, vastus intermedius, vastus medialis, rectus femoris, sartorius, gracilis, semimembranosus, semitendinosus, biceps femoris long head, biceps femoris short head, adductor magnus, adductor longus, adductor brevis, and femur
     * Leg
