@@ -54,7 +54,7 @@ def get_parser():
                           help="Input image to segment. Can be single image or list of images separated by commas.")
     
     required.add_argument("-r", '--region', required=True, type=str,
-                          help="Anatomical region to segment. Supported regions: abdomen")
+                          help="Anatomical region to segment. Supported regions: abdomen, pelvis, thigh, and leg")
     
     # Optional arguments
     optional = parser.add_argument_group("Optional")

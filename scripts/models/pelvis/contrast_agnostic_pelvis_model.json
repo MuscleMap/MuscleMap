@@ -29,8 +29,8 @@
     { "structure": "tensor fasciae latae", "side": "right", "value": 8 },
     { "structure": "femur", "side": "left", "value": 9 },
     { "structure": "femur", "side": "right", "value": 10 },
-    { "structure": "pelvis", "side": "left", "value": 11 },
-    { "structure": "pelvis", "side": "right", "value": 12 },
+    { "structure": "pelvic girdle", "side": "left", "value": 11 },
+    { "structure": "pelvic girdle", "side": "right", "value": 12 },
     { "structure": "sacrum", "side": "", "value": 13 }
   ]
 }

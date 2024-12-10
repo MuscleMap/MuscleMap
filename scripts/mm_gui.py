@@ -266,7 +266,7 @@ def main():
 
     ttk.Label(segment_tab, text="Region:").grid(row=1, column=0)
     segment_region_entry = tk.StringVar()
-    regions = ['abdomen']
+    regions =  ['abdomen', 'pelvis', 'thigh', 'leg']
     region_menu = ttk.OptionMenu(segment_tab, segment_region_entry, segment_region_entry.get(), *regions)
     region_menu.grid(row=1, column=1)
 
@@ -328,7 +328,7 @@ def main():
 
     ttk.Label(extract_tab, text="Region:").grid(row=6, column=0)
     extract_region_entry = tk.StringVar()
-    extract_regions = ['abdomen']
+    extract_regions =  ['abdomen', 'pelvis', 'thigh', 'leg']
     extract_region_menu = ttk.OptionMenu(extract_tab, extract_region_entry, extract_region_entry.get(), *extract_regions)
     extract_region_menu.grid(row=6, column=1)
 
@@ -352,7 +352,7 @@ def main():
 
     ttk.Label(chain_gmm_kmeans_tab, text="Region:").grid(row=2, column=0)
     chain_region_entry = tk.StringVar()
-    chain_regions = ['abdomen']
+    chain_regions =  ['abdomen', 'pelvis', 'thigh', 'leg']
     chain_region_menu = ttk.OptionMenu(chain_gmm_kmeans_tab, chain_region_entry, chain_region_entry.get(), *chain_regions)
     chain_region_menu.grid(row=2, column=1)
 
@@ -405,7 +405,7 @@ def main():
 
     ttk.Label(chain_dixon_tab, text="Region:").grid(row=3, column=0)
     dixon_region_entry = tk.StringVar()
-    dixon_regions = ['abdomen']
+    dixon_regions =  ['abdomen', 'pelvis', 'thigh', 'leg']
     dixon_region_menu = ttk.OptionMenu(chain_dixon_tab, dixon_region_entry, dixon_region_entry.get(), *dixon_regions)
     dixon_region_menu.grid(row=3, column=1)
 
@@ -437,7 +437,7 @@ def main():
 
     ttk.Label(chain_average_tab, text="Region:").grid(row=2, column=0)
     average_region_entry = tk.StringVar()
-    average_regions = ['abdomen']
+    average_regions =  ['abdomen', 'pelvis', 'thigh', 'leg']
     average_region_menu = ttk.OptionMenu(chain_average_tab, average_region_entry, average_region_entry.get(), *average_regions)
     average_region_menu.grid(row=2, column=1)
 
