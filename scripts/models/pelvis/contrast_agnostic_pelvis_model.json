@@ -19,18 +19,18 @@
     "norm": "instance"
   },
   "labels": [
-    { "muscle": "gluteus_minimus", "side": "left", "value": 1 },
-    { "muscle": "gluteus_minimus", "side": "right", "value": 2 },
-    { "muscle": "gluteus_medius", "side": "left", "value": 3 },
-    { "muscle": "gluteus_medius", "side": "right", "value": 4 },
-    { "muscle": "gluteus_maximus", "side": "left", "value": 5 },
-    { "muscle": "gluteus_maximus", "side": "right", "value": 6 },
-    { "muscle": "tensor", "side": "left", "value": 7 },
-    { "muscle": "tensor", "side": "right", "value": 8 },
-    { "bone": "femur", "side": "left", "value": 9 },
-    { "bone": "femur", "side": "right", "value": 10 },
-    { "bone": "pelvis", "side": "left", "value": 11 },
-    { "bone": "pelvis", "side": "right", "value": 12 },
-    { "bone": "sacrum", "value": 13 }
+    { "structure": "gluteus minimus", "side": "left", "value": 1 },
+    { "structure": "gluteus minimus", "side": "right", "value": 2 },
+    { "structure": "gluteus medius", "side": "left", "value": 3 },
+    { "structure": "gluteus medius", "side": "right", "value": 4 },
+    { "structure": "gluteus maximus", "side": "left", "value": 5 },
+    { "structure": "gluteus maximus", "side": "right", "value": 6 },
+    { "structure": "tensor fasciae latae", "side": "left", "value": 7 },
+    { "structure": "tensor fasciae latae", "side": "right", "value": 8 },
+    { "structure": "femur", "side": "left", "value": 9 },
+    { "structure": "femur", "side": "right", "value": 10 },
+    { "structure": "pelvis", "side": "left", "value": 11 },
+    { "structure": "pelvis", "side": "right", "value": 12 },
+    { "structure": "sacrum", "side": "", "value": 13 }
   ]
 }
