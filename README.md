@@ -111,7 +111,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 2. Create python environment:
     ~~~
-    conda create --name MuscleMap python==3.9.0
+    conda create --name MuscleMap python=3.9.0
     ~~~
 
 3. Activate python environment:
