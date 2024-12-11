@@ -212,7 +212,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
      mm_gui
      ~~~
     
-* To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
+    * To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
 ## Citing MuscleMap
 
@@ -236,7 +236,7 @@ When using the MuscleMap Toolbox, please cite the following publications:
 
 ### Thigh
 
-Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
 ### Leg
 
