@@ -168,7 +168,7 @@ def main():
                     metrics=results
 
                 result_entry={
-                    'Structure': structure_side_info.strip(),
+                    'Anatomy': structure_side_info.strip(),
                     'Label': value, #current val iterating through, "muscle number",
                     'Number of Slices': number_of_slices,
                 }
