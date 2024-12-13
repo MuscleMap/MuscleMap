@@ -1,0 +1,53 @@
+{
+  "parameters": {
+    "num_workers": 4,
+    "roi_size": [128, 128],
+    "spatial_window_batch_size": 1,
+    "amount_of_labels": 29,
+    "pix_dim": [1, 1, -1],
+    "model_continue_training": "FILLER_Nadductor magnusE_continue_training.pth"
+  },
+  "model": {
+    "num_labels": 15,
+    "spatial_dims": 2,
+    "in_channels": 1,
+    "out_channels": 15,
+    "channels": [64, 128, 256, 512, 1024],
+    "act": "LeakyReLU",
+    "strides": [2, 2, 2, 2],
+    "num_res_units": 2,
+    "norm": "instance"
+  },
+
+  "labels": [
+    { "anatomy": "vastus lateralis", "side": "left", "value": 1 },
+    { "anatomy": "vastus lateralis", "side": "right", "value": 2 },
+    { "anatomy": "vastus intermedius", "side": "left", "value": 3 },
+    { "anatomy": "vastus intermedius", "side": "right", "value": 4 },
+    { "anatomy": "vastus medialis", "side": "left", "value": 5 },
+    { "anatomy": "vastus medialis", "side": "right", "value": 6 },
+    { "anatomy": "rectus femoris", "side": "left", "value": 7 },
+    { "anatomy": "rectus femoris", "side": "right", "value": 8 },
+    { "anatomy": "sartorius", "side": "left", "value": 9 },
+    { "anatomy": "sartorius", "side": "right", "value": 10 },
+    { "anatomy": "gracilis", "side": "left", "value": 11 },
+    { "anatomy": "gracilis", "side": "right", "value": 12 },
+    { "anatomy": "semimembranosus", "side": "left", "value": 13 },
+    { "anatomy": "semimembranosus", "side": "right", "value": 14 },
+    { "anatomy": "semitendinosus", "side": "right", "value": 15 },
+    { "anatomy": "semitendinosus", "side": "left", "value": 16},
+    { "anatomy": "biceps femoris long head", "side": "right", "value": 17 },
+    { "anatomy": "biceps femoris long head", "side": "left", "value": 18 },
+    { "anatomy": "biceps femoris short head", "side": "right", "value": 19 },
+    { "anatomy": "biceps femoris short head", "side": "left", "value": 20 },
+    { "anatomy": "adductor magnus", "side": "right", "value": 21 },
+    { "anatomy": "adductor magnus", "side": "right", "value": 22 },
+    { "anatomy": "adductor longus", "side": "left", "value": 23},
+    { "anatomy": "adductor longus", "side": "right", "value": 24 },
+    { "anatomy": "adductor brevis", "side": "left", "value": 25 },
+    { "anatomy": "adductor brevis", "side": "right", "value": 26 },
+    { "anatomy": "femur", "side": "left", "value": 27 },
+    { "anatomy": "femur", "side": "right", "value": 28 }
+
+  ]
+}
