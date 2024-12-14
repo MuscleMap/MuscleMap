@@ -95,9 +95,9 @@ def main():
             if args.region:
                 for label in model_config["labels"]:
                     if label["value"] == value:
-                        structure_side_info = label["structure"] + " " + label["side"]
+                        anatomy_side_info = label["anatomy"] + " " + label["side"]
             else:
-                structure_side_info=""
+                anatomy_side_info=""
                     
             mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
             #If no mask, then assign nan
@@ -168,7 +168,7 @@ def main():
                     metrics=results
 
                 result_entry={
-                    'Anatomy': structure_side_info.strip(),
+                    'Anatomy': anatomy_side_info.strip(),
                     'Label': value, #current val iterating through, "muscle number",
                     'Number of Slices': number_of_slices,
                 }
