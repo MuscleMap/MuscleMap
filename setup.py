@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='scripts',
-    version='0.1.0',
+    version='0.1',
     author='Richard Yin,  Kenneth Weber, and Eddo Wesselink',  # Add another author's name
     description='An imaging toolbox for muscle.',
     url='https://github.com/MuscleMap/MuscleMap.git',
