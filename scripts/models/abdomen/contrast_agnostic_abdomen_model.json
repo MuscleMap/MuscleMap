@@ -19,13 +19,13 @@
     "norm": "instance"
   },
   "labels": [
-    { "muscle": "multifidus", "side": "right", "value": 1 },
-    { "muscle": "multifidus", "side": "left", "value": 2 },
-    { "muscle": "erector_spinae", "side": "right", "value": 3 },
-    { "muscle": "erector_spinae", "side": "left", "value": 4 },
-    { "muscle": "psoas_major", "side": "right", "value": 5 },
-    { "muscle": "psoas_major", "side": "left", "value": 6 },
-    { "muscle": "quadratus_lumborum", "side": "right", "value": 7 },
-    { "muscle": "quadratus_lumborum", "side": "left", "value": 8 }
+    { "anatomy": "multifidus", "side": "right", "value": 1 },
+    { "anatomy": "multifidus", "side": "left", "value": 2 },
+    { "anatomy": "erector spinae", "side": "right", "value": 3 },
+    { "anatomy": "erector spinae", "side": "left", "value": 4 },
+    { "anatomy": "psoas major", "side": "right", "value": 5 },
+    { "anatomy": "psoas major", "side": "left", "value": 6 },
+    { "anatomy": "quadratus lumborum", "side": "right", "value": 7 },
+    { "anatomy": "quadratus lumborum", "side": "left", "value": 8 }
   ]
 }
