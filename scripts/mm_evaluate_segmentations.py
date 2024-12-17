@@ -16,8 +16,8 @@ import os
 import re
 import pandas as pd
 from scipy import ndimage
-from MetricsReloaded.utility.utils import MorphologyOps
 import sys
+from tqdm import tqdm
 
 print("Command line arguments received:", sys.argv)
 
@@ -157,7 +157,62 @@ def dsc(mm_class, gt_class):
         return 1
     else:
         return numerator / denominator
-    
+
+class MorphologyOps(object): # Can we move this to utils?
+    """
+    Class that performs the morphological operations needed to get notably
+    connected component. To be used in the evaluation
+    """
+
+    def __init__(self, binary_img, connectivity):
+        self.binary_map = np.asarray(binary_img, dtype=np.int8)
+        self.connectivity = connectivity
+
+    def border_map(self):
+        """
+        Create the border map defined as the difference between the original image 
+        and its eroded version
+
+        :return: border
+        """
+        eroded = ndimage.binary_erosion(self.binary_map)
+        border = self.binary_map - eroded
+        return border
+
+    def border_map2(self):
+        """
+        Creates the border for a 3D image
+        :return:
+        """
+        west = ndimage.shift(self.binary_map, [-1, 0, 0], order=0)
+        east = ndimage.shift(self.binary_map, [1, 0, 0], order=0)
+        north = ndimage.shift(self.binary_map, [0, 1, 0], order=0)
+        south = ndimage.shift(self.binary_map, [0, -1, 0], order=0)
+        top = ndimage.shift(self.binary_map, [0, 0, 1], order=0)
+        bottom = ndimage.shift(self.binary_map, [0, 0, -1], order=0)
+        cumulative = west + east + north + south + top + bottom
+        border = ((cumulative < 6) * self.binary_map) == 1
+        return border
+
+    def foreground_component(self):
+        return ndimage.label(self.binary_map)
+
+    def list_foreground_component(self):
+        labels, _ = self.foreground_component()
+        list_ind_lab = []
+        list_volumes = []
+        list_com = []
+        list_values = np.unique(labels)
+        for f in list_values:
+            if f > 0:
+                tmp_lab = np.where(
+                    labels == f, np.ones_like(labels), np.zeros_like(labels)
+                )
+                list_ind_lab.append(tmp_lab)
+                list_volumes.append(np.sum(tmp_lab))
+                list_com.append(ndimage.center_of_mass(tmp_lab))
+        return list_ind_lab, list_volumes, list_com
+        
 def normalised_surface_distance(mm_class, gt_class, dict_args={}):
     """
     Adapted from MONAI/MetricsReloaded.
@@ -207,9 +262,29 @@ def absolute_volume_difference(mm_class, gt_class, mm_path):
     mm_volume = np.around(mm_class.sum() * pixdim_x * pixdim_y * pixdim_z / 1000, decimals=2)
     gt_volume = np.around(gt_class.sum() * pixdim_x * pixdim_y * pixdim_z / 1000, decimals=2)
     
-    avb = abs(mm_volume - gt_volume)
+    avd = abs(mm_volume - gt_volume)
   
-    return avb
+    return avd
+
+def percentage_volume_difference(mm_class, gt_class, mm_path): 
+    # Load the NIfTI images
+    mm_img = nib.load(mm_path) # have to load separately to use pixdims for volume
+    
+    # Access the headers for pixel dimensions
+    mm_header = mm_img.header
+    
+    # Extract pixel dimensions (voxel size)
+    pixdim_x, pixdim_y, pixdim_z = mm_header['pixdim'][1:4]
+    
+    dim_x, dim_y, dim_z = mm_img.header['dim'][1:4]
+    pixdim_x, pixdim_y, pixdim_z = mm_img.header['pixdim'][1:4]
+    
+    mm_volume = np.around(mm_class.sum() * pixdim_x * pixdim_y * pixdim_z / 1000, decimals=2)
+    gt_volume = np.around(gt_class.sum() * pixdim_x * pixdim_y * pixdim_z / 1000, decimals=2)
+    
+    pvd = 100*abs(mm_volume - gt_volume)/(gt_volume)
+  
+    return pvd
 
 def intersection_over_union(mm_class, gt_class):
     if np.sum(mm_class) == 0 and np.sum(gt_class) == 0:
@@ -306,7 +381,7 @@ def calculate_metrics_for_classes(mm_path, gt_path, num_classes):
     # Dictionary where the key is the class index and the value is another dictionary of metrics
     metrics_dict = {class_index: {} for class_index in range(1, num_classes + 1)}
     
-    for class_index in range(1, num_classes + 1):
+    for class_index in tqdm(range(1, num_classes + 1), desc="Calculating Metrics", unit="class"):
         mm_class = np.where(mm_data == class_index, 1, 0)
         gt_class = np.where(gt_data == class_index, 1, 0)
         
@@ -314,6 +389,7 @@ def calculate_metrics_for_classes(mm_path, gt_path, num_classes):
         metrics_dict[class_index]['DSC'] = dsc(mm_class, gt_class)
         metrics_dict[class_index]['NSD'] = normalised_surface_distance(mm_class, gt_class)
         metrics_dict[class_index]['AVD'] = absolute_volume_difference(mm_class, gt_class, mm_path)
+        metrics_dict[class_index]['PVD'] = percentage_volume_difference(mm_class, gt_class, mm_path)
         metrics_dict[class_index]['IoU'] = intersection_over_union(mm_class, gt_class)
         metrics_dict[class_index]['HD'] = measured_distance(mm_class, gt_class)[0]
         metrics_dict[class_index]['pHD'] = measured_distance(mm_class, gt_class)[2]
