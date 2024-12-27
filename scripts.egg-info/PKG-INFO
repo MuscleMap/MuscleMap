@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: scripts
+Version: 0.1
+Summary: An imaging toolbox for muscle.
+Home-page: https://github.com/MuscleMap/MuscleMap.git
+Author: Richard Yin,  Kenneth Weber, and Eddo Wesselink
+Requires-Python: >=3.6
+License-File: LICENSE
+Requires-Dist: monai==1.3.2
+Requires-Dist: torch==2.4.0
+Requires-Dist: numpy==1.24.4
+Requires-Dist: nibabel==5.2.1
+Requires-Dist: scikit-learn==1.3.2
+Requires-Dist: pandas==2.0.3
+Requires-Dist: scikit-image==0.21.0

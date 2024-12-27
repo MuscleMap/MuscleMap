@@ -7,6 +7,32 @@ import nibabel as nib
 import math
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
+import glob
+import torch
+from monai.transforms import (
+    Compose,
+    LoadImaged,
+    EnsureChannelFirstd,
+    Spacingd,
+    Orientationd,
+    NormalizeIntensityd,
+    RandCropByPosNegLabeld,
+    RandSimulateLowResolutiond,
+    RandAffined,
+    RandHistogramShiftd,
+    RandAdjustContrastd,
+    RandBiasFieldd,
+    RandGaussianNoised,
+    RandGibbsNoised,
+    SqueezeDimd,
+    EnsureTyped,
+)
+from monai.networks.nets import UNet
+from monai.networks.layers import Norm
+from monai.transforms import MapTransform
+from monai.config import KeysCollection
+from monai.transforms import MapTransform
+import random
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -16,7 +42,6 @@ def check_image_exists(image_path):
     if not os.access(image_path, os.R_OK):
         logging.error(f"Image file '{image_path}' is not readable.")
         sys.exit(1)
-
 
 def get_model_and_config_paths(region, specified_model=None):
     models_base_dir = os.path.join(os.path.dirname(__file__), "models", region)
@@ -54,7 +79,6 @@ def get_model_and_config_paths(region, specified_model=None):
 
     return model_path, config_path
 
-
 def load_model_config(config_path):
     try:
         with open(config_path, 'r') as file:
@@ -66,7 +90,6 @@ def load_model_config(config_path):
     except json.JSONDecodeError as exc:
         logging.error(f"Error parsing the configuration file: {exc}")
         sys.exit(1)
-
 
 def validate_seg_arguments(args):
     required_args = {'input_image': "-i", 'region': "-r"}
@@ -86,13 +109,10 @@ def validate_seg_arguments(args):
         if arg_value and not isinstance(arg_value, str):
             logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
             sys.exit(1)
-    
-
 
 def save_nifti(data, affine, filename):
     nifti_img = nib.Nifti1Image(data, affine)
     nib.save(nifti_img, filename)
-
 
 def validate_extract_args(args):
     if args.method == 'dixon':
@@ -112,9 +132,7 @@ def validate_extract_args(args):
         if arg_value and not isinstance(arg_value, str):
             logging.error(f"Error: The {arg_name} argument must be a string.")
             sys.exit(1)
-
-        
-
+     
 def extract_image_data(image_path):
     img = nib.load(image_path)
     img_array = img.get_fdata()
@@ -123,8 +141,6 @@ def extract_image_data(image_path):
     pixdim_x, pixdim_y, pixdim_z = img.header['pixdim'][1:4] #voxel dimensions in mm
 
     return img, img_array, (dim_x, dim_y, dim_z), (pixdim_x, pixdim_y, pixdim_z)
-
-
 
 def apply_clustering(mask_img, kmeans_activate, GMM_activate, components): #output_dir, image
     if kmeans_activate:
@@ -270,3 +286,185 @@ def calculate_segmentation_metrics(args, mask):
 def absolute_path(relative_path):
     base_path = os.path.dirname(__file__)  # Gets the directory where the script is located
     return os.path.join(base_path, relative_path)
+
+def get_BIDS_data_files(data_dir):
+    """
+    Retrieve and return the list of data files (images and labels) from a nested directory structure.
+    Dynamically pairs images and labels based on directory structure and file extensions.
+
+    Parameters:
+        data_dir (str): The base directory containing subject subdirectories.
+
+    Returns:
+        list: A list of dictionaries containing "image" and "label" file paths.
+    """
+    label_files = sorted(
+        glob.glob(
+            os.path.join(data_dir, "**", "*dseg.nii.gz"),
+            recursive=True
+        )
+    )
+    
+    # Initialize the training file pairs
+    train_files = []
+
+    # Process each label file
+    for label in label_files:
+        participant_dir = os.path.dirname(label)  # Get the participant's directory
+        # Find all image files in the same directory
+        image_files = glob.glob(os.path.join(participant_dir, "*.nii.gz"))
+
+        # Dynamically detect and pair modalities with the label
+        for image in image_files:
+            # Skip the label file itself
+            if image.endswith("dseg.nii.gz"):
+                continue
+            train_files.append({"image": image, "label": label})
+
+    return train_files
+
+class RandInvertSignalTransform(MapTransform):
+    """
+    Randomly invert the signal of the image. 
+    """
+    def __init__(self, keys: KeysCollection, prob: float = 0.1, allow_missing_keys: bool = False):
+        """
+        Args:
+            keys: The keys of the items to apply the transform to.
+            prob: Probability of applying the transform.
+            allow_missing_keys: If True, allows keys to be missing in the data dictionary.
+        """
+        super().__init__(keys, allow_missing_keys)
+        self.prob = prob
+    
+    def __call__(self, data):
+        """
+        Args:
+            data: A dictionary containing the keys specified during initialization.
+
+        Returns:
+            Transformed data with the inverted signal for the specified keys if the
+            random probability condition is met.
+        """
+        d = dict(data)
+        for key in self.keys:
+            if random.random() < self.prob:  # Apply inversion based on probability
+                image = d[key]
+                max_val = np.max(image)
+                d[key] = (image - max_val) * -1
+        return d
+
+def get_transforms(pix_dim, spatial_window_size, spatial_window_batch_size):
+    train_transforms = Compose([
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys=["image", "label"]),
+        Spacingd(
+            keys=["image", "label"],
+            pixdim=pix_dim,
+            mode=("bilinear", "nearest")
+        ),
+        Orientationd(keys=["image", "label"], axcodes="RAS"),
+        NormalizeIntensityd(keys=["image"], nonzero=True),
+        EnsureTyped(keys=["image", "label"]),
+        RandCropByPosNegLabeld(
+            keys=["image", "label"],
+            label_key="label",
+            spatial_size=spatial_window_size,
+            pos=1,
+            neg=1,
+            num_samples=spatial_window_batch_size,
+            image_key="image",
+            image_threshold=0
+        ),
+        RandInvertSignalTransform(keys=["image"],prob= 0.1),
+        RandSimulateLowResolutiond(
+            keys=["image", "label"],
+            prob=0.1,
+            downsample_mode="nearest",
+            upsample_mode="trilinear",
+            zoom_range=(0.5, 1.0),
+            align_corners=False,
+            allow_missing_keys=False
+        ),
+        RandAffined(
+            keys=["image", "label"],
+            mode=("bilinear", "nearest"),
+            prob=0.1,
+            translate_range=([-10, 10], [-10, 10], [0, 0]),
+            padding_mode="border"
+        ),
+        RandAffined(
+            keys=["image", "label"],
+            mode=("bilinear", "nearest"),
+            prob=0.1,
+            rotate_range=([0, 0], [0, 0], [-0.16, 0.16]),
+            padding_mode="border"
+        ),
+        RandHistogramShiftd(
+            keys="image",
+            prob=0.1,
+            num_control_points=10
+        ),
+        RandAdjustContrastd(
+            keys="image",
+            prob=0.1,
+            gamma=(0.2, 2)
+        ),
+        RandBiasFieldd(
+            keys="image",
+            degree=3,
+            prob=0.1,
+            coeff_range=(-1, 1)
+        ),
+        RandGaussianNoised(
+            keys="image",
+            prob=0.1,
+            mean=0.0,
+            std=0.1
+        ),
+        RandGibbsNoised(
+            keys="image",
+            prob=0.1,
+            alpha=(0.3, 0.9)
+        ),
+        SqueezeDimd(
+            keys=["image", "label"],
+            dim=-1
+        )
+    ])
+    return train_transforms
+
+
+def initialize_model(model_dir,starting_iteration, amount_of_labels, device, load_checkpoint=False):
+    """
+    Initialize and return the model.
+
+    Args:
+        amount_of_labels (int): Number of output channels/classes.
+        device (torch.device): The device to run the model on.
+        load_checkpoint (bool): Whether to load model weights from a checkpoint.
+        checkpoint_path (str): Path to the checkpoint file.
+
+    Returns:
+        model (torch.nn.Module): The initialized (and optionally pre-trained) model.
+    """
+    model = UNet(
+        spatial_dims=2,
+        in_channels=1,
+        out_channels=amount_of_labels,
+        channels=(64, 128, 256, 512, 1024),
+        act='LeakyReLU',
+        strides=(2, 2, 2, 2),
+        num_res_units=2,
+        norm=Norm.INSTANCE,
+    ).to(device)
+
+    if load_checkpoint:
+        checkpoint_path = (os.path.join(model_dir, f"model_iteration_{starting_iteration}.pth"))
+        model.load_state_dict(torch.load(checkpoint_path))
+        model.to(device)
+
+    return model
+
+def poly_lr_scheduler(epoch, max_epochs, initial_lr, power=0.9):
+    return initial_lr * (1 - epoch / max_epochs) ** power
