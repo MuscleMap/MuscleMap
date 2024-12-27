@@ -16,7 +16,8 @@ setup(
         'console_scripts': [
             'mm_segment=scripts.mm_segment:main',
             'mm_extract_metrics=scripts.mm_extract_metrics:main',
-            'mm_gui=scripts.mm_gui:main' 
+            'mm_gui=scripts.mm_gui:main' ,
+            'mm_train=scripts.mm_train:main'
         ]
     },
     package_data={
