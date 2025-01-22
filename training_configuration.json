@@ -1,0 +1,14 @@
+{
+    "data_dir": "C:\\Users\\Eigenaar\\data",
+    "model_dir": "C:\\Users\\Eigenaar\\data\\models",
+    "spatial_window_size": [128, 128, 1],
+    "spatial_window_batch_size": 10,
+    "batch_size_training": 2,
+    "amount_of_labels": 14,
+    "pix_dim": [1, 1, -1],
+    "max_iterations": 20,
+    "eval_num": 10,
+    "load_checkpoint_flag": false,
+    "starting_iteration": 0,
+    "initial_learning_rate": 1e-2
+}
