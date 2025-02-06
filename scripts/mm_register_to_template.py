@@ -12,7 +12,7 @@ import nibabel as nib
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import ndimage
-from spinalcordtoolbox.image import Image
+from spinalcordtoolbox.image import Image, add_suffix
 from spinalcordtoolbox.registration.landmarks import getRigidTransformFromLandmarks
 from spinalcordtoolbox.centerline.core import get_centerline 
 from spinalcordtoolbox.resampling import resample_nib
@@ -164,7 +164,7 @@ def main():
                 image_label_mask = image_label.data == label
                 image_label.data = image_label_mask * 1
                 image_label_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '.nii.gz')
-                image_label.save(image_label_filename, mutable=True)      
+                image_label.save(image_label_filename, mutable=True, dtype='int16')
                 
                 print(f"\n... extracting centerline points and calculating transform")
                 image_label_centerline = extract_centerline_points(image_label)
