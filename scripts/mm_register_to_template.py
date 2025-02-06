@@ -1,20 +1,23 @@
+import os
+#os.chdir('/mnt/c/MuscleMap/scripts/spinalcordtoolbox')
+import sys
+sys.path.append('/mnt/c/MuscleMap/scripts/spinalcordtoolbox')
+print(sys.path)
+
 import argparse
 import logging
 import os
 import sys
 import nibabel as nib
 import numpy as np
-import matplotlib
-from copy import deepcopy
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-from spinalcordtoolbox.image import Image, add_suffix
 from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy import ndimage
+from spinalcordtoolbox.image import Image
 from spinalcordtoolbox.registration.landmarks import getRigidTransformFromLandmarks
 from spinalcordtoolbox.centerline.core import get_centerline 
 from spinalcordtoolbox.resampling import resample_nib
-from spinalcordtoolbox.scripts import sct_apply_transfo
-from spinalcordtoolbox.scripts import sct_register_multimodal
+from spinalcordtoolbox.scripts import sct_apply_transfo, sct_concat_transfo, sct_register_multimodal
+from spinalcordtoolbox.scripts.sct_apply_transfo import Transform
 from spinalcordtoolbox.registration.algorithms import Paramreg, ParamregMultiStep
 from spinalcordtoolbox.registration.core import register_wrapper
 
@@ -53,6 +56,41 @@ def get_parser():
     
     return parser
 
+def extract_centerline_points(im):
+                    data_labels = im.data.astype(np.int8)
+                    nb_slices = data_labels.shape[2]
+                    centers = []
+                    for z in range(nb_slices):
+                        slice_data = data_labels[:, :, z]
+                        if 1 in slice_data:
+                            com = ndimage.center_of_mass(slice_data == 1)
+                            centers.append([int(round(np.mean(com[0]))), int(round(com[1])), z])
+                    centerlines_phys = im.transfo_pix2phys(centers)
+                    return centerlines_phys
+
+def transfo_pix2phys(im, coordi=None):
+    """
+    This function returns the physical coordinates of all points of 'coordi'.
+    :param
+    im:
+    coordi: sequence of (nb_points x 3) values containing the pixel coordinate of points.
+    :return: sequence with the physical coordinates of the points in the space of the image.
+    Example:
+    .. code:: python
+        img = Image('file.nii.gz')
+        coordi_pix = [[1,1,1]]   # for points: (1,1,1). N.B. Important to write [[x,y,z]] instead of [x,y,z]
+        coordi_pix = [[1,1,1],[2,2,2],[4,4,4]]   # for points: (1,1,1), (2,2,2) and (4,4,4)
+        coordi_phys = img.transfo_pix2phys(coordi=coordi_pix)
+    """
+
+    m_p2f = im.header.get_best_affine()
+    aug = np.hstack((np.asarray(coordi), np.ones((len(coordi), 1))))
+    ret = np.empty_like(coordi, dtype=np.float64)
+    for idx_coord, coord in enumerate(aug):
+        phys = np.matmul(m_p2f, coord)
+        ret[idx_coord] = phys[:3]
+    return ret
+
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -69,7 +107,7 @@ def main():
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
 
-    template_path, template_segmentation_path = get_template_paths('abdomen')
+    template_path, template_segmentation_path = get_template_paths(args.region)
 
     #Output directory is CWD if None else create specified output directory
     if args.output_dir is None:
@@ -87,157 +125,178 @@ def main():
     #Load template and plot images
     try:
         template = Image(template_path).change_orientation("RPI")
-        #plt.imshow(template.data[:,:,template.data.shape[2]//2])
-        #plt.show()
+      
     except ImportError:
         print(f"Unable to load {args.region}_template.nii.gz")
-
-    try:
-        template_seg = Image(template_segmentation_path).change_orientation("RPI")
-        #plt.imshow(template_seg.data[:,:,template_seg.data.shape[2]//2])
-        #plt.show()       
-    except ImportError:
-        print(f"Unable to load {args.region}_template_dseg.nii.gz")
     
     try:
         image_filename = args.input_image
         image = Image(image_filename).change_orientation("RPI")
-       # image = resample_nib(image, new_size=[0.5,0.5,0.5], new_size_type='mm', interpolation='linear', mode='nearest')
-       # image_filename = add_suffix(image_filename, '_resampled')
-       # image.save(os.path.join(output_dir, image_filename), mutable=True)
-       # plt.imshow(image.data[:,:,image.data.shape[2]//2])
-        #plt.show()
+      
     except ImportError:
         print(f"Unable to load {args.input_image}")
 
     try:
         image_seg_filename = args.segmentation_image
         image_seg = Image(image_seg_filename).change_orientation("RPI")
-        #image_seg = resample_nib(image_seg, new_size=[0.5,0.5,0.5], new_size_type='mm', interpolation='nn', mode='nearest')
-        #image_seg_filename = add_suffix(image_seg_filename, '_resampled')
-        #image_seg.save(os.path.join(output_dir, image_seg_filename), mutable=True)
-        #plt.imshow(image_seg.data[:,:,image_seg.data.shape[2]//2])
-        #plt.show()
+      
     except ImportError:
         print(f"Unable to load {args.segmentation_image}")
     
-    #for label in np.unique(image_seg.data)[0]:
-    for label in np.arange(1,2):
+
+    outputs = {}
+
+    labels = np.unique(image_seg.data)
+        
+    #labels = np.arange(1,2)
+    for label in labels:
 
         if label > 0: #iterates through muscles 
             
-            template_label_mask = template_seg.data == label        
-            image_label_mask = image_seg.data == label #mask is when component is labelled label (0 thru whatever), has dimensions of INPUT
-            #If no mask, then assign nan
-            if image_label_mask.sum() == 0 or template_label_mask.sum() == 0:
-                continue
-            else:
-                template_label = template_seg.copy()
-                template_label.data = template_label_mask * 1
-                template_label_filename = add_suffix(template_path, '_seg_label-' + str(int(label)))
-                template_label.save(os.path.join(output_dir, template_label_filename), mutable=True)
-                                
+            print(f"Starting registration process for label {label}")
+            
+            template_label_filename  = template_segmentation_path.removesuffix('.gz').removesuffix('.nii') + '_label-' + str(label) + '.nii.gz'
+            template_label = Image(template_label_filename).change_orientation("RPI")
+
+            try:
+
                 image_label = image_seg.copy()
+                image_label_mask = image_label.data == label
                 image_label.data = image_label_mask * 1
-                image_label_filename = add_suffix(image_filename, '_seg_label-' + str(int(label)))
-                image_label.save(os.path.join(output_dir, image_label_filename), mutable=True)
+                image_label_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '.nii.gz')
+                image_label.save(image_label_filename, mutable=True)      
+                
+                print(f"\n... extracting centerline points and calculating transform")
+                image_label_centerline = extract_centerline_points(image_label)
+                template_label_centerline = extract_centerline_points(template_label)
+                nb_im, nb_template = len(image_label_centerline), len(template_label_centerline)
 
-            #Get and plot centerlines
-            image_label_centerline_pix, image_label_arr_ctl_pix, image_label_arr_ctl_der_pix, image_label_fit_results_pix = get_centerline(image_label, space='pix')
-            image_label_centerline_pix.save(path=add_suffix(image_label_filename, "_desc-centerline"), mutable=True)
-            #ax = plt.axes(projection='3d')
-            #ax.plot3D(image_label_arr_ctl_pix[0], image_label_arr_ctl_pix[1], image_label_arr_ctl_pix[2])
-            #plt.show()
+                p10_im, p50_im, p90_im = int(0.1*nb_im), int(0.5*nb_im), int(0.9*nb_im)
+                p10_template, p50_itemplate, p90_template = int(0.1*nb_template), int(0.5*nb_template), int(0.9*nb_template)
 
-            template_label_centerline_pix, template_label_arr_ctl_pix, template_label_arr_ctl_der_pix, template_label_fit_results_pix = get_centerline(template_label, space='pix')
-            template_label_centerline_pix.save(path=add_suffix(template_label_filename, "_desc-centerline"), mutable=True)
-            #ax = plt.axes(projection='3d')
-            #ax.plot3D(template_label_arr_ctl_pix[0], template_label_arr_ctl_pix[1], template_label_arr_ctl_pix[2])
-            #plt.show()
+                points_src = [[-image_label_centerline[p10_im][0], -image_label_centerline[p10_im][1], image_label_centerline[p10_im][2]],
+                            [-image_label_centerline[p50_im][0], -image_label_centerline[p50_im][1], image_label_centerline[p50_im][2]],
+                            [-image_label_centerline[p90_im][0], -image_label_centerline[p90_im][1], image_label_centerline[p90_im][2]]]
+                points_dest = [[-template_label_centerline[p10_template][0], -template_label_centerline[p10_template][1], template_label_centerline[p10_template][2]],
+                            [-template_label_centerline[p50_itemplate][0], -template_label_centerline[p50_itemplate][1], template_label_centerline[p50_itemplate][2]],
+                            [-template_label_centerline[p90_template][0], -template_label_centerline[p90_template][1], template_label_centerline[p90_template][2]]]
 
-            image_label_centerline_phys, image_label_arr_ctl_phys, image_label_arr_ctl_der_phys, image_label_fit_results_phys = get_centerline(image_label, space='phys')
-            template_label_centerline_phys, template_label_arr_ctl_phys, template_label_arr_ctl_der_phys, template_label_fit_results_phys = get_centerline(template_label, space='phys')
-            #ax = plt.axes(projection='3d')
-            #ax.plot3D(image_label_arr_ctl_phys[0], image_label_arr_ctl_phys[1], image_label_arr_ctl_phys[2])
-            #ax.plot3D(template_label_arr_ctl_phys[0], template_label_arr_ctl_phys[1], template_label_arr_ctl_phys[2])
-            #plt.show()
+                #Creating affine transformation matrices to apply to all images
+                # points_src = [[-image_label_arr_ctl_phys[0, 3], -image_label_arr_ctl_phys[1, 3], image_label_arr_ctl_phys[2, 3]], [-image_label_arr_ctl_phys[0, -4], -image_label_arr_ctl_phys[1, -4], image_label_arr_ctl_phys[2, -4]]]
+                # points_dest = [[-template_label_arr_ctl_phys[0, 3], -template_label_arr_ctl_phys[1, 3], template_label_arr_ctl_phys[2, 3]], [-template_label_arr_ctl_phys[0, -4], -template_label_arr_ctl_phys[1, -4], template_label_arr_ctl_phys[2, -4]]]
+                (rotation_matrix, translation_array, points_moving_reg, points_moving_barycenter) = getRigidTransformFromLandmarks(points_src, points_dest, constraints="Tx_Ty_Tz_Sz", verbose=1)
+                # writing rigid transformation file
+                # N.B. x and y dimensions have a negative sign to ensure compatibility between Python and ITK transfo
+                
+                affine_filename = os.path.join(output_dir, os.path.basename(image_label_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '_affine.txt')
 
-            #Creating affine transformation matrices to apply to all images
-            points_src = [[-image_label_arr_ctl_phys[0, 0], -image_label_arr_ctl_phys[1, 0], image_label_arr_ctl_phys[2, 0]], [-image_label_arr_ctl_phys[0, -1], -image_label_arr_ctl_phys[1, -1], image_label_arr_ctl_phys[2, -1]]]
-            points_dest = [[-template_label_arr_ctl_phys[0, 0], -template_label_arr_ctl_phys[1, 0], template_label_arr_ctl_phys[2, 0]], [-template_label_arr_ctl_phys[0, -1], -template_label_arr_ctl_phys[1, -1], template_label_arr_ctl_phys[2, -1]]]
-            
-            #Input to template
-            (rotation_matrix, translation_array, points_moving_reg, points_moving_barycenter) = getRigidTransformFromLandmarks(points_src, points_dest, constraints="Tx_Ty_Tz_Rz_Sz", verbose=1)
-            # writing rigid transformation file
-            # N.B. x and y dimensions have a negative sign to ensure compatibility between Python and ITK transfo
-            affine_filename = image_label_filename.removesuffix('.nii.gz') + '_seg_label2template_affine.txt'
-            text_file = open(affine_filename, 'w')
-            text_file.write("#Insight Transform File V1.0\n")
-            text_file.write("#Transform 0\n")
-            text_file.write("Transform: AffineTransform_double_3_3\n")
-            text_file.write("Parameters: %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f\n" % (
-                rotation_matrix[0, 0], rotation_matrix[0, 1], rotation_matrix[0, 2],
-                rotation_matrix[1, 0], rotation_matrix[1, 1], rotation_matrix[1, 2],
-                rotation_matrix[2, 0], rotation_matrix[2, 1], rotation_matrix[2, 2],
-                translation_array[0, 0], translation_array[0, 1], translation_array[0, 2]))
-            text_file.write("FixedParameters: %.9f %.9f %.9f\n" % (points_moving_barycenter[0],
-                                                                    points_moving_barycenter[1],
-                                                                    points_moving_barycenter[2]))
-            text_file.close()
+                text_file = open(affine_filename, 'w')
+                text_file.write("#Insight Transform File V1.0\n")
+                text_file.write("#Transform 0\n")
+                text_file.write("Transform: AffineTransform_double_3_3\n")
+                text_file.write("Parameters: %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f\n" % (
+                    rotation_matrix[0, 0], rotation_matrix[0, 1], rotation_matrix[0, 2],
+                    rotation_matrix[1, 0], rotation_matrix[1, 1], rotation_matrix[1, 2],
+                    rotation_matrix[2, 0], rotation_matrix[2, 1], rotation_matrix[2, 2],
+                    translation_array[0, 0], translation_array[0, 1], translation_array[0, 2]))
+                text_file.write("FixedParameters: %.9f %.9f %.9f\n" % (points_moving_barycenter[0],
+                                                                        points_moving_barycenter[1],
+                                                                        points_moving_barycenter[2]))
+                text_file.close()
 
-            #sct_register_multimodal.main(['-i', image_label_filename, '-iseg', image_label_filename, '-d', template_segmentation_path, '-dseg', template_segmentation_path, '-p', args.parameters, '-initwarp', affine_filename, '-x', 'nn'])
-            
-            #initialize param
-            class Param:
-                # The constructor
-                def __init__(self):
-                    self.debug = 0
-                    self.outSuffix = "_reg"
-                    self.padding = 5
-                    self.remove_temp_files = 1
+                print(f"\n... applying transform on image and segmentation")
+                # Apply Affine transform to the original image to bring it to the template
+                # crop= 0: no reference, 1: sets background to 0, 2: use normal background.
+                # interp= 'nn', 'linear', 'spline', 'label'
+                # run_proc()             
 
-            param = Param()
+                image_affine_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_label-' + str(label) + '_affine' + '.nii.gz')
 
-            step0 = Paramreg(step='0', type='seg', algo='centermass', metric='MeanSquares', slicewise='1')
-            step1 = Paramreg(step='1', type='seg', algo='centermass', metric='MeanSquares', slicewise='1')
-            DEFAULT_PARAMREGMULTI = ParamregMultiStep([step0, step1])
-            paramregmulti = deepcopy(DEFAULT_PARAMREGMULTI)
+                transform = Transform(input_filename=image_filename, fname_dest=template_path, list_warp=[affine_filename],
+                                    output_filename=image_affine_filename, crop=0, interp='linear', verbose=0)
+                transform.apply()
 
-            args.parameters = 'step=1,type=seg,algo=centermassrot,metric=MeanSquares,slicewise=1'
-            print('Errors after here')
-            paramregmulti_user = args.parameters
-            # update registration parameters
-            for paramStep in paramregmulti_user:
-                paramregmulti.addStep(paramStep)
+                image_label_affine_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '_affine' + '.nii.gz')
 
-            #sct_register_multimodal.main(['-i', image_label_filename, '-iseg', image_label_filename, '-d', template_segmentation_path, '-dseg', template_segmentation_path, '-p', args.parameters, '-initwarp', affine_filename, '-x', 'nn'])
+                transform = Transform(input_filename=image_label_filename, fname_dest=template_path, list_warp=[affine_filename],
+                                    output_filename=image_label_affine_filename, crop=0, interp='nn')
+                transform.apply()
+                
+                print(f"Check affine transformation if needed: fsleyes {template_path} {image_affine_filename} {template_label_filename} {image_label_affine_filename} &")
 
-            fname_src = image_label_filename
-            fname_dest = template_segmentation_path
-            fname_src_seg = image_label_filename
-            fname_dest_seg = template_segmentation_path
-            fname_src_label = None
-            fname_dest_label = None
-            fname_mask = None
-            fname_initwarp = affine_filename
-            fname_initwarpinv = None
-            identity = None
-            interp = 'nn'
-            fname_output = 'output.nii.gz'
-            fname_output_warp = 'warp.nii.gz'
-            fname_output_warpinv = None
-            path_out = None
+                print(f"\n... registration of the image and the template")
+                
+                sct_register_multimodal.main(['-i', image_affine_filename,
+                                            '-iseg', image_label_affine_filename,
+                                            '-d', template_path,
+                                            '-dseg', template_label_filename,
+                                            '-param',
+                                            'step=1,type=seg,algo=centermass,metric=MeanSquares:'
+                                            'step=2,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=5,shrink=2,smooth=1,gradStep=1:'
+                                            'step=3,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=5',
+                                            '-ofolder', output_dir])
 
-            print('here')
-            fname_src2dest, fname_dest2src, _, _ = \
-            register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=fname_src_seg,
-                         fname_dest_seg=fname_dest_seg, fname_src_label=fname_src_label,
-                         fname_dest_label=fname_dest_label, fname_mask=fname_mask, fname_initwarp=fname_initwarp,
-                         fname_initwarpinv=fname_initwarpinv, identity=identity, interp=interp,
-                         fname_output=fname_output,
-                         fname_output_warp=fname_output_warp, fname_output_warpinv=fname_output_warpinv,
-                         path_out=path_out)
+                print(f"\n... applying transformation field to segmentation")
 
+                print(f"\n image_affine_filename {image_affine_filename}")
+                print(f"\n template_path {template_path}")
+                print(f"\n image_label_filename {image_label_filename}")
+
+                
+                image_label_affine_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '_affine' + '.nii.gz')
+                warp_image_affine2template_filename = os.path.join(output_dir, 'warp_' + os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_label-' + str(label) + '_affine2' + args.region + '_template.nii.gz')   
+                image_label_affine2template_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '_affine2' + args.region + '_template.nii.gz')
+
+                sct_apply_transfo.main(['-i', image_label_affine_filename,
+                                        '-d', template_path,
+                                        '-w', warp_image_affine2template_filename,
+                                        '-x', 'linear',
+                                        '-o', image_label_affine2template_filename])
+
+                print(f"\n... concatenating transformation fields from image to template")
+                
+                warp_image2template_filename = os.path.join(output_dir, 'warp_' + os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_label-' + str(label) + '2' + args.region + '_template.nii.gz')
+                
+                sct_concat_transfo.main(['-d', template_path,
+                                        '-w', affine_filename, warp_image_affine2template_filename,
+                                        '-o', warp_image2template_filename])
+
+                print(f"\n... applying transformation field to original image")
+                image2template_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_label-' + str(label) + '2' + args.region + '_template.nii.gz')
+                sct_apply_transfo.main(['-i', image_filename,
+                                        '-d', template_path,
+                                        '-w', warp_image2template_filename,
+                                        '-x', 'linear',
+                                        '-o', image2template_filename])
+                
+                print(f"\n... applying transformation field to original image label")
+
+                image_label2template_filename = os.path.join(output_dir, os.path.basename(image_filename.removesuffix('.gz').removesuffix('.nii')) + '_dseg_label-' + str(label) + '2' + args.region + '_template.nii.gz')
+                                
+                sct_apply_transfo.main(['-i', image_label_filename,
+                                        '-d', template_path,
+                                        '-w', warp_image2template_filename,
+                                        '-x', 'nn',
+                                        '-o', image_label2template_filename])
+
+                os.rename(os.path.join(output_dir, args.region + '_template_reg.nii.gz'), os.path.join(output_dir, os.path.basename(args.region + '_template2' + image_filename.removesuffix('.gz').removesuffix('.nii')) + '_label-' + str(label) + '.nii.gz'))
+
+                # outputs[label] = {'warp_im2template': warp_image2template_filename,
+                #                 'fname_image_in_template': image2template_filename,
+                #                 'image_label2template_filename': image_label2template_filename}
+
+                print(f"... finished registration for label {label}")
+
+            except RuntimeError:
+                 
+                print(f"Error registering label {label}")
+
+                continue
+
+    # list all outputs
+    # print("\nAll generated files:")
+    # for label in labels:
+    #     print("Label 1", outputs[label])
 
 if __name__ == "__main__":
     main()
