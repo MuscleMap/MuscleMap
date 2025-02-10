@@ -1,9 +1,5 @@
 import os
-#os.chdir('/mnt/c/MuscleMap/scripts/spinalcordtoolbox')
 import sys
-sys.path.append('/mnt/c/MuscleMap/scripts/spinalcordtoolbox')
-print(sys.path)
-
 import argparse
 import logging
 import os
@@ -12,14 +8,27 @@ import nibabel as nib
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy import ndimage
-from spinalcordtoolbox.image import Image, add_suffix
-from spinalcordtoolbox.registration.landmarks import getRigidTransformFromLandmarks
-from spinalcordtoolbox.centerline.core import get_centerline 
-from spinalcordtoolbox.resampling import resample_nib
-from spinalcordtoolbox.scripts import sct_apply_transfo, sct_concat_transfo, sct_register_multimodal
-from spinalcordtoolbox.scripts.sct_apply_transfo import Transform
-from spinalcordtoolbox.registration.algorithms import Paramreg, ParamregMultiStep
-from spinalcordtoolbox.registration.core import register_wrapper
+import matplotlib
+
+try:
+    sct_dir = os.environ.get('SCT_DIR')
+    sys.path.append(sct_dir)
+    sct_version = np.loadtxt(os.path.join(sct_dir, 'spinalcordtoolbox', 'version.txt'), dtype='str')
+    from spinalcordtoolbox.image import Image
+    from spinalcordtoolbox.registration.landmarks import getRigidTransformFromLandmarks
+    from spinalcordtoolbox.centerline.core import get_centerline
+    from spinalcordtoolbox.resampling import resample_nib
+    from spinalcordtoolbox.scripts import sct_apply_transfo, sct_concat_transfo, sct_register_multimodal
+    from spinalcordtoolbox.scripts.sct_apply_transfo import Transform
+    from spinalcordtoolbox.registration.algorithms import Paramreg, ParamregMultiStep
+    from spinalcordtoolbox.registration.core import register_wrapper
+
+except ImportError:
+    sys.exit('Spinal Cord Toolbox not installed.')
+
+if sct_version != '6.5':
+     print('WARNING: Spinal Cord Toolbox Version 6.5 not installed.')
+     print(f"WARNING: Spinal Cord Toolbox Version {sct_version} installed.")
 
 try:
     # Attempt to import as if it is a part of a package
