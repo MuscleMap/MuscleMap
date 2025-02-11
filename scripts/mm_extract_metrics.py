@@ -35,7 +35,7 @@ def get_parser():
                           help="Number of components for kmeans or gmm (2 or 3)")
     
     parser.add_argument("-r", '--region', required=False, type=str,
-                          help="Anatomical region. Supported regions: abdomen")
+                          help="Anatomical region. Supported regions: abdomen, pelvis, thigh, and leg")
 
     parser.add_argument("-o", '--output_dir', required=False, type=str, 
                           help="Output directory to save the results")
@@ -95,9 +95,9 @@ def main():
             if args.region:
                 for label in model_config["labels"]:
                     if label["value"] == value:
-                        muscle_side_info = label["muscle"] + " " + label["side"]
+                        anatomy_side_info = label["anatomy"] + " " + label["side"]
             else:
-                muscle_side_info=""
+                anatomy_side_info=""
                     
             mask = segmentations_data == value #mask is when component is labelled value (0 thru whatever), has dimensions of INPUT
             #If no mask, then assign nan
@@ -168,9 +168,9 @@ def main():
                     metrics=results
 
                 result_entry={
-                    'muscle': muscle_side_info,
+                    'Anatomy': anatomy_side_info.strip(),
                     'Label': value, #current val iterating through, "muscle number",
-                    'Number_of_Slices': number_of_slices,
+                    'Number of Slices': number_of_slices,
                 }
                 result_entry.update(metrics)
                 results_list.append(result_entry)
