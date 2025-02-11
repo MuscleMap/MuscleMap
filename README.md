@@ -1,14 +1,16 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
+<p align="center">
+   <img width="50%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+</p>
+
 ## Planned MuscleMap Phases
-\
-<img align="left" width="15%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+
 1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
 2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
 3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the hetergenous whole-body muscle MRI dataset.
-<br />
 
 ## Standardized Acquisition Protocol
 
@@ -32,8 +34,8 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
     dataset
     ├── derivatives
     │   └── labels
-    │   └── sub-example01
-    │		└── sub-example02
+    │      └── sub-example01
+    │      └── sub-example02
     │           ├── ses-abdomen
     │           │   └── anat
     │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
@@ -89,9 +91,9 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
                     └── sub-example02_ses-neck_water.nii.gz
     ```
 
-    * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
-    * derivatives = contains segmentation images and any other derivatives
-    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
+* sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+* derivatives = contains segmentation images and any other derivatives
+* If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
 </details>
 
 ## MuscleMap Toolbox
@@ -109,7 +111,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 2. Create python environment:
     ~~~
-    conda create --name MuscleMap python==3.9.0
+    conda create --name MuscleMap python=3.9.0
     ~~~
 
 3. Activate python environment:
@@ -133,19 +135,19 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
         4. Unzip the MuscleMap repository
 
-    3. Navigate to MuscleMap repository:
+5. Navigate to MuscleMap repository:
 
-        ~~~
-        cd ./MuscleMap
-        ~~~
+   ~~~
+   cd ./MuscleMap
+   ~~~
 
-    4. Install python packages:
+6. Install python packages:
     
-        ~~~
-        pip install .
-        ~~~
+   ~~~
+   pip install .
+   ~~~
 
-   5. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
+7. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
    6. To use mm_register_to_template, you will need the [Spinal Cord Toolbox] (https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5] (https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
@@ -168,12 +170,18 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     #### Regions
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
+    * Pelvis
+        * Left and right gluteus minimus, gluteus medius, gluteus maximus, tensor fasciae latae, femur, pelvic girdle, and sacrum
+    * Thigh
+        * Left and right vastus lateralis, vastus intermedius, vastus medialis, rectus femoris, sartorius, gracilis, semimembranosus, semitendinosus, biceps femoris long head, biceps femoris short head, adductor magnus, adductor longus, adductor brevis, and femur
+    * Leg
+        * Left and right anterior compartment (tibialis anterior, extensor digitorum longus, extensor hallucis longus, and fibularis tertius), deep posterior compartment (tibialis posterior, flexor digitorum longus, and flexor hallucis longus), lateral compartment (fibularis longus and brevis), soleus, gastrocnemius, tibia, and fibula
     
-    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+    *Regions in development: neck, shoulder, arm, forearm, thorax, and foot*
 
    *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
 
-   *If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.*
+   ***If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.***
 
 3. To run mm_extract_metrics:
 
@@ -208,7 +216,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
     * To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
-2. To run mm_register_to_template:
+5. To run mm_register_to_template:
 
     ~~~
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
@@ -222,7 +230,11 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 ## Citing MuscleMap
 
-When using the MuscleMap Toolbox please cite the following publications:
+When citing MuscleMap, please cite the following publication:
+
+* McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle. J Imaging. 2024;10(11):262. <https://doi.org/10.3390/jimaging10110262> 
+
+When using the MuscleMap Toolbox, please cite the following publications:
 
 ## mm_segment
 
@@ -232,6 +244,20 @@ When using the MuscleMap Toolbox please cite the following publications:
 
 * Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM, Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd. Investigating the associations between lumbar paraspinal muscle health and age, BMI, sex, physical activity, and back pain using an automated computer-vision model: a UK Biobank study. Spine J. 2024;24(7):1253-1266. <https://doi.org/10.1016/j.spinee.2024.02.013>
 
+### Pelvis
+
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+
+* Stewart C, Wesselink EO, Perraton Z, Weber II KA, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. Muscle fat and volume differences in people with hip-related pain compared to controls: A machine learning approach, Journal of Cachexia, Sarcopenia and Muscle, 2024;15(6):2642-2650.
+
+### Thigh
+
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+
+### Leg
+
+* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Functional Capacity: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, In press.
+
 ## mm_extract_metric
 
 * Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP, Di Ieva A, Weber II KA. Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability of automated thresholding models. N Am Spine Soc J. 2024;17:100313. <https://doi.org/10.1016/j.xnsj.2024.100313>
@@ -240,11 +266,21 @@ When using the MuscleMap Toolbox please cite the following publications:
 
 ### 2024
 
+* Wesselink EO, Hides J, Elliott JM, Hoggarth M, Weber KA 2nd, Salomoni SE, Tran V, Lindsay K, Hughes L, Weber T, Scott J, Hodges PW, Caplan N, De Martino E. New insights into the impact of bed rest on lumbopelvic muscles: A computer-vision model approach to measure fat fraction changes. J Appl Physiol, In Press. <https://doi.org/10.1152/japplphysiol.00502.2024>
+
+* Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI.Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach. J Cachexia Sarcopenia Muscle, In Press. <https://doi.org/10.1002/jcsm.13608>
+
+* Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J, In Press. <https://doi.org/10.1007/s00586-024-08559-1>
+
+* McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle. J Imaging. 2024;10(11):262. <https://doi.org/10.3390/jimaging10110262> 
+  
 * Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM, Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd. Investigating the associations between lumbar paraspinal muscle health and age, BMI, sex, physical activity, and back pain using an automated computer-vision model: a UK Biobank study. Spine J. 2024;24(7):1253-1266. <https://doi.org/10.1016/j.spinee.2024.02.013>
 
 * Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP, Di Ieva A, Weber II KA. Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability of automated thresholding models. N Am Spine Soc J. 2024;17:100313. <https://doi.org/10.1016/j.xnsj.2024.100313>
 
 * Perraton Z, Mosler AB, Lawrenson PR, Weber II K, Elliott JM, Wesselink EO, Crossley KM, Kemp JL, Stewart C, Girdwood M, King MG, Heerey JJ, Scholes MJ, Mentiplay BF, Semciw AI. The association between lateral hip muscle size/intramuscular fat infiltration and hip strength in active young adults with long standing hip/groin pain. Phys Ther Sport. 2024;65:95-101. <https://doi.org/10.1016/j.ptsp.2023.11.007>
+
+* Snodgrass SJ, Weber KA 2nd, Wesselink EO, Stanwell P, Elliott JM. Reduced Cervical Muscle Fat Infiltrate Is Associated with Self-Reported Recovery from Chronic Idiopathic Neck Pain Over Six Months: A Magnetic Resonance Imaging Longitudinal Cohort Study. J Clin Med. 2024;13(15):4485. <https://doi.org/10.3390/jcm13154485>
 
 ### 2023
 
