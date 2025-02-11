@@ -149,6 +149,8 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 7. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
+   6. To use mm_register_to_template, you will need the [Spinal Cord Toolbox] (https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5] (https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+
 ### Usage
 
 1. Activate python environment:
@@ -213,6 +215,18 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
      ~~~
     
     * To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
+
+5. To run mm_register_to_template:
+
+    ~~~
+    mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
+    ~~~
+    
+    #### Regions
+    * Abdomen
+        * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
+    
+    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
 
 ## Citing MuscleMap
 
