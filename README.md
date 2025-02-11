@@ -1,7 +1,7 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
 <p align="center">
-   <img width="50%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+   <img width="40%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 </p>
 
 ## Planned MuscleMap Phases
@@ -149,7 +149,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 7. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
 
-   6. To use mm_register_to_template, you will need the [Spinal Cord Toolbox] (https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5] (https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
 ### Usage
 
@@ -177,7 +177,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     * Leg
         * Left and right anterior compartment (tibialis anterior, extensor digitorum longus, extensor hallucis longus, and fibularis tertius), deep posterior compartment (tibialis posterior, flexor digitorum longus, and flexor hallucis longus), lateral compartment (fibularis longus and brevis), soleus, gastrocnemius, tibia, and fibula
     
-    *Regions in development: neck, shoulder, arm, forearm, thorax, and foot*
+    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvic floor, and foot*
 
    *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
 
@@ -226,7 +226,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
-    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, pelvic floor, thigh, leg, and foot*
 
 ## Citing MuscleMap
 
@@ -240,37 +240,49 @@ When using the MuscleMap Toolbox, please cite the following publications:
 
 ### Abdomen
 
-* Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B, Pool-Goudzwaard A, Weber II KA.Convolutional neural networks for the automatic segmentation of lumbar paraspinal muscles in people with low back pain. Sci Rep. 2022;12(1):13485. <https://doi.org/10.1038/s41598-022-16710-5>
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
 * Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM, Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd. Investigating the associations between lumbar paraspinal muscle health and age, BMI, sex, physical activity, and back pain using an automated computer-vision model: a UK Biobank study. Spine J. 2024;24(7):1253-1266. <https://doi.org/10.1016/j.spinee.2024.02.013>
 
+* Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B, Pool-Goudzwaard A, Weber II KA.Convolutional neural networks for the automatic segmentation of lumbar paraspinal muscles in people with low back pain. Sci Rep. 2022;12(1):13485. <https://doi.org/10.1038/s41598-022-16710-5>
+
 ### Pelvis
 
-* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
 * Stewart C, Wesselink EO, Perraton Z, Weber II KA, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. Muscle fat and volume differences in people with hip-related pain compared to controls: A machine learning approach, Journal of Cachexia, Sarcopenia and Muscle, 2024;15(6):2642-2650.
 
 ### Thigh
 
-* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, de Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract submitted for presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
 ### Leg
 
-* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Functional Capacity: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, In press.
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
+
+* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, In press.
 
 ## mm_extract_metric
 
 * Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP, Di Ieva A, Weber II KA. Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability of automated thresholding models. N Am Spine Soc J. 2024;17:100313. <https://doi.org/10.1016/j.xnsj.2024.100313>
 
+## mm_register_to_template
+
+* Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J. 2025;34(1):27-35. <https://doi.org/10.1007/s00586-024-08559-1>
+
 ## Publications
+
+### 2025
+
+* Kim B, Gandomkar Z, McKay MJ, Seitz AL, Wesselink EO, Cass B, Young AA, Linklater JM, Szajer J, Subbiah K, Elliott JM, Weber KA 2nd. Developing a three-dimensional convolutional neural network for full volume auto-segmentation of shoulder Dixon MRI with comparison to Goutallier classification and two-dimensional muscle quality assessment. J Shoulder Elbow Surg, In Press. <https://doi.org/10.1016/j.jse.2024.12.033>
+
+* Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J. 2025;34(1):27-35. <https://doi.org/10.1007/s00586-024-08559-1>
+
+* Wesselink EO, Hides J, Elliott JM, Hoggarth M, Weber KA 2nd, Salomoni SE, Tran V, Lindsay K, Hughes L, Weber T, Scott J, Hodges PW, Caplan N, De Martino E. New insights into the impact of bed rest on lumbopelvic muscles: A computer-vision model approach to measure fat fraction changes. J Appl Physiol, 2025;138(1):157-168. <https://doi.org/10.1152/japplphysiol.00502.2024>
 
 ### 2024
 
-* Wesselink EO, Hides J, Elliott JM, Hoggarth M, Weber KA 2nd, Salomoni SE, Tran V, Lindsay K, Hughes L, Weber T, Scott J, Hodges PW, Caplan N, De Martino E. New insights into the impact of bed rest on lumbopelvic muscles: A computer-vision model approach to measure fat fraction changes. J Appl Physiol, In Press. <https://doi.org/10.1152/japplphysiol.00502.2024>
-
-* Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI.Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach. J Cachexia Sarcopenia Muscle, In Press. <https://doi.org/10.1002/jcsm.13608>
-
-* Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J, In Press. <https://doi.org/10.1007/s00586-024-08559-1>
+* Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach. J Cachexia Sarcopenia Muscle, 2024;15(6):2642-2650. <https://doi.org/10.1002/jcsm.13608>
 
 * McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle. J Imaging. 2024;10(11):262. <https://doi.org/10.3390/jimaging10110262> 
   
