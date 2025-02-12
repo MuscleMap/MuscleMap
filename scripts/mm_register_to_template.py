@@ -2,8 +2,6 @@ import os
 import sys
 import argparse
 import logging
-import os
-import sys
 import nibabel as nib
 import numpy as np
 from scipy.interpolate import InterpolatedUnivariateSpline
