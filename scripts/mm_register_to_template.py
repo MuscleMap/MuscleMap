@@ -239,8 +239,8 @@ def main():
                                             '-dseg', template_label_filename,
                                             '-param',
                                             'step=1,type=seg,algo=centermass,metric=MeanSquares:'
-                                            'step=2,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=5,shrink=2,smooth=1,gradStep=1:'
-                                            'step=3,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=5',
+                                            'step=2,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=7,shrink=2,smooth=1,gradStep=1:'
+                                            'step=3,type=seg,algo=bsplinesyn,metric=MeanSquares,iter=3',
                                             '-ofolder', output_dir])
 
                 print(f"\n... applying transformation field to segmentation")
