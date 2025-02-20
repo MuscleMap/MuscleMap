@@ -199,7 +199,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     2. For Dixon Fat-Water MRI:
 
         ~~~
-        mm_extract_metrics -m dixon -r abdomen -f fat_image.nii.gz -w water_image.nii.gz -s image_dseg.nii.gz
+        mm_extract_metrics -m dixon -r abdomen -f image_fat.nii.gz -w image_water.nii.gz -s image_dseg.nii.gz
         ~~~
 
    3. For Dixon Fat Fraction MRI or CT:
@@ -260,7 +260,7 @@ When using the MuscleMap Toolbox, please cite the following publications:
 
 * Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
-* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, In press.
+* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, 2025;16(1):e13735. <https://doi.org/10.1002/jcsm.13735>
 
 ## mm_extract_metric
 
@@ -273,6 +273,8 @@ When using the MuscleMap Toolbox, please cite the following publications:
 ## Publications
 
 ### 2025
+
+* Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, 2025;16(1):e13735. <https://doi.org/10.1002/jcsm.13735>
 
 * Kim B, Gandomkar Z, McKay MJ, Seitz AL, Wesselink EO, Cass B, Young AA, Linklater JM, Szajer J, Subbiah K, Elliott JM, Weber KA 2nd. Developing a three-dimensional convolutional neural network for full volume auto-segmentation of shoulder Dixon MRI with comparison to Goutallier classification and two-dimensional muscle quality assessment. J Shoulder Elbow Surg, In Press. <https://doi.org/10.1016/j.jse.2024.12.033>
 
