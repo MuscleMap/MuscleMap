@@ -10,7 +10,7 @@
 
 2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
-3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the hetergenous whole-body muscle MRI dataset.
+3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
 
 ## Standardized Acquisition Protocol
 
