@@ -270,6 +270,8 @@ When using the MuscleMap Toolbox, please cite the following publications:
 
 * Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping. Eur Spine J. 2025;34(1):27-35. <https://doi.org/10.1007/s00586-024-08559-1>
 
+* De Leener B, Lévy S, Dupont SM, Fonov VS, Stikov N, Louis Collins D, Callot V, Cohen-Adad J. SCT: Spinal Cord Toolbox, an open-source software for processing spinal cord MRI data. Neuroimage. 2017;145(Pt A):24-43. <https://doi.org/10.1016/j.neuroimage.2016.10.009>
+
 ## Publications
 
 ### 2025
