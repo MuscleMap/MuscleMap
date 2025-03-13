@@ -33,12 +33,20 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 from monai.data import Dataset, DataLoader, decollate_batch
+
+import numpy as np
+import torch
+import pickle
+from tqdm import tqdm
+
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+    from .mm_reorient import get_reroientantion_order, reorient_to_in_plane_high_res
 except ImportError:
     # Fallback to direct import if run as a standalone script
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, create_output_dir
+    from mm_reorient import get_reorientation_order, reorient_to_in_plane_high_res
 import torch
 
 #naming not functional
@@ -49,9 +57,9 @@ def get_parser():
     
     # Required arguments
     required = parser.add_argument_group("Required")
-    
+    # Changed inputs to also accept a directory of images
     required.add_argument("-i", '--input_image', required=True, type=str,
-                          help="Input image to segment. Can be single image or list of images separated by commas.")
+                          help="Input image to segment. Can be single image, directory of images, or a list of images separated by commas.")
     
     required.add_argument("-r", '--region', required=True, type=str,
                           help="Anatomical region to segment. Supported regions: abdomen, pelvis, thigh, and leg")
@@ -65,7 +73,10 @@ def get_parser():
                           help="Option to specify another model.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
-                        help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
+                          help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
+    # Allows for models and inputs with swapped axes to be used
+    optional.add_argument("-v", "--variable_axis", required=False, default='N', type=str, 
+                          help="If True, will use the variable axis inference method. Default is False.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -105,14 +116,33 @@ def main():
     # Validate Arguments
     validate_seg_arguments(args)
 
-    # Process multiple images
-    image_paths = [image.strip() for image in args.input_image.split(',')]
-    for image_path in image_paths:
-        # Check that each image exists and is readable
-        logging.info(f"Checking if image '{image_path}' exists and is readable...")
-        check_image_exists(image_path)
+    # Process multiple images (can be a directory or list)
+    input_path = args.input_image
+
+    if os.path.isdir(input_path):
+        image_paths = glob.glob(os.path.join(input_path, '*.nii.gz'))
+        image_paths = [path for path in image_paths if not os.path.basename(path).startswith('.')]
+    else:
+        image_paths = [image.strip() for image in input_path.split(',')]
     
-        ####here
+    for image_path in image_paths:
+        logging.info(f"Checking if image '{os.path.basename(image_path)}' exists and is readable...")
+        check_image_exists(image_path)
+
+    # If variable_axis is 'Y', reorient images and labels to in-plane high-resolution axes. Use these files for inference.
+    if args.variable_axis == 'Y':
+        print("Variable axis is set to 'Y'. Reorienting images...")
+        reoriented_output_dir = os.path.join(output_dir, 'data_reoriented')
+        os.makedirs(reoriented_output_dir, exist_ok=True)
+
+        for image_path in tqdm(image_paths, desc='Reorienting images to in-plane high-resolution axes'):
+            image_output_path = os.path.join(reoriented_output_dir, os.path.relpath(image_path, input_path))
+            os.makedirs(os.path.dirname(image_output_path), exist_ok=True)
+            reorient_to_in_plane_high_res(image_path, image_output_path)
+
+        # Update image_paths to point to reoriented images
+        image_paths = glob.glob(os.path.join(reoriented_output_dir, '*.nii.gz'))
+
 
     # Load model configuration
     logging.info("Loading configuration file...")
@@ -173,17 +203,23 @@ def main():
     set_determinism(seed=0)  # Seed for reproducibility (identical to training part)
 
     # Create transforms identical to training part, but here we don't specify the label key
-    inference_transforms = Compose([
+    inference_transforms = [
         LoadImaged(keys=["image"]),
         EnsureChannelFirstd(keys=["image"]),
         Spacingd(
             keys=["image"],
             pixdim=pix_dim,
             mode=("bilinear")),
-        Orientationd(keys=["image"], axcodes="RAS"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
         EnsureTyped(keys=["image"])
-    ])
+    ]
+
+    # Only reorients if needed, inserting transform at same spot
+    if args.variable_axis == 'N':
+        inference_transforms.insert(3, Orientationd(keys=["image"], axcodes="RAS"))
+
+    inference_transforms = Compose(inference_transforms)
+
     # Process all images at once
     test_files = [{"image": image} for image in image_paths]
 
@@ -244,7 +280,33 @@ def main():
     ).to(device)
 
     map_location = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.load_state_dict(torch.load(model_path, map_location=map_location, weights_only=True))
+    # Allowlist the required globals
+    torch.serialization.add_safe_globals([np.core.multiarray.scalar, np.dtype, np.ndarray, np.float64])
+    
+    # Load the model weights with weights_only=True
+    try:
+        checkpoint = torch.load(model_path, map_location=map_location, weights_only=False)
+    except pickle.UnpicklingError as e:
+        logging.error(f"Failed to load weights only: {e}")
+        sys.exit(1)
+    
+    if args.variable_axis=='Y': # The model checkpoint in MONAI training is not nested in a state_dict
+        state_dict = checkpoint
+        filtered_state_dict = {k: v for k, v in state_dict.items() if k in model.state_dict()}
+        missing_keys, _ = model.load_state_dict(filtered_state_dict, strict=False)
+    else:
+        # Extract only the state_dict part of the checkpoint
+        state_dict_key_name = 'state_dict'
+        if 'state_dict' not in checkpoint:
+            state_dict_key_name = 'network_weights'
+        state_dict = checkpoint[state_dict_key_name]
+        
+        # Filter out unnecessary keys from state_dict that do not match with the current model's state_dict keys.
+        filtered_state_dict = {k: v for k, v in state_dict.items() if k in model.state_dict()}
+        
+        # Load filtered state dict into current UNet instance.
+        missing_keys, _ = model.load_state_dict(filtered_state_dict, strict=False)
+
     model.eval()
 
 
