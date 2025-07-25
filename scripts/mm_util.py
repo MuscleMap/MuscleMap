@@ -7,7 +7,7 @@ import nibabel as nib
 import math
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-
+from monai.transforms import ( MapTransform)
 #check_image_exists 
 def check_image_exists(image_path):
     if not os.path.isfile(image_path):
@@ -20,7 +20,6 @@ def check_image_exists(image_path):
 
 def get_model_and_config_paths(region, specified_model=None):
     models_base_dir = os.path.join(os.path.dirname(__file__), "models", region)
-    
     if specified_model:
         model_path = os.path.join(models_base_dir, specified_model)
         config_path = os.path.splitext(model_path)[0] + ".json"
@@ -303,3 +302,32 @@ def calculate_segmentation_metrics(args, mask):
 def absolute_path(relative_path):
     base_path = os.path.dirname(__file__)  # Gets the directory where the script is located
     return os.path.join(base_path, relative_path)
+
+
+
+# RemapTransform class for inference 
+class RemapLabels(MapTransform):
+    def __init__(self, keys, id_map, allow_missing_keys=False):
+        super().__init__(keys, allow_missing_keys)
+        self.id_map = id_map
+    def __call__(self, data):
+        d = dict(data)
+        for key in self.keys:
+            lab = d[key]
+            out = lab.clone()
+            for orig, tgt in self.id_map.items():
+                out[lab == orig] = tgt
+            d[key] = out
+        return d
+    
+# SqueezeTransform to remove singleton dimension during inference
+class SqueezeTransform(MapTransform):
+    def __init__(self, keys):
+        super().__init__(keys)
+    def __call__(self, data):
+        d = dict(data)
+        for key in self.keys:
+            lab = d[key]
+            out = lab.squeeze(0) if lab.dim() > 3 and lab.shape[0] == 1 else lab  # Remove channel dim if [1, H, W, D]
+            d[key] = out
+        return d
