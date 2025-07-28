@@ -8,6 +8,7 @@
     "model_continue_training": "FILLER_NAME_continue_training.pth"
   },
   "model": {
+    "version": 0.0,
     "num_labels": 9,
     "spatial_dims": 2,
     "in_channels": 1,
@@ -19,13 +20,13 @@
     "norm": "instance"
   },
   "labels": [
-    { "anatomy": "multifidus", "side": "right", "value": 1 },
-    { "anatomy": "multifidus", "side": "left", "value": 2 },
-    { "anatomy": "erector spinae", "side": "right", "value": 3 },
-    { "anatomy": "erector spinae", "side": "left", "value": 4 },
-    { "anatomy": "psoas major", "side": "right", "value": 5 },
-    { "anatomy": "psoas major", "side": "left", "value": 6 },
-    { "anatomy": "quadratus lumborum", "side": "right", "value": 7 },
-    { "anatomy": "quadratus lumborum", "side": "left", "value": 8 }
+    { "region": "abdomen", "anatomy": "multifidus", "side": "right", "value": 1 },
+    { "region": "abdomen", "anatomy": "multifidus", "side": "left", "value": 2 },
+    { "region": "abdomen", "anatomy": "erector spinae", "side": "right", "value": 3 },
+    { "region": "abdomen", "anatomy": "erector spinae", "side": "left", "value": 4 },
+    { "region": "abdomen", "anatomy": "psoas major", "side": "right", "value": 5 },
+    { "region": "abdomen", "anatomy": "psoas major", "side": "left", "value": 6 },
+    { "region": "abdomen", "anatomy": "quadratus lumborum", "side": "right", "value": 7 },
+    { "region": "abdomen", "anatomy": "quadratus lumborum", "side": "left", "value": 8 }
   ]
 }

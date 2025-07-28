@@ -60,7 +60,6 @@ def get_parser():
     
     required.add_argument("-r", '--region', required=False, default = 'wholebody', type=str,
                           help="Anatomical region to segment. Supported regions: abdomen, pelvis, thigh, wholebody and leg")
-    
     # Optional arguments
     optional = parser.add_argument_group("Optional")
     required.add_argument("-o", '--output_dir', required=False, type=str,
@@ -206,7 +205,8 @@ def main():
         meta_key_postfix="meta_dict", nearest_interp=True,
         to_tensor=False, device=device
     ),
-    KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, out_channels +1)))]
+    KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, out_channels +1))),
+    SqueezeTransform(keys=["pred"])]
 
     # Process all images at once
     test_files = [{"image": image} for image in image_paths]
@@ -227,10 +227,9 @@ def main():
     # Eddo: only wholebody model is trained in model.half(). 
     if args.region == 'wholebody':
         post_transforms.extend([
-        RemapLabels(keys=["pred"], id_map=inv_id_map),  
-        SqueezeTransform(keys=["pred"])])
-        if device=='cuda':
-            model = model.half()
+        RemapLabels(keys=["pred"], id_map=inv_id_map)])
+       # if device=='cuda':
+        #    model = model.half()
 
     #Eddo: compose after if statement for region        
     post_transforms = Compose(post_transforms)
