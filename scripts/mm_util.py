@@ -11,7 +11,7 @@ from monai.transforms import ( MapTransform)
 import gc, torch
 from contextlib import nullcontext
 import os, gc, torch, nibabel as nib
-import torch.nn.functional as F
+import shutil
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -334,83 +334,122 @@ class SqueezeTransform(MapTransform):
             d[key] = out
         return d
 
-# Eddo run inference function
-def run_inference(image_path, output_dir, pre_transforms, post_transforms,
-                  amp_context=None, chunk_size=50, device=None, inferer=None, model=None):
-    #first get image from dictionary in image_path
-    data = {"image": image_path}
-    # do pre_transforsm on entire image to get image in RAS orientation and as a tensor
-    data = pre_transforms(data)
+def run_inference(
+    image_path,
+    output_dir,
+    pre_transforms,
+    post_transforms,
+    amp_context=None,
+    chunk_size=50,
+    device=None,
+    inferer=None,
+    model=None,
+):
+    # 1) Load header + data
+    img_nii  = nib.load(image_path)
+    affine   = img_nii.affine.copy()
+    header   = img_nii.header.copy()
+    img_data = img_nii.get_fdata().astype(np.float32)
+    D        = img_data.shape[-1]
 
-    # set data in test_file
-    test_file = data["image"]
+    os.makedirs(output_dir, exist_ok=True)
 
-    #Eddo: ensure that test_file is in float when CPU is used. 
-    if device.type == "cpu":
-        test_file = test_file.float()
+    if D <= chunk_size:
+        # preprocess
+        data   = {"image": image_path}
+        data   = pre_transforms(data)
+        tensor = data["image"]
+        if device.type == "cpu":
+            tensor = tensor.float()
+        if tensor.ndim == 4:
+            tensor = tensor.unsqueeze(0)              
+        tensor = tensor.to(device, non_blocking=True)
 
-    #Eddo: If tensor is 4, then set entry as 1. 
-    if test_file.ndim == 4:
-        test_file = test_file.unsqueeze(0)          # [1,C,H,W,D]
-    
-    # set test_file to device
-    test_file = test_file.to(device, non_blocking=True)
-    
-    # Depth is always -1 after pretransforms.  
-    D = test_file.shape[-1]
-    
-    # Eddo: first check if CPU or GPU, if GPU then use AMP, when CPU nullcontext.  
-    with amp_context, torch.inference_mode():
-        # Eddo: if chunk_size is lower dan d, then normally apply the inferer. set pred.to.cpu in float16 to save RAM memory. 
-        if D <= chunk_size:
-            pred = inferer(test_file, model)       
-            output = pred.to("cpu", dtype=torch.float16)
-            del pred
-        else:
-            # first chunk inference from start to minimal chunk_size (default = 50). 
-            start = 0
-            end = min(chunk_size, D)
-            first = inferer(test_file[..., start:end], model)  
-            #Get shape and create equivalent tensor that we use to store the chunk in memory in cpu
-            B, C, H, W, _ = first.shape
-            output = torch.empty((B, C, H, W, D), dtype=torch.float16, device="cpu")
-            # output first inference to cpu in float16 to save ram memory
-            output[..., start:end] = first.to("cpu", dtype=torch.float16)
-            #delete first to save memory
-            del first
-            #then continue for the rest of the chunks dependent on number of slices and save to output @ Cpu in float16. 
-            for start in range(end, D, chunk_size):
-                end2 = min(start + chunk_size, D)
-                pred = inferer(test_file[..., start:end2], model)  
-                output[..., start:end2] = pred.to("cpu", dtype=torch.float16)
-                del pred
+        # inference
+        with amp_context, torch.inference_mode():
+            pred = inferer(tensor, model)
 
-    # Eddo: drop batch dimensions from image
-    single_pred = output[0]     
-    # Set pred and image_metadata to postin
-    post_in = {"pred": single_pred, "image": data["image"]}
-    # apply post transforms
-    post_out = post_transforms(post_in)
-    # detach to cpu, set to numpy and as type nt.16 to reduce memory
-    seg = post_out["pred"].detach().cpu().numpy().astype(np.int16)
+        single_pred = pred.squeeze(0).squeeze(0)     
+        post_in     = {"pred": single_pred, "image": data["image"]}
+        post_out    = post_transforms(post_in)
+        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
+        seg_np      = seg_tensor.numpy()
 
-    #get affine
-    affine = data.get("image_meta_dict", {}).get("affine", None)
-    # probably not needed, but if affine is none, get thet from nibabels loading. 
-    if affine is None:
-        try:
-            affine = nib.load(image_path).affine
-        except Exception:
-            affine = np.eye(4)
-    # define output path
+        out_path = os.path.join(
+            output_dir,
+            os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
+        )
+        nib.save(nib.Nifti1Image(seg_np, affine, header), out_path)
+
+        # cleanup
+        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return out_path
+
+    temp_dir = os.path.join(output_dir, "temp_chunks")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    chunk_files = []
+    for start in range(0, D, chunk_size):
+        end       = min(start + chunk_size, D)
+        vol_chunk = img_data[..., start:end]
+        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+        chunk_files.append({"image": chunk_path, "start": start, "end": end})
+
+    del img_data, img_nii
+    gc.collect()
+
+    for entry in chunk_files:
+        data   = {"image": entry["image"]}
+        data   = pre_transforms(data)
+        tensor = data["image"]
+        if device.type == "cpu":
+            tensor = tensor.float()
+        if tensor.ndim == 4:
+            tensor = tensor.unsqueeze(0)
+        tensor = tensor.to(device, non_blocking=True)
+
+        with amp_context, torch.inference_mode():
+            pred = inferer(tensor, model)
+
+        single_pred = pred.squeeze(0).squeeze(0)
+        post_in     = {"pred": single_pred, "image": data["image"]}
+        post_out    = post_transforms(post_in)
+        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
+        seg_np      = seg_tensor.numpy()
+
+        seg_path = os.path.join(
+            temp_dir,
+            f"seg_{entry['start']}_{entry['end']}.nii.gz"
+        )
+        nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
+        entry["seg"] = seg_path
+
+        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    dims     = header.get_data_shape()  
+    full_seg = np.zeros(dims, dtype=np.int16)
+    for entry in chunk_files:
+        s, e, sp = entry["start"], entry["end"], entry["seg"]
+        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
+        full_seg[..., s:e] = vol_seg
+
     out_path = os.path.join(
-        output_dir, os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
+        output_dir,
+        os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
     )
-    # save using nibabel
-    nib.save(nib.Nifti1Image(seg, affine), out_path)
-    # clean up
-    del test_file, output, post_in, post_out, seg
+    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+
+    # cleanup
+    del full_seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
     return out_path
