@@ -12,6 +12,8 @@ import gc, torch
 from contextlib import nullcontext
 import os, gc, torch, nibabel as nib
 import shutil
+from monai.transforms import (
+    KeepLargestConnectedComponent)
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -333,6 +335,25 @@ class SqueezeTransform(MapTransform):
             out = lab.squeeze(0) if lab.dim() > 3 and lab.shape[0] == 1 else lab  # Remove channel dim if [1, H, W, D]
             d[key] = out
         return d
+    
+def connected_chunks(seg: np.ndarray) -> np.ndarray:
+    seg = np.asarray(seg)
+    if seg.ndim == 3:
+        seg_ch = seg[None, ...]
+    elif seg.ndim == 4 and seg.shape[0] == 1:
+        seg_ch = seg
+    else:
+        raise ValueError(f"Expected (X,Y,Z) or (1,X,Y,Z), got {seg.shape}")
+
+    klcc = KeepLargestConnectedComponent(
+        applied_labels=None,
+        independent=True,
+        connectivity=3,
+        num_components=1,
+        is_onehot=False,
+    )
+    out = klcc(seg_ch)[0]   # terug naar (X,Y,Z)
+    return out.astype(np.int16)
 
 def run_inference(
     image_path,
@@ -352,8 +373,6 @@ def run_inference(
     img_data = img_nii.get_fdata().astype(np.float32)
     D        = img_data.shape[-1]
 
-    os.makedirs(output_dir, exist_ok=True)
-
     if D <= chunk_size:
         # preprocess
         data   = {"image": image_path}
@@ -371,6 +390,7 @@ def run_inference(
 
         single_pred = pred.squeeze(0).squeeze(0)     
         post_in     = {"pred": single_pred, "image": data["image"]}
+        del data  
         post_out    = post_transforms(post_in)
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np      = seg_tensor.numpy()
@@ -380,6 +400,7 @@ def run_inference(
             os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
         )
         nib.save(nib.Nifti1Image(seg_np, affine, header), out_path)
+        del seg_np  # vrijgeven na save
 
         # cleanup
         del tensor, pred, single_pred, post_in, post_out, seg_tensor
@@ -390,13 +411,14 @@ def run_inference(
 
     temp_dir = os.path.join(output_dir, "temp_chunks")
     os.makedirs(temp_dir, exist_ok=True)
-
+    gc.collect()  
     chunk_files = []
     for start in range(0, D, chunk_size):
         end       = min(start + chunk_size, D)
         vol_chunk = img_data[..., start:end]
         chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
         nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+        del vol_chunk  # direct vrijgeven
         chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
     del img_data, img_nii
@@ -417,20 +439,22 @@ def run_inference(
 
         single_pred = pred.squeeze(0).squeeze(0)
         post_in     = {"pred": single_pred, "image": data["image"]}
+        del data  
         post_out    = post_transforms(post_in)
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np      = seg_tensor.numpy()
-
         seg_path = os.path.join(
             temp_dir,
             f"seg_{entry['start']}_{entry['end']}.nii.gz"
         )
         nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
         entry["seg"] = seg_path
+        del seg_np  
 
         del tensor, pred, single_pred, post_in, post_out, seg_tensor
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+        gc.collect()  
 
     dims     = header.get_data_shape()  
     full_seg = np.zeros(dims, dtype=np.int16)
@@ -438,7 +462,10 @@ def run_inference(
         s, e, sp = entry["start"], entry["end"], entry["seg"]
         vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
         full_seg[..., s:e] = vol_seg
+        gc.collect()
+        del vol_seg  
 
+    full_seg = connected_chunks(full_seg)
     out_path = os.path.join(
         output_dir,
         os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
@@ -451,5 +478,4 @@ def run_inference(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     shutil.rmtree(temp_dir, ignore_errors=True)
-
     return out_path
