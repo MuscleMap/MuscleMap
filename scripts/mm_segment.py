@@ -25,7 +25,6 @@ from monai.transforms import (
     AsDiscreted,
     Compose,
     Invertd,
-    Lambdad,
     LoadImaged,
     Orientationd,
     Spacingd,
@@ -33,6 +32,7 @@ from monai.transforms import (
     NormalizeIntensityd,
     EnsureChannelFirstd,
     KeepLargestConnectedComponentd,
+    KeepLargestConnectedComponent
 )
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
@@ -198,13 +198,13 @@ def main():
     #Eddo: Removed fill holes since no improvement in outputs and is more computational expensive, also on RAM. 
     #Eddo: As discrete before Invertd otherwise it is inverting over multi-channel soft-prob images (90 in total), this is computatioanl expesnive
     post_transforms = [
-    AsDiscreted(keys="pred", argmax=True),
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict", nearest_interp=True,
+        meta_key_postfix="meta_dict", nearest_interp=False,
         to_tensor=False, device=device
     ),
+    AsDiscreted(keys="pred", argmax=True),
     KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, out_channels +1))),
     SqueezeTransform(keys=["pred"])]
 
@@ -228,8 +228,6 @@ def main():
     if args.region == 'wholebody':
         post_transforms.extend([
         RemapLabels(keys=["pred"], id_map=inv_id_map)])
-       # if device=='cuda':
-        #    model = model.half()
 
     #Eddo: compose after if statement for region        
     post_transforms = Compose(post_transforms)
@@ -251,7 +249,7 @@ def main():
             run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
-            logging.exception(f"Error processing {test['image']}: {e}")
+            logging.exception(f"Error processing {test['image']}: {e}"),
             continue
 # %%
     logging.info("Inference completed. All outputs saved.")
