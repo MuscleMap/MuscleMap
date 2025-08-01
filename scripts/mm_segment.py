@@ -82,20 +82,19 @@ def get_parser():
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
+    gc.collect()
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+    
     parser = get_parser()
     args = parser.parse_args()
     logging.info(f"Processing using a GPU (yes/no): {args.use_GPU}")
          
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
-    #Eddo: We want AMP on GPU not CPU (CPU in float32). 
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    #if we use GPU and AMP, then we optimize performance using torch backend
     if device and amp_context:
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
@@ -104,10 +103,8 @@ def main():
 
     base_name = os.path.basename(args.input_image)
 
-    # Split the name from its extension
     name, ext = os.path.splitext(base_name)
     
-    # Further split in case of double extensions like .nii.gz
     if ext == ".gz" and name.endswith(".nii"):
         name, _ = os.path.splitext(name)  # Remove .nii part
 
@@ -125,32 +122,24 @@ def main():
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
 
-    # Validate Arguments
     validate_seg_arguments(args)
 
-    # Eddo: Don't we want to walk over the directory and search for suffixes? (e.g,. segment every file ending with fat.nii.gz)
     image_paths = [image.strip() for image in args.input_image.split(',')]
     for image_path in image_paths:
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
 
-    # Load model configuration
     logging.info("Loading configuration file...")
 
-    # Get model and config paths
     model_path, model_config_path = get_model_and_config_paths(args.region, args.model)
 
-    # Load model configuration
     model_config = load_model_config(model_config_path)
 
-    # maps norm from json for use in model because monai imports can't be saved in json
-    # Eddo: Removed norm.BATCH since no model is using batch normalization.
     norm_map = {
     "instance": Norm.INSTANCE,
     }
 
-    # Eddo: we can skip num_labels or out_channels since outchannels is 1+ num_labels. 
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
         spatial_window_batch_size = model_config['parameters']['spatial_window_batch_size']
@@ -169,7 +158,6 @@ def main():
         logging.error(f"Missing key in model configuration file: {e}")
         sys.exit(1)
     
-    #Eddo: Go into label_entries from json, sort the values since we do this in training). Then create a file with label 1-89 and corresponding label from label_entries. 
     labels = sorted({entry["value"] for entry in label_entries})
     id_map = {0: 0}
     for new_id, orig in enumerate(labels, start=1):
@@ -185,7 +173,6 @@ def main():
 
     set_determinism(seed=0)  
 
-    #Eddo: Orientationd before Spacingd to ensure that we process the spacing in correct image dimension
     pre_transforms = Compose([
         LoadImaged(keys=["image"], image_only=False),
         EnsureChannelFirstd(keys=["image"]),
@@ -195,8 +182,6 @@ def main():
         EnsureTyped(keys=["image"]),
     ])
 
-    #Eddo: Removed fill holes since no improvement in outputs and is more computational expensive, also on RAM. 
-    #Eddo: As discrete before Invertd otherwise it is inverting over multi-channel soft-prob images (90 in total), this is computatioanl expesnive
     post_transforms = [
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
@@ -208,10 +193,7 @@ def main():
     KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, out_channels +1))),
     SqueezeTransform(keys=["pred"])]
 
-    # Process all images at once
     test_files = [{"image": image} for image in image_paths]
-
-    # Create model and set parameters
     model = UNet(
         spatial_dims=spatial_dims,
         in_channels=in_channels,
@@ -223,24 +205,17 @@ def main():
         norm=import_norm,
     ).to(device)
 
-    # Eddo: Remaplabels now only working for wholebody since the other models are still on our previous scheme
-    # Eddo: only wholebody model is trained in model.half(). 
     if args.region == 'wholebody':
         post_transforms.extend([
         RemapLabels(keys=["pred"], id_map=inv_id_map)])
 
-    #Eddo: compose after if statement for region        
     post_transforms = Compose(post_transforms)
-
-    # we already stated device (either cuda or CPU), so removed map_location variable
+  
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
-    #Eddo: incorporated softcoded overlap, default is 50%
     overlap_inference = args.overlap
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
-    # get chunk_size from argeparse and set into run inference
-    # timing is only setup for validation purposes, can be removed before merged to main. 
     chunk_size = args.chunk_size
     for test in test_files:
         logging.info(f"Processing {test['image']}")
@@ -251,6 +226,7 @@ def main():
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
+
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
