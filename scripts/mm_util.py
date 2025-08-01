@@ -9,11 +9,11 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from monai.transforms import ( MapTransform)
 import gc, torch
-from contextlib import nullcontext
 import os, gc, torch, nibabel as nib
 import shutil
-from monai.transforms import (
-    KeepLargestConnectedComponent)
+from scipy import ndimage as ndi
+from typing import Optional
+from time import perf_counter
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -220,8 +220,6 @@ def quantify_muscle_measures(img_array, mask_array, muscle_max, undefined_max, l
         undefined_mask = (mask_array == label) & (img_array <=undefined_max) & (img_array > muscle_max)
         fat_mask = (mask_array == label) & (img_array > undefined_max)
         undefined_percentage = round(100 * (np.sum(undefined_mask) / np.sum(total_mask)),2)
-
-
     else: #2 component
         muscle_mask = (mask_array == label) & (img_array <= muscle_max) 
         fat_mask = (mask_array == label) & (img_array > muscle_max)
@@ -309,7 +307,6 @@ def absolute_path(relative_path):
     base_path = os.path.dirname(__file__)  # Gets the directory where the script is located
     return os.path.join(base_path, relative_path)
 
-# Eddo: RemapTransform class for inference 
 class RemapLabels(MapTransform):
     def __init__(self, keys, id_map, allow_missing_keys=False):
         super().__init__(keys, allow_missing_keys)
@@ -324,7 +321,6 @@ class RemapLabels(MapTransform):
             d[key] = out
         return d
     
-# Eddo: SqueezeTransform to remove singleton dimension during inference
 class SqueezeTransform(MapTransform):
     def __init__(self, keys):
         super().__init__(keys)
@@ -336,24 +332,80 @@ class SqueezeTransform(MapTransform):
             d[key] = out
         return d
     
-def connected_chunks(seg: np.ndarray) -> np.ndarray:
+def connected_chunks(
+    seg,
+    labels,
+    connectivity= 3,   # 3=26-connectivity
+) -> np.ndarray:
+    
+    """
+    Keeps only the largest connected component per label in a multi-label segmentation.
+    - Supports both 3D (X,Y,Z) and 4D (1,X,Y,Z) arrays.
+    - Incorporated to get optimize RAM memory management during inference for large images
+    - 
+    """
+    #Ensure that is nparray
     seg = np.asarray(seg)
+
+    # Add channel dimension if necessary (to unify shape to 4D)
+    remove_dim = False
     if seg.ndim == 3:
         seg_ch = seg[None, ...]
+        remove_dim = True
     elif seg.ndim == 4 and seg.shape[0] == 1:
         seg_ch = seg
     else:
         raise ValueError(f"Expected (X,Y,Z) or (1,X,Y,Z), got {seg.shape}")
 
-    klcc = KeepLargestConnectedComponent(
-        applied_labels=None,
-        independent=True,
-        connectivity=3,
-        num_components=1,
-        is_onehot=False,
-    )
-    out = klcc(seg_ch)[0]   # terug naar (X,Y,Z)
-    return out.astype(np.int16)
+    # find labels excluding background (0)
+    if labels is None:
+        labels = np.unique(seg_ch)
+    labels = labels[labels != 0]
+    if labels.size == 0:
+        result = seg_ch.astype(np.int16, copy=False)
+        return result[0] if remove_dim else result
+
+    # Extract the 3D volume from channel 0 for processing
+    vol = seg_ch[0]
+
+    # Connectivity structure for 3D, rank 3 = 26-connectivity to be not to conversative
+    structure = ndi.generate_binary_structure(rank=3, connectivity=connectivity)
+
+    # Buffers for 3D mask and labels
+    mask3d = np.empty(vol.shape, dtype=bool)
+    lab3d  = np.empty(vol.shape, dtype=np.int32)
+
+    # Process each label independently on the 3D volume
+    for lab_id in labels:
+        np.equal(vol, lab_id, out=mask3d)
+        if not mask3d.any():
+            continue
+        # Label connected components on mask3d
+        ndi.label(mask3d, structure=structure, output=lab3d)
+        max_lab = int(lab3d.max())
+        if max_lab <= 1:
+            continue
+
+        # Compute sizes and pick the largest component
+        counts = np.bincount(lab3d.ravel())
+        keep = counts[1:].argmax() + 1
+        del counts
+
+        # Zero out everything except the largest component for this label
+        np.logical_and(mask3d, lab3d != keep, out=mask3d)
+        vol[mask3d] = 0
+
+    # Write back the processed 3D volume into output array
+    seg_ch[0] = vol
+
+    # Cleanup
+    del mask3d, lab3d
+
+    # Convert to int16 and drop channel dim if needed
+    result = seg_ch.astype(np.int16, copy=False)
+    if remove_dim:
+        result = result[0]
+    return result
 
 def run_inference(
     image_path,
@@ -463,8 +515,9 @@ def run_inference(
         vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
         full_seg[..., s:e] = vol_seg
         gc.collect()
-        del vol_seg  
+        del vol_seg 
 
+    gc.collect()  
     full_seg = connected_chunks(full_seg)
     out_path = os.path.join(
         output_dir,
@@ -472,7 +525,7 @@ def run_inference(
     )
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
-    # cleanup
+    # final cleanup
     del full_seg
     gc.collect()
     if torch.cuda.is_available():
