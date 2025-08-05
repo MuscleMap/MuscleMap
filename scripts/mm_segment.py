@@ -71,8 +71,7 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    #Eddo: Added overlap. default is 0.50 since it's most profitable in terms of accuracy and speed. Higher overlap = smoother on edges. 
-    optional.add_argument("-s", '--overlap', required=False, default = 0.50, type=float,
+    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
                          help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed ")
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
@@ -139,7 +138,6 @@ def main():
     norm_map = {
     "instance": Norm.INSTANCE,
     }
-
     try:
         roi_size = tuple(model_config['parameters']['roi_size'])
         spatial_window_batch_size = model_config['parameters']['spatial_window_batch_size']
@@ -153,7 +151,6 @@ def main():
         num_res_units = model_config['model']['num_res_units']
         import_norm_str = model_config['model']['norm']
         label_entries = model_config["labels"]
-
     except KeyError as e:
         logging.error(f"Missing key in model configuration file: {e}")
         sys.exit(1)
@@ -190,7 +187,6 @@ def main():
         to_tensor=False, device=device
     ),
     AsDiscreted(keys="pred", argmax=True),
-    KeepLargestConnectedComponentd(keys="pred", applied_labels=list(range(1, out_channels +1))),
     SqueezeTransform(keys=["pred"])]
 
     test_files = [{"image": image} for image in image_paths]
@@ -208,13 +204,13 @@ def main():
     if args.region == 'wholebody':
         post_transforms.extend([
         RemapLabels(keys=["pred"], id_map=inv_id_map)])
-
+    
     post_transforms = Compose(post_transforms)
   
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
-    overlap_inference = args.overlap
+    overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     chunk_size = args.chunk_size
     for test in test_files:
