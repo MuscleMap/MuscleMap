@@ -119,10 +119,9 @@ def validate_seg_arguments(args):
             sys.exit(1)
 
 def save_nifti(data: np.ndarray, affine, header, out_path):
-    new_hdr = header.copy()                               # 1️⃣ kopie – behoud pixdim enz.
+    new_hdr = header.copy()                            
     img = nib.Nifti1Image(data, affine, new_hdr)
-
-    # 2️⃣  qform/sform-codes overnemen (oriëntatie op slice-niveau)
+    
     _, qcode = header.get_qform(coded=True)
     _, scode = header.get_sform(coded=True)
     img.set_qform(affine, int(qcode))
@@ -193,14 +192,13 @@ def add_slice_counts(
         slice_present = np.any(label_img == lbl, axis=axes_to_reduce)  
         slice_count   = int(slice_present.sum())
 
-        # 3) opslaan / verrijken
         entry = results_entry.get(lbl, {"Label": lbl, "Anatomy": ""})
         entry[col_name] = slice_count
         results_entry[lbl] = entry
 
     return results_entry
 
-def apply_clustering(args, mask_img, components): #output_dir, image
+def apply_clustering(args, mask_img, components): 
     if args.method == 'kmeans':
         clustering = KMeans(n_clusters = components, init = 'k-means++', tol = 0.001, n_init = 20, max_iter = 1000).fit(mask_img)
         labels = clustering.labels_ 
@@ -706,7 +704,6 @@ def run_inference(
             tensor = tensor.unsqueeze(0)              
         tensor = tensor.to(device, non_blocking=True)
 
-        # inference with mixed precision when GPU is available
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
 

@@ -71,7 +71,7 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
+    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed ")
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
