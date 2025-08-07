@@ -59,7 +59,7 @@ def get_parser():
                           help="Input image to segment. Can be single image or list of images separated by commas.")
     
     required.add_argument("-r", '--region', required=False, default = 'wholebody', type=str,
-                          help="Anatomical region to segment. Supported regions: abdomen, pelvis, thigh, wholebody and leg")
+                          help="Anatomical region to segment. Supported regions: wholebody, abdomen, pelvis, thigh, and leg. Default is wholebody.")
     # Optional arguments
     optional = parser.add_argument_group("Optional")
     required.add_argument("-o", '--output_dir', required=False, type=str,
@@ -71,11 +71,11 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed ")
+    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
+                         help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed. Default is 50%. ")
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed")
+                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
 
     return parser
 
@@ -226,4 +226,5 @@ def main():
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
+
     main()
