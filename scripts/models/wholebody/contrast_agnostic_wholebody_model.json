@@ -3,13 +3,10 @@
     "num_workers": 4,
     "roi_size": [256, 256],
     "spatial_window_batch_size": 1,
-    "amount_of_labels": 90,
-    "pix_dim": [1, 1, -1],
-    "model_continue_training": "FILLER_NAME_continue_training.pth"
+    "pix_dim": [1, 1, -1]
   },
   "model": {
     "version": 1.0,
-    "num_labels":90,
     "spatial_dims": 2,
     "in_channels": 1,
     "out_channels": 90,
@@ -19,6 +16,7 @@
     "num_res_units": 1,
     "norm": "instance"
   },
+  
    "labels": [
     { "region": "neck", "anatomy": "levator", "side": "left", "value": 1101 },
     { "region": "neck", "anatomy": "levator", "side": "right", "value": 1102 },
