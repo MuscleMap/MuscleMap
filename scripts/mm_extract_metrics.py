@@ -39,7 +39,7 @@ def get_parser():
                           help="Number of components for kmeans or gmm (2 or 3)")
     
     parser.add_argument("-r", '--region', required=False, type=str,
-                          help="Anatomical region. Supported regions: abdomen, pelvis, thigh, and leg")
+                          help="Anatomical region. Supported regions: wholebody, abdomen, pelvis, thigh, and leg")
 
     parser.add_argument("-o", '--output_dir', required=False, type=str, 
                           help="Output directory to save the results")
