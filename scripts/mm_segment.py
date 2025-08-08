@@ -72,7 +72,7 @@ def get_parser():
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
     optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
-                         help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed ")
+                         help="Determine the spatial overlap during sliding window inference, higher percentage might improve accuracy but will reduce inference speed. Default is 50%.")
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
