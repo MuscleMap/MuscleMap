@@ -147,7 +147,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    pip install .
    ~~~
 
-7. To use a GPU , you will need a NVIDIA GPU, [CUDA](https://developer.nvidia.com/cuda-toolkit), and the corresponding GPU-compatible version of [PyTorch](https://pytorch.org/get-started/previous-versions/) installed. We recommend installing the PyTorch wheel with pip.
+7. To use a GPU , you will need a NVIDIA GPU, [CUDA](https://developer.nvidia.com/cuda-toolkit), and the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/) installed. We recommend installing the PyTorch wheel with pip.
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
