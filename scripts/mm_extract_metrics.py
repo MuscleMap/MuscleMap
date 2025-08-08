@@ -21,10 +21,10 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Extract metrics of muscle size and composition")
 
     parser.add_argument("-m", '--method', required=True, type=str, choices=['dixon', 'kmeans', 'gmm', 'average'], 
-                          help="Method to use: dixon, kmeans, or gmm")
+                          help="Method to use: kmeans, gmm, dixon, or average")
 
     parser.add_argument("-i", '--input_image', required=False, type=str, 
-                          help="Input image for kmeans or gmm")
+                          help="Input image for kmeans, gmm, or average metohd")
     
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
                           help="Fat image for Dixon method")
