@@ -147,7 +147,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    pip install .
    ~~~
 
-7. To use a GPU , you will need a NVIDIA GPU, [CUDA](https://developer.nvidia.com/cuda-toolkit), and the corresponding GPU compatible version of [PyTorch](https://pytorch.org/get-started/previous-versions/) installed. We recommend installing the PyTorch wheel with pip.
+7. To use a GPU , you will need a NVIDIA GPU, [CUDA](https://developer.nvidia.com/cuda-toolkit), and the corresponding GPU-compatible version of [PyTorch](https://pytorch.org/get-started/previous-versions/) installed. We recommend installing the PyTorch wheel with pip.
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
@@ -262,12 +262,11 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
       </details>
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
-      #### Regions
-      * Abdomen, pelvis, thigh, leg
+      * Available legacy region segmentation models: abdomen, pelvis, thigh, and leg.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     
-   *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
+   ***We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.***
 
    ***If the models do not work well on your images, please open an issue. If you share your images, we will update the MuscleMap segmentaion model to improve the accuracy on your images.***
 
@@ -302,7 +301,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
      mm_gui
      ~~~
     
-    * To run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
+    * To automatically run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
 5. To run mm_register_to_template:
 
