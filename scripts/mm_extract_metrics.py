@@ -24,7 +24,7 @@ def get_parser():
                           help="Method to use: kmeans, gmm, dixon, or average")
 
     parser.add_argument("-i", '--input_image', required=False, type=str, 
-                          help="Input image for kmeans, gmm, or average metohd")
+                          help="Input image for kmeans, gmm, or average method")
     
     parser.add_argument("-f", '--fat_image', required=False, type=str, 
                           help="Fat image for Dixon method")
