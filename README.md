@@ -164,7 +164,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     mm_segment -i image.nii.gz
     ~~~
 
-    * mm_segment uses our contrast agnostic whole-body model by default with currently 90 segmentations.
+    * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 89 muscles and bones.
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
       
