@@ -14,7 +14,7 @@
 
 ## Standardized Acquisition Protocol
 
-We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:kenweber@stanford.edu).
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
 
 ## Data Curation
 We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
@@ -93,7 +93,7 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
 * derivatives = contains segmentation images and any other derivatives
-* If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:kenweber@stanford.edu) for help automating the conversion.
+* If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
 </details>
 
 ## MuscleMap Toolbox
@@ -147,7 +147,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    pip install .
    ~~~
 
-7. To use a GPU , you will need a NVIDIA GPU and [CUDA](https://developer.nvidia.com/cuda-toolkit) installed.
+7. To use a GPU , you will need a NVIDIA GPU, [CUDA](https://developer.nvidia.com/cuda-toolkit), and the corresponding GPU compatible version of [PyTorch](https://pytorch.org/get-started/previous-versions/) installed. We recommend installing the PyTorch wheel with pip.
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
@@ -161,27 +161,115 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 2. To run mm_segment:
 
     ~~~
-    mm_segment -i image.nii.gz -r abdomen
+    mm_segment -i image.nii.gz
     ~~~
 
-    * mm_segment uses contrast agnostic segmentation models by default and only the body region needs to be specified. Users may specify another available model with -m.
+    * mm_segment uses our contrast agnostic whole-body model by default with currently 90 segmentations.
+      <details>
+       <summary>Click to see the current segmentations with labels.</summary>
+      
+          ```
+            Left Levator Scapulae 1101
+            Right Levator Scapulae 1102
+            Left Semispinalis Cervicis And Multifidus 1111
+            Right Semispinalis Cervicis And Multifidus 1112
+            Left Semispinalis Capitis 1121
+            Right Semispinalis Capitis 1122
+            Left Splenius Capitis 1131
+            Right Splenius Capitis 1132
+            Left Sternocleidomastoid 1141
+            Right Sternocleidomastoid 1142
+            Left Longus Colli 1151
+            Right Longus Colli 1152
+            Left Trapezius 1161
+            Right Trapezius 1162
+            Left Supraspinatus 2101
+            Right Supraspinatus 2102
+            Left Subscapularis 2111
+            Right Subscapularis 2112
+            Left Infraspinatus 2121
+            Right Infraspinatus 2122
+            Left Deltoid 2141
+            Right Deltoid 2142
+            Left Rhomboid 4101
+            Right Rhomboid 4102
+            Left Thoracolumbar Multifidus 5101
+            Right Thoracolumbar Multifidus 5102
+            Left Erector Spinae 5111
+            Right Erector Spinae 5112
+            Left Psoas Major 5121
+            Right Psoas Major 5122
+            Left Quadratus Lumborum 5131
+            Right Quadratus Lumborum 5132
+            Left Lattisimus Dorsi 5141
+            Right Lattisimus Dorsi 5142
+            Left Gluteus Minimus 6101
+            Right Gluteus Minimus 6102
+            Left Gluteus Medius 6111
+            Right Gluteus Medius 6112
+            Left Gluteus Maximus 6121
+            Right Gluteus Maximus 6122
+            Left Tensor Fascia Latae 6131
+            Right Tensor Fascia Latae 6132
+            Left Iliacus 6141
+            Right Iliacus 6142
+            Left Ilium 6151
+            Right Ilium 6152
+            Sacrum 6160
+            Left Femur 6171
+            Right Femur 6172
+            Left Vastus Lateralis 7101
+            Right Vastus Lateralis 7102
+            Left Vastus Intermedius 7111
+            Right Vastus Intermedius 7112
+            Left Vastus Medialis 7121
+            Right Vastus Medialis 7122
+            Left Rectus Femoris 7131
+            Right Rectus Femoris 7132
+            Left Sartorius 7141
+            Right Sartorius 7142
+            Left Gracilis 7151
+            Right Gracilis 7152
+            Left Semimembranosus 7161
+            Right Semimembranosus 7162
+            Left Semitendinosus 7171
+            Right Semitendinosus 7172
+            Left Biceps Femoris Long Head 7181
+            Right Biceps Femoris Long Head 7182
+            Left Biceps Femoris Short Head 7191
+            Right Biceps Femoris Short Head 7192
+            Left Adductor Magnus 7201
+            Right Adductor Magnus 7202
+            Left Adductor Longus 7211
+            Right Adductor Longus 7212
+            Left Adductor Brevis 7221
+            Right Adductor Brevis 7222
+            Left Anterior Compartment 8101
+            Right Anterior Compartment 8102
+            Left Deep Posterior Compartment 8111
+            Right Deep Posterior Compartment 8112
+            Left Lateral Compartment 8121
+            Right Lateral Compartment 8122
+            Left Soleus 8131
+            Right Soleus 8132
+            Left Gastrocnemius 8141
+            Right Gastrocnemius 8142
+            Left Tibia 8151
+            Right Tibia 8152
+            Left Fibula 8161
+            Right Fibula 8162
+          ```
+      </details>
+    * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
+    * Users may specify our legacy region segmentation models (version 0.0) with -r.
+      #### Regions
+      * Abdomen, pelvis, thigh, leg
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
+    * Run mm_segment -h to see all available options.
     
-    #### Regions
-    * Abdomen
-        * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
-    * Pelvis
-        * Left and right gluteus minimus, gluteus medius, gluteus maximus, tensor fasciae latae, femur, pelvic girdle, and sacrum
-    * Thigh
-        * Left and right vastus lateralis, vastus intermedius, vastus medialis, rectus femoris, sartorius, gracilis, semimembranosus, semitendinosus, biceps femoris long head, biceps femoris short head, adductor magnus, adductor longus, adductor brevis, and femur
-    * Leg
-        * Left and right anterior compartment (tibialis anterior, extensor digitorum longus, extensor hallucis longus, and fibularis tertius), deep posterior compartment (tibialis posterior, flexor digitorum longus, and flexor hallucis longus), lateral compartment (fibularis longus and brevis), soleus, gastrocnemius, tibia, and fibula
-    
-    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvic floor, and foot*
-
    *We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.*
 
-   ***If the models do not work well on your images, please contact [us](mailto:kenweber@stanford.edu). If you share your images, we can update the MuscleMap models to improve their accuracy.***
+   ***If the models do not work well on your images, please open an issue. If you share your images, we will update the MuscleMap segmentaion model to improve the accuracy on your images.***
 
 3. To run mm_extract_metrics:
 
@@ -226,7 +314,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
-    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, pelvic floor, thigh, leg, and foot*
+    *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
 
 ## Citing MuscleMap
 
@@ -237,6 +325,9 @@ When citing MuscleMap, please cite the following publication:
 When using the MuscleMap Toolbox, please cite the following publications:
 
 ## mm_segment
+
+### Whole-Body
+* Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT, abstract accepted for oral presentation at the International Society for Magnetic Resonance in Medicine Annual Meeting & Exhibition 2025, Honolulu, Hawaii, USA.
 
 ### Abdomen
 
@@ -275,6 +366,7 @@ When using the MuscleMap Toolbox, please cite the following publications:
 ## Publications
 
 ### 2025
+* Wesselink EO, Verheijen E, Djuric N, Coppieters M, Elliott J, Weber KA 2nd, Wouter M, Vleggeert-Lankamp C, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis. A Longitudinal Cohort Study With 5-year Follow-up. Spine, In Press <https://doi.org/10.1097/brs.0000000000005408>
 
 * Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, 2025;16(1):e13735. <https://doi.org/10.1002/jcsm.13735>
 
