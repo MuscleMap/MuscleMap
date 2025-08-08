@@ -165,8 +165,8 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     ~~~
 
     * mm_segment uses our contrast agnostic whole-body model by default with currently 90 segmentations.
-      <details>
-       <summary>Click to see the current segmentations with labels.</summary>
+       <details>
+          <summary>Click to see the current segmentations with labels.</summary>
       
           ```
             Left Levator Scapulae 1101
@@ -259,7 +259,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Left Fibula 8161
             Right Fibula 8162
           ```
-      </details>
+       </details>
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
