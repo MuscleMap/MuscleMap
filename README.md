@@ -27,74 +27,74 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
 
-<details>
- <summary>Click to see an example BIDS directory structure.</summary>
-
-    ```
-    dataset
-    ├── derivatives
-    │   └── labels
-    │      └── sub-example01
-    │      └── sub-example02
-    │           ├── ses-abdomen
-    │           │   └── anat
-    │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
-    │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
-    │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
-    │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
-    │           └── ses-neck
-    │               └── anat
-    │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
-    │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
-    └── sourcedata
-        └── participants.tsv
-        └── sub-example01
-        └── sub-example02
-            ├── ses-abdomen
-            │   ├── anat
-            │   │   ├── sub-example02_ses-abdomen_fatfrac.json
-            │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_fat.json
-            │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_inphase.json
-            │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_outphase.json
-            │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_R2star.json
-            │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_T1w.json
-            │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_T2w.json
-            │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
-            │   │   ├── sub-example02_ses-abdomen_water.json
-            │   │   └── sub-example02_ses-abdomen_water.nii.gz
-            │   └── dwi
-            │       ├── sub-example02_ses-abdomen_dwi.bval
-            │       ├── sub-example02_ses-abdomen_dwi.bvec
-            │       ├── sub-example02_ses-abdomen_dwi.json
-            │       └── sub-example02_ses-abdomen_dwi.nii.gz
-            └── ses-neck
-                └── anat
-                    ├── sub-example02_ses-neck_fat.json
-                    ├── sub-example02_ses-neck_fat.nii.gz
-                    ├── sub-example02_ses-neck_fatfrac.json
-                    ├── sub-example02_ses-neck_fatfrac.nii.gz
-                    ├── sub-example02_ses-neck_inphase.json
-                    ├── sub-example02_ses-neck_inphase.nii.gz
-                    ├── sub-example02_ses-neck_outphase.json
-                    ├── sub-example02_ses-neck_outphase.nii.gz
-                    ├── sub-example02_ses-neck_R2star.json
-                    ├── sub-example02_ses-neck_R2star.nii.gz
-                    ├── sub-example02_ses-neck_T2w.json
-                    ├── sub-example02_ses-neck_T2w.nii.gz
-                    ├── sub-example02_ses-neck_water.json
-                    └── sub-example02_ses-neck_water.nii.gz
-    ```
-
-* sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
-* derivatives = contains segmentation images and any other derivatives
-* If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
-</details>
+   <details>
+    <summary>Click to see an example BIDS directory structure.</summary>
+   
+       ```
+       dataset
+       ├── derivatives
+       │   └── labels
+       │      └── sub-example01
+       │      └── sub-example02
+       │           ├── ses-abdomen
+       │           │   └── anat
+       │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
+       │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
+       │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
+       │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
+       │           └── ses-neck
+       │               └── anat
+       │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
+       │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
+       └── sourcedata
+           └── participants.tsv
+           └── sub-example01
+           └── sub-example02
+               ├── ses-abdomen
+               │   ├── anat
+               │   │   ├── sub-example02_ses-abdomen_fatfrac.json
+               │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_fat.json
+               │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_inphase.json
+               │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_outphase.json
+               │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_R2star.json
+               │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_T1w.json
+               │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_T2w.json
+               │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_water.json
+               │   │   └── sub-example02_ses-abdomen_water.nii.gz
+               │   └── dwi
+               │       ├── sub-example02_ses-abdomen_dwi.bval
+               │       ├── sub-example02_ses-abdomen_dwi.bvec
+               │       ├── sub-example02_ses-abdomen_dwi.json
+               │       └── sub-example02_ses-abdomen_dwi.nii.gz
+               └── ses-neck
+                   └── anat
+                       ├── sub-example02_ses-neck_fat.json
+                       ├── sub-example02_ses-neck_fat.nii.gz
+                       ├── sub-example02_ses-neck_fatfrac.json
+                       ├── sub-example02_ses-neck_fatfrac.nii.gz
+                       ├── sub-example02_ses-neck_inphase.json
+                       ├── sub-example02_ses-neck_inphase.nii.gz
+                       ├── sub-example02_ses-neck_outphase.json
+                       ├── sub-example02_ses-neck_outphase.nii.gz
+                       ├── sub-example02_ses-neck_R2star.json
+                       ├── sub-example02_ses-neck_R2star.nii.gz
+                       ├── sub-example02_ses-neck_T2w.json
+                       ├── sub-example02_ses-neck_T2w.nii.gz
+                       ├── sub-example02_ses-neck_water.json
+                       └── sub-example02_ses-neck_water.nii.gz
+       ```
+   
+   * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+   * derivatives = contains segmentation images and any other derivatives
+   * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
+   </details>
 
 ## MuscleMap Toolbox
 
@@ -268,14 +268,14 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
    ***We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.***
 
-   ***If the models do not work well on your images, please open an issue. If you share your images, we will update the MuscleMap segmentaion model to improve the accuracy on your images.***
+   ***If the models do not work well on your images, please open an issue. If you share your images, we will update the MuscleMap segmentation model to improve its accuracy on your images.***
 
 3. To run mm_extract_metrics:
 
     1. For T1w and T2w MRI:
 
         ~~~
-        mm_extract_metrics -m gmm -r abdomen -i image.nii.gz -s image_dseg.nii.gz -c 3
+        mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
         ~~~
 
     * Users may specify Gaussian mixture modeling (gmm) or kmeans clustering (kmeans) with -m.
@@ -286,13 +286,13 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     2. For Dixon Fat-Water MRI:
 
         ~~~
-        mm_extract_metrics -m dixon -r abdomen -f image_fat.nii.gz -w image_water.nii.gz -s image_dseg.nii.gz
+        mm_extract_metrics -m dixon -r wholebody -f image_fat.nii.gz -w image_water.nii.gz -s image_dseg.nii.gz
         ~~~
 
    3. For Dixon Fat Fraction MRI or CT:
 
         ~~~
-        mm_extract_metrics -m average -r abdomen -i image.nii.gz -s image_dseg.nii.gz
+        mm_extract_metrics -m average -r wholebody -i image.nii.gz -s image_dseg.nii.gz
         ~~~
      
 4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
