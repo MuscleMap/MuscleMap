@@ -260,11 +260,15 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Fibula 8162
           ```
        </details>
-    * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
+    * The default spatial overlap during sliding window inference is 90% to improve accuracy. For high-resolution or whole-body images, we recommend lowering the spatial inference to 50% to reduce inference speed:
+       ~~~
+       mm_segment -i image.nii.gz -s 50
+       ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
+    * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
     
    ***We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.***
 
