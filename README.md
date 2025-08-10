@@ -260,7 +260,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Fibula 8162
           ```
        </details>
-    * The default spatial overlap during sliding window inference is 90% to improve accuracy. For high-resolution or whole-body images, we recommend lowering the spatial inference to 50% to reduce inference speed:
+    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
        ~~~
        mm_segment -i image.nii.gz -s 50
        ~~~
