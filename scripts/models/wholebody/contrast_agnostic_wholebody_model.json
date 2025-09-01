@@ -6,7 +6,7 @@
     "pix_dim": [1, 1, -1]
   },
   "model": {
-    "version": 1.0,
+    "version": 1.1,
     "spatial_dims": 2,
     "in_channels": 1,
     "out_channels": 90,
