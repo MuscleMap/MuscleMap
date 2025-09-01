@@ -32,7 +32,8 @@ from monai.transforms import (
     NormalizeIntensityd,
     EnsureChannelFirstd,
     KeepLargestConnectedComponentd,
-    KeepLargestConnectedComponent
+    KeepLargestConnectedComponent,
+    CropForegroundd,
 )
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
@@ -176,9 +177,10 @@ def main():
         Orientationd(keys=["image"], axcodes="RAS"),
         Spacingd(keys=["image"], pixdim=pix_dim, mode="bilinear"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
+        CropForegroundd(keys=["image"], source_key="image", margin=20),
         EnsureTyped(keys=["image"]),
     ])
-
+    
     post_transforms = [
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
@@ -222,7 +224,6 @@ def main():
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
-
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
