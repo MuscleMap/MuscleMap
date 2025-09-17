@@ -268,11 +268,11 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
       * Available regions: abdomen, pelvis, thigh, and leg.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
-    * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
+    * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
     
    ***We highly recommend visualizing and manually correcting the segmentations for errors. We use [ITK-SNAP](http://www.itksnap.org/pmwiki/pmwiki.php) and [Slicer](https://www.slicer.org/), which are free and open-source.***
 
-   ***If the models do not work well on your images, please open an issue. If you share your images, we will update the MuscleMap segmentation model to improve its accuracy on your images.***
+   ***If the models do not work well on your images, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues). If you share your images, we will update the MuscleMap segmentation model to improve its accuracy on your images.***
 
 3. To run mm_extract_metrics:
 
