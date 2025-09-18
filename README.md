@@ -147,7 +147,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    pip install .
    ~~~
 
-7. **To use a GPU,** you will need a compatible NVIDIA GPU with [CUDA](https://developer.nvidia.com/cuda-toolkit) installed or a compatible AMD GPU with [ROCM](https://www.amd.com/en/products/software/rocm.html) installed. You will then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip. After installing the GPU-compatible version of PyTorch, rerun:
+7. **To use a GPU,** you need a compatible NVIDIA GPU with [CUDA](https://developer.nvidia.com/cuda-toolkit) installed or a compatible AMD GPU with [ROCM](https://www.amd.com/en/products/software/rocm.html) installed. You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip. After installing the correct GPU-compatible version of PyTorch, rerun:
 
    ~~~
    pip install .
