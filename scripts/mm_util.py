@@ -4,17 +4,15 @@ import sys
 import json
 import numpy as np
 import nibabel as nib
-import math
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-from monai.transforms import ( MapTransform)
+from monai.transforms import (MapTransform)
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
 from scipy import ndimage as ndi
-from typing import Any, Dict, Optional, Tuple, Union, Iterable
+from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
-from time import perf_counter
 import pandas as pd
 
 #check_image_exists 
@@ -676,6 +674,18 @@ def connected_chunks(
         result = result[0]
     return result
 
+def is_nifti(path: str) -> bool:
+    p = path.lower()
+    return p.endswith(".nii.gz") or p.endswith(".nii")
+
+def _make_out_path(image_path, output_dir, tag="_dseg"):
+    fname = os.path.basename(image_path)
+    if fname.endswith(".nii.gz"):
+        base = fname[:-7]
+    elif fname.endswith(".nii"):
+        base = fname[:-4]
+    return os.path.join(output_dir, f"{base}{tag}.nii.gz")
+
 def run_inference(
     image_path,
     output_dir,
@@ -688,6 +698,7 @@ def run_inference(
     model=None,
 ):
     # 1) Load header + data
+    out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
     affine   = img_nii.affine.copy()
     header   = img_nii.header.copy()
@@ -714,14 +725,8 @@ def run_inference(
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np      = seg_tensor.numpy()
         full_seg = connected_chunks(seg_np)
-
-        out_path = os.path.join(
-            output_dir,
-            os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
-        )
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         del seg_np  
-
         # cleanup
         del tensor, pred, single_pred, post_in, post_out, seg_tensor
         gc.collect()
@@ -787,10 +792,6 @@ def run_inference(
 
     gc.collect()  
     full_seg = connected_chunks(full_seg)
-    out_path = os.path.join(
-        output_dir,
-        os.path.basename(image_path).replace(".nii.gz", "_dseg.nii.gz")
-    )
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
     # final cleanup

@@ -13,12 +13,7 @@ import os
 import gc
 from contextlib import nullcontext
 import sys
-import numpy as np
 print("Command line arguments received:", sys.argv)
-import pandas as pd
-import glob
-import shutil
-import nibabel as nib
 from monai.inferers import SliceInferer
 from monai.networks.nets import UNet
 from monai.transforms import (
@@ -31,20 +26,19 @@ from monai.transforms import (
     EnsureTyped,
     NormalizeIntensityd,
     EnsureChannelFirstd,
-    KeepLargestConnectedComponentd,
-    KeepLargestConnectedComponent,
     CropForegroundd,
 )
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
-from monai.data import Dataset, decollate_batch, ThreadDataLoader
 from time import perf_counter
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
 import torch
 
 #naming not functional
@@ -101,13 +95,6 @@ def main():
     else:
         logging.info(f"Processing on a CPU will slow down inference speed")
 
-    base_name = os.path.basename(args.input_image)
-
-    name, ext = os.path.splitext(base_name)
-    
-    if ext == ".gz" and name.endswith(".nii"):
-        name, _ = os.path.splitext(name)  # Remove .nii part
-
     if args.output_dir is None:
         output_dir = os.getcwd()
 
@@ -129,6 +116,9 @@ def main():
         # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
+        if not is_nifti(image_path):
+            logging.error(f"Error: {image_path} is not a valid NIfTI (.nii or .nii.gz)")
+            sys.exit(1) 
 
     logging.info("Loading configuration file...")
 
