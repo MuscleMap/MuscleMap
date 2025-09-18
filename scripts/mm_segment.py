@@ -84,16 +84,20 @@ def main():
     
     parser = get_parser()
     args = parser.parse_args()
-    logging.info(f"Processing using a GPU (yes/no): {args.use_GPU}")
+    logging.info(f"Trying to process using a GPU (yes/no): {args.use_GPU}")
          
-    device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
-    amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
-    
-    if device and amp_context:
+    use_cuda = torch.cuda.is_available() and (args.use_GPU == 'Y')
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+    amp_context = torch.autocast("cuda") if use_cuda else nullcontext()
+
+    logging.info(f"Torch.cuda is available ={torch.cuda.is_available()}")
+    logging.info(f"Using device = {device}")
+
+    if use_cuda:
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
-        logging.info(f"Processing on a CPU will slow down inference speed")
+        logging.info("Processing on CPU (this will be slower).")
 
     if args.output_dir is None:
         output_dir = os.getcwd()
@@ -121,9 +125,8 @@ def main():
             sys.exit(1) 
 
     logging.info("Loading configuration file...")
-
+    
     model_path, model_config_path = get_model_and_config_paths(args.region, args.model)
-
     model_config = load_model_config(model_config_path)
 
     norm_map = {
