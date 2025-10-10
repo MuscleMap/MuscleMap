@@ -700,10 +700,10 @@ def run_inference(
     # 1) Load header + data
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
+    dataobj = img_nii.dataobj
+    D = dataobj.shape[-1]
     affine   = img_nii.affine.copy()
     header   = img_nii.header.copy()
-    img_data = img_nii.get_fdata().astype(np.float32)
-    D        = img_data.shape[-1]
 
     if D <= chunk_size:
         data   = {"image": image_path}
@@ -740,13 +740,13 @@ def run_inference(
     chunk_files = []
     for start in range(0, D, chunk_size):
         end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
+        vol_chunk = dataobj[..., start:end]
         chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
         nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
         del vol_chunk  
         chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
-    del img_data, img_nii
+    del dataobj, img_nii
     gc.collect()
 
     for entry in chunk_files:

@@ -84,12 +84,13 @@ def main():
     
     parser = get_parser()
     args = parser.parse_args()
-    logging.info(f"Processing using a GPU (yes/no): {args.use_GPU}")
+    #logging.info(f"Processing using a GPU (yes/no): {args.use_GPU}")
          
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
+    logging.info(f"Processing using cuda or CPU: {device}")
     
-    if device and amp_context:
+    if device.type == 'cuda':
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
@@ -172,13 +173,13 @@ def main():
     ])
     
     post_transforms = [
+    AsDiscreted(keys="pred", argmax=True),
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict", nearest_interp=False,
+        meta_key_postfix="meta_dict", nearest_interp=True,
         to_tensor=False, device=device
     ),
-    AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
 
     test_files = [{"image": image} for image in image_paths]
