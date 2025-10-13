@@ -373,6 +373,8 @@ When using the MuscleMap Toolbox, please cite the following publications:
 ## Publications
 
 ### 2025
+* Nashwa Masnoon, Jon Cornwall, James M. Elliott, Paul Glare, Sarah N. Hilmer, Marnee McKay, David M. Walton, Ken Weber, Eddo Wesselink. Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia, Clinics in Geriatric Medicine, 2025, ISSN 0749-0690, https://doi.org/10.1016/j.cger.2025.08.012.
+
 * Wesselink EO, Verheijen E, Djuric N, Coppieters M, Elliott J, Weber KA 2nd, Wouter M, Vleggeert-Lankamp C, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis. A Longitudinal Cohort Study With 5-year Follow-up. Spine, In Press <https://doi.org/10.1097/brs.0000000000005408>
 
 * Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, 2025;16(1):e13735. <https://doi.org/10.1002/jcsm.13735>
