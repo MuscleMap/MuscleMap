@@ -84,12 +84,14 @@ def main():
     
     parser = get_parser()
     args = parser.parse_args()
-    logging.info(f"Processing using a GPU (yes/no): {args.use_GPU}")
          
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
+    
+    logging.info(f"Processing using cuda or cpu: {device}")
+    
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    if device and amp_context:
+    if device =='cuda':
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:

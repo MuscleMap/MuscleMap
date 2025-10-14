@@ -108,7 +108,7 @@ def main():
     save_outputs.to_csv(
     output_file_path,
     index=False,
-    sep=';')
+    sep=',')
 
     print(f"Results have been exported to {output_file_path}")
 
