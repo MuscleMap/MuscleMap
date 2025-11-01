@@ -1,20 +1,11 @@
-# MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
+# MuscleMap Toolbox: An Open-Source Toolbox for the Analysis of Whole-Body Quantitative MRI of Muscle
 
 <p align="center">
    <img width="100%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 </p>
 
-## Planned MuscleMap Phases
-
-1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
-
-2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
-
-3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
-
-## Standardized Acquisition Protocol
-
-We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
+## Overview
+The MuscleMap Toolbox is an open-source toolbox for the analysis of whole-body quantitative MRI of muscle. 
 
 ## Data Curation
 We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
@@ -96,7 +87,7 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
    * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
    </details>
 
-## MuscleMap Toolbox
+## Installation
 
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
@@ -104,7 +95,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 * Python 3.9.23
 
-### Installation
+### Instructions
 
 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
@@ -322,6 +313,18 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+
+## Planned MuscleMap Phases
+
+1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+
+2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
+
+3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
+
+## Standardized Acquisition Protocol
+
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
 
 ## Citing MuscleMap
 
