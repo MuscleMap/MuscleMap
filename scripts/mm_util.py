@@ -704,7 +704,7 @@ def run_inference(
     header   = img_nii.header.copy()
     img_data = img_nii.get_fdata().astype(np.float32)
     D        = img_data.shape[-1]
-
+    
     if D <= chunk_size:
         data   = {"image": image_path}
         data   = pre_transforms(data)
@@ -719,7 +719,11 @@ def run_inference(
             pred = inferer(tensor, model)
 
         single_pred = pred.squeeze(0).squeeze(0)     
-        post_in     = {"pred": single_pred, "image": data["image"]}
+        post_in = {
+            "pred": single_pred,
+            "image": data["image"],
+            "image_meta_dict": data["image_meta_dict"],
+        }
         del data
         post_out    = post_transforms(post_in)
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
@@ -763,7 +767,11 @@ def run_inference(
             pred = inferer(tensor, model)
 
         single_pred = pred.squeeze(0).squeeze(0)
-        post_in = {"pred": single_pred, "image": data["image"]}
+        post_in = {
+            "pred": single_pred,
+            "image": data["image"],
+            "image_meta_dict": data["image_meta_dict"],
+        }
         del data  
         post_out = post_transforms(post_in)
         seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
