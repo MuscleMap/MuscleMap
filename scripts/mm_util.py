@@ -686,6 +686,96 @@ def _make_out_path(image_path, output_dir, tag="_dseg"):
         base = fname[:-4]
     return os.path.join(output_dir, f"{base}{tag}.nii.gz")
 
+def get_gpu_memory():
+    """
+    Designed to return both total and free GPU in MB to account for PyTorch.
+    """
+
+    if not torch.cuda.is_available():
+        return 0, 0
+    torch.cuda.empty_cache()
+    device = torch.device("cuda")
+    props = torch.cuda.get_device_properties(device)
+    total = props.total_memory / (1024 ** 2)
+    reserved = torch.cuda.memory_reserved(device) / (1024 ** 2)
+    allocated = torch.cuda.memory_allocated(device) / (1024 ** 2)
+    free = total - max(reserved, allocated)
+    return total, free
+
+def estimate_inference_params(
+    voxel_spacing: Optional[Tuple[float, float, float]],
+    image_shape: Optional[Tuple[int, ...]],
+    default_chunk_size: Optional[int] = None,
+    default_overlap: Optional[float] = None,
+    min_chunk_size: int = 24,
+    max_chunk_size: int = 120,
+    target_physical_chunk_mm: float = 220.0,
+) -> Dict[str, Union[int, float]]:
+    """Estimate inference hyper-parameters given basic image metadata.
+
+    Parameters
+    ----------
+    voxel_spacing : tuple
+        Voxel spacing for each axis (in mm). Only the final axis is used for now.
+    image_shape : tuple
+        Image shape. The final dimension is interpreted as the slice axis.
+    default_chunk_size : int | None
+        Explicit chunk size specified by the user. When provided it is returned verbatim.
+    default_overlap : float | None
+        Sliding window overlap percentage from the CLI. When provided it is returned verbatim.
+    min_chunk_size, max_chunk_size : int
+        Bounds for automatically determined chunk sizes.
+    target_physical_chunk_mm : float
+        Desired physical coverage per chunk along the slice axis.
+
+    Returns
+    -------
+    dict
+        Dictionary containing `chunk_size` (int) and `overlap` (percentage as float).
+    """
+    spacing_z: Optional[float] = None
+    if voxel_spacing:
+        axis = -1 if len(voxel_spacing) < 3 else 2
+        spacing_z = abs(float(voxel_spacing[axis]))
+        if spacing_z == 0:
+            spacing_z = None
+
+    slices: Optional[int] = None
+    if image_shape:
+        axis = -1 if len(image_shape) < 3 else 2
+        slices = max(1, int(image_shape[axis]))
+
+    if default_chunk_size is not None and default_chunk_size > 0:
+        chunk_size = int(default_chunk_size)
+    else:
+        spacing_for_calc = spacing_z if spacing_z not in (None, 0) else 1.0
+        chunk_size = int(round(target_physical_chunk_mm / spacing_for_calc))
+        chunk_size = max(min_chunk_size, chunk_size)
+        if max_chunk_size:
+            chunk_size = min(max_chunk_size, chunk_size)
+
+    if slices is not None:
+        chunk_size = min(chunk_size, slices)
+    chunk_size = max(1, chunk_size)
+
+    if default_overlap is not None:
+        overlap_pct = float(default_overlap)
+    else:
+        if chunk_size >= 100:
+            overlap_pct = 60.0
+        elif chunk_size >= 80:
+            overlap_pct = 70.0
+        elif chunk_size >= 60:
+            overlap_pct = 80.0
+        elif chunk_size >= 40:
+            overlap_pct = 85.0
+        else:
+            overlap_pct = 90.0
+
+    overlap_pct = min(95.0, max(10.0, overlap_pct))
+
+    return {"chunk_size": chunk_size, "overlap": overlap_pct}
+
 def run_inference(
     image_path,
     output_dir,

@@ -35,11 +35,12 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels, SqueezeTransform, estimate_inference_params, run_inference, is_nifti
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels, SqueezeTransform, estimate_inference_params, run_inference, is_nifti
 import torch
+import nibabel as nib
 
 #naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
@@ -71,6 +72,10 @@ def get_parser():
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+
+    # Allow automatic estimation of inference params by passing no explicit values
+    optional.add_argument("--auto_infer_params", required=False, action='store_true',
+                          help="When set, automatically estimate optimal chunk size and overlap from the input image header. If not set, values from --chunk_size and --overlap are used (or their defaults).")
 
     return parser
 
@@ -204,9 +209,28 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
-    overlap_inference = args.overlap / 100
+    # Determine chunk size and overlap. If --auto_infer_params is set, estimate from image header
+    if getattr(args, 'auto_infer_params', False):
+        try:
+            logging.info("Estimating inference parameters from input image header...")
+            img0 = nib.load(image_paths[0])
+            voxel_spacing = img0.header.get_zooms()
+            image_shape = img0.shape
+            inferred = estimate_inference_params(voxel_spacing=voxel_spacing, image_shape=image_shape,
+                                                 default_chunk_size=args.chunk_size,
+                                                 default_overlap=args.overlap)
+            chunk_size = int(inferred.get('chunk_size', args.chunk_size))
+            overlap_inference = float(inferred.get('overlap', args.overlap)) / 100.0
+            logging.info(f"Auto-estimated chunk_size={chunk_size}, overlap={overlap_inference*100:.1f}%")
+        except Exception as e:
+            logging.warning(f"Automatic inference parameter estimation failed: {e}. Falling back to CLI values.")
+            chunk_size = args.chunk_size
+            overlap_inference = args.overlap / 100
+    else:
+        chunk_size = args.chunk_size
+        overlap_inference = args.overlap / 100
+
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
-    chunk_size = args.chunk_size
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
