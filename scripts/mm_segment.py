@@ -67,15 +67,11 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
+    optional.add_argument("-s", '--overlap', required=False, default = None, type=float,
+                         help="Percent spatial overlap during sliding window inference. If not provided, the script will attempt to automatically estimate an appropriate overlap from the input image header (fallback: 90%).")
 
-    optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
-
-    # Allow automatic estimation of inference params by passing no explicit values
-    optional.add_argument("--auto_infer_params", required=False, action='store_true',
-                          help="When set, automatically estimate optimal chunk size and overlap from the input image header. If not set, values from --chunk_size and --overlap are used (or their defaults).")
+    optional.add_argument("-c", '--chunk_size', required=False, default = None, type=int,
+                    help="Number of axial slices to process as a single chunk. If not provided, the script will attempt to automatically estimate an appropriate chunk size from the input image header (fallback: 50).")
 
     return parser
 
@@ -209,26 +205,34 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
-    # Determine chunk size and overlap. If --auto_infer_params is set, estimate from image header
-    if getattr(args, 'auto_infer_params', False):
+    # Determine chunk size and overlap. If either --chunk_size or --overlap is not provided,
+    # automatically estimate from the input image header. Use safe fallbacks on failure.
+    need_auto = (args.chunk_size is None) or (args.overlap is None)
+    if need_auto:
         try:
             logging.info("Estimating inference parameters from input image header...")
             img0 = nib.load(image_paths[0])
             voxel_spacing = img0.header.get_zooms()
             image_shape = img0.shape
-            inferred = estimate_inference_params(voxel_spacing=voxel_spacing, image_shape=image_shape,
-                                                 default_chunk_size=args.chunk_size,
-                                                 default_overlap=args.overlap)
-            chunk_size = int(inferred.get('chunk_size', args.chunk_size))
-            overlap_inference = float(inferred.get('overlap', args.overlap)) / 100.0
-            logging.info(f"Auto-estimated chunk_size={chunk_size}, overlap={overlap_inference*100:.1f}%")
+            inferred = estimate_inference_params(
+                voxel_spacing=voxel_spacing,
+                image_shape=image_shape,
+                default_chunk_size=args.chunk_size,
+                default_overlap=args.overlap,
+            )
+            # Use user-provided values when present, otherwise use inferred values.
+            chunk_size = int(args.chunk_size) if args.chunk_size is not None else int(inferred.get('chunk_size', 50))
+            overlap_pct = float(args.overlap) if args.overlap is not None else float(inferred.get('overlap', 90.0))
+            overlap_inference = overlap_pct / 100.0
+            logging.info(f"Estimated chunk_size={chunk_size}, overlap={overlap_pct:.1f}%")
         except Exception as e:
-            logging.warning(f"Automatic inference parameter estimation failed: {e}. Falling back to CLI values.")
-            chunk_size = args.chunk_size
-            overlap_inference = args.overlap / 100
+            logging.warning(f"Automatic inference parameter estimation failed: {e}. Falling back to defaults or CLI values.")
+            chunk_size = int(args.chunk_size) if args.chunk_size is not None else 50
+            overlap_inference = (args.overlap / 100.0) if args.overlap is not None else 0.90
     else:
-        chunk_size = args.chunk_size
-        overlap_inference = args.overlap / 100
+        # Both provided by CLI; use them directly
+        chunk_size = int(args.chunk_size)
+        overlap_inference = args.overlap / 100.0
 
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     for test in test_files:
