@@ -26,7 +26,7 @@ def check_image_exists(image_path):
 
 def get_model_and_config_paths(region, specified_model=None):
     models_base_dir = os.path.join(os.path.dirname(__file__), "models", region)
-    if specified_model:
+    if specified_model: 
         model_path = os.path.join(models_base_dir, specified_model)
         config_path = os.path.splitext(model_path)[0] + ".json"
         if not os.path.isfile(model_path):
