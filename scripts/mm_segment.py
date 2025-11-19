@@ -14,7 +14,7 @@ import gc
 from contextlib import nullcontext
 import sys
 print("Command line arguments received:", sys.argv)
-from monai.inferers import SliceInferer
+from monai.inferers import SliceInferer,SlidingWindowInferer
 from monai.networks.nets import UNet
 from monai.transforms import (
     AsDiscreted,
@@ -86,12 +86,13 @@ def main():
     args = parser.parse_args()
          
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
-    
+
     logging.info(f"Processing using cuda or cpu: {device}")
+    print(device)
     
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    if device =='cuda':
+    if device.type == "cuda":
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
@@ -205,7 +206,13 @@ def main():
     model.eval()
 
     overlap_inference = args.overlap / 100
-    inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
+    
+    if args.region != 'stomach':
+        # stomach model = 3D
+        inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
+    else:
+        inferer = SlidingWindowInferer(roi_size=(320,320,16), sw_batch_size=spatial_window_batch_size, mode="gaussian", overlap=overlap_inference)
+
     chunk_size = args.chunk_size
     for test in test_files:
         logging.info(f"Processing {test['image']}")
