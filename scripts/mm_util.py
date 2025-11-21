@@ -702,7 +702,8 @@ def run_inference(
     img_nii  = nib.load(image_path)
     affine   = img_nii.affine.copy()
     header   = img_nii.header.copy()
-    img_data = img_nii.get_fdata().astype(np.float32)
+    # get_fdata supports a dtype argument so we avoid an extra copy via astype()
+    img_data = img_nii.get_fdata(dtype=np.float32)
     D        = img_data.shape[-1]
     
     if D <= chunk_size:
@@ -733,79 +734,73 @@ def run_inference(
         del seg_np  
         # cleanup
         del tensor, pred, single_pred, post_in, post_out, seg_tensor
-        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         return out_path
 
-    temp_dir = os.path.join(output_dir, "temp_chunks")
-    os.makedirs(temp_dir, exist_ok=True)
-    gc.collect()  
-    chunk_files = []
-    for start in range(0, D, chunk_size):
-        end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
-        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-        del vol_chunk  
-        chunk_files.append({"image": chunk_path, "start": start, "end": end})
+    else:
+        temp_dir = os.path.join(output_dir, "temp_chunks")
+        os.makedirs(temp_dir, exist_ok=True)
+        chunk_files = []
+        for start in range(0, D, chunk_size):
+            end       = min(start + chunk_size, D)
+            vol_chunk = img_data[..., start:end]
+            chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+            nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+            del vol_chunk  
+            chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
-    del img_data, img_nii
-    gc.collect()
+        del img_data, img_nii
 
-    for entry in chunk_files:
-        data   = {"image": entry["image"]}
-        data   = pre_transforms(data)
-        tensor = data["image"]
-        if device.type == "cpu":
-            tensor = tensor.float()
-        if tensor.ndim == 4:
-            tensor = tensor.unsqueeze(0)
-        tensor = tensor.to(device, non_blocking=True)
+        for entry in chunk_files:
+            data   = {"image": entry["image"]}
+            data   = pre_transforms(data)
+            tensor = data["image"]
+            if device.type == "cpu":
+                tensor = tensor.float()
+            if tensor.ndim == 4:
+                tensor = tensor.unsqueeze(0)
+            tensor = tensor.to(device, non_blocking=True)
 
-        with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
+            with amp_context, torch.inference_mode():
+                pred = inferer(tensor, model)
 
-        single_pred = pred.squeeze(0).squeeze(0)
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data  
-        post_out = post_transforms(post_in)
-        seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np = seg_tensor.numpy()
-        seg_path = os.path.join(
-            temp_dir,
-            f"seg_{entry['start']}_{entry['end']}.nii.gz"
-        )
-        nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
-        entry["seg"] = seg_path
-        del seg_np  
+            single_pred = pred.squeeze(0).squeeze(0)
+            post_in = {
+                "pred": single_pred,
+                "image": data["image"],
+                "image_meta_dict": data["image_meta_dict"],
+            }
+            del data  
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy()
+            seg_path = os.path.join(
+                temp_dir,
+                f"seg_{entry['start']}_{entry['end']}.nii.gz"
+            )
+            nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
+            entry["seg"] = seg_path
+            del seg_np  
 
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+            del tensor, pred, single_pred, post_in, post_out, seg_tensor
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        dims     = header.get_data_shape()  
+        full_seg = np.zeros(dims, dtype=np.int16)
+        for entry in chunk_files:
+            s, e, sp = entry["start"], entry["end"], entry["seg"]
+            vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
+            full_seg[..., s:e] = vol_seg
+            del vol_seg 
+
+        full_seg = connected_chunks(full_seg)
+        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+
+        # final cleanup
+        del full_seg
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        gc.collect()  
-
-    dims     = header.get_data_shape()  
-    full_seg = np.zeros(dims, dtype=np.int16)
-    for entry in chunk_files:
-        s, e, sp = entry["start"], entry["end"], entry["seg"]
-        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
-        full_seg[..., s:e] = vol_seg
-        gc.collect()
-        del vol_seg 
-
-    gc.collect()  
-    full_seg = connected_chunks(full_seg)
-    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-    # final cleanup
-    del full_seg
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    return out_path
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        return out_path
