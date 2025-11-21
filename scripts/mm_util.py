@@ -7,8 +7,8 @@ import nibabel as nib
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from monai.transforms import (MapTransform)
-import gc, torch
-import os, gc, torch, nibabel as nib
+import gc
+import torch
 import shutil
 from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
