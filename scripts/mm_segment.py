@@ -40,7 +40,6 @@ try:
 except ImportError:
     # Fallback to direct import if run as a standalone script
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats
-import torch
 
 #naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
@@ -70,14 +69,17 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
     
-    optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
+                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 25 slices.")
 
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    import torch
+
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
 

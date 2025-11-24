@@ -167,50 +167,6 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
     print(f"Process CPU time: {proc_cpu_time:.2f}s")
     print(f"Approx. process utilization of total CPU capacity: {process_cpu_pct:.1f}%")
 
-    # GPU diagnostics when CUDA is available and device indicates CUDA
-    try:
-        using_cuda = False
-        if device is not None and getattr(device, "type", None) == "cuda":
-            using_cuda = True
-        elif torch.cuda.is_available():
-            using_cuda = True
-        if using_cuda:
-            try:
-                dev = torch.cuda.current_device()
-                props = torch.cuda.get_device_properties(dev)
-                total_bytes = getattr(props, "total_memory", None)
-                total_mb = (total_bytes / 1024 ** 2) if total_bytes is not None else None
-                allocated_mb = torch.cuda.memory_allocated(dev) / 1024 ** 2
-                reserved_mb = torch.cuda.memory_reserved(dev) / 1024 ** 2
-                # approximate free: total - reserved (OS may use additional memory)
-                free_mb = (total_mb - reserved_mb) if total_mb is not None else None
-
-                if total_mb is not None and free_mb is not None:
-                    pct_free = 100.0 * free_mb / total_mb
-                    print(f"GPU {dev} memory: total {total_mb:.0f} MB, approx free {free_mb:.0f} MB ({pct_free:.1f}% )")
-                elif total_mb is not None:
-                    print(f"GPU {dev} memory: total {total_mb:.0f} MB")
-                else:
-                    print(f"GPU detected (id {dev}), memory stats unavailable")
-
-                print(f"GPU allocated: {allocated_mb:.1f} MB, reserved: {reserved_mb:.1f} MB")
-            except Exception:
-                # fallback: try nvidia-smi if available
-                try:
-                    import subprocess, json
-                    q = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"], capture_output=True, text=True)
-                    if q.returncode == 0:
-                        lines = [l.strip() for l in q.stdout.strip().splitlines() if l.strip()]
-                        if lines:
-                            total_str, free_str = lines[0].split(',')
-                            print(f"GPU memory (nvidia-smi): total {total_str.strip()} MB, free {free_str.strip()} MB")
-                except Exception:
-                    pass
-    except Exception:
-        pass
-
-# consolidated GPU reporting: get_gpu_memory removed, logic now in report_gpu_stats
-
 def report_gpu_stats(device: Optional[torch.device] = None) -> None:
     """Print a short GPU status summary before doing chunked processing.
 
