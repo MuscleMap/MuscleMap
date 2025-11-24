@@ -223,10 +223,51 @@ def main():
             # Estimate chunk size based on available GPU memory
             if device.type == 'cuda':
                 total_memory = torch.cuda.get_device_properties(0).total_memory
-                # Use 90% of GPU memory for chunk processing with FP16 (2 bytes per value)
-                bytes_per_voxel = 2 if amp_context.fast_dtype == torch.float16 else 4
-                chunk_size = max(1, int((total_memory * 0.9) / (bytes_per_voxel * roi_size[0] * roi_size[1] * in_channels)))
-                logging.info(f"Estimated chunk size based on 90% GPU memory utilization: {chunk_size}")
+                reserved_memory = torch.cuda.memory_reserved(0)
+                allocated_memory = torch.cuda.memory_allocated(0)
+                
+                # Available memory (leave 2GB buffer for safety)
+                available_memory = total_memory - reserved_memory - (2 * 1024**3)
+                
+                # Calculate memory per slice accounting for:
+                # 1. Input: roi_size[0] * roi_size[1] * in_channels
+                # 2. Model activations (estimate 10-15x input size for UNet with deep channels)
+                # 3. Output: roi_size[0] * roi_size[1] * out_channels
+                # 4. Sliding window overlap creates additional memory pressure
+                
+                bytes_per_value = 2 if amp_context.fast_dtype == torch.float16 else 4
+                
+                # Input memory per slice
+                input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
+                
+                # Output memory per slice (before argmax)
+                output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
+                
+                # Calculate actual UNet activation memory across all levels
+                # Encoder + Decoder feature maps for each level
+                activation_size = 0
+                for i, ch in enumerate(channels):
+                    # Spatial dimensions reduce by 2x at each level
+                    spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
+                    # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
+                    activation_size += spatial_size * ch * bytes_per_value * 3
+                
+                # Add buffer for intermediate convolutions and batch norm (30% overhead)
+                activation_size_per_slice = activation_size * 1.3
+                
+                # Total memory per slice (accounting for sliding window batch size)
+                total_per_slice = (input_size_per_slice + activation_size_per_slice + output_size_per_slice) * spatial_window_batch_size
+                
+                # Calculate chunk size using 40% of available memory for safety
+                chunk_size = max(1, int((available_memory * 0.4) / total_per_slice))
+                
+                # Safety limits
+                chunk_size = min(chunk_size, 50)  # Cap at 50 slices (reduced from 100)
+                chunk_size = max(chunk_size, 3)   # Minimum 3 slices per chunk
+                
+                logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
+                logging.info(f"Estimated memory per slice: {total_per_slice / 1024**2:.2f} MB")
+                logging.info(f"Estimated chunk size: {chunk_size} slices")
             else:
                 chunk_size = 10  # Default chunk size for CPU
                 logging.info("CPU detected, using default chunk size of 10")
