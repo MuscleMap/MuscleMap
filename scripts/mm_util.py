@@ -211,14 +211,12 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
 
 # consolidated GPU reporting: get_gpu_memory removed, logic now in report_gpu_stats
 
-def report_gpu_stats(out_path: str, device: Optional[torch.device] = None) -> None:
+def report_gpu_stats(device: Optional[torch.device] = None) -> None:
     """Print a short GPU status summary before doing chunked processing.
 
     This function attempts to get GPU memory stats via PyTorch CUDA APIs
-    and falls back to `nvidia-smi` when necessary. It prints the
-    `out_path` first for context.
+    and falls back to `nvidia-smi` when necessary.
     """
-    print(out_path)
     try:
         # Determine device index
         if device is not None and getattr(device, "type", None) == "cuda":
@@ -880,7 +878,7 @@ def run_inference(
         temp_dir = os.path.join(output_dir, "temp_chunks")
         os.makedirs(temp_dir, exist_ok=True)
         # Print GPU stats before creating/writing chunk files to help diagnose memory pressure
-        report_gpu_stats(out_path, device)
+        report_gpu_stats(device)
         chunk_files = []
         for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)
