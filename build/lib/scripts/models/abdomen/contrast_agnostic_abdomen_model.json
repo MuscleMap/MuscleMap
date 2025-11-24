@@ -1,0 +1,29 @@
+{
+  "parameters": {
+    "num_workers": 4,
+    "roi_size": [128, 128],
+    "spatial_window_batch_size": 1,
+    "pix_dim": [1, 1, -1]
+  },
+  "model": {
+    "version": 0.0,
+    "spatial_dims": 2,
+    "in_channels": 1,
+    "out_channels": 9,
+    "channels": [64, 128, 256, 512, 1024],
+    "act": "LeakyReLU",
+    "strides": [2, 2, 2, 2],
+    "num_res_units": 2,
+    "norm": "instance"
+  },
+  "labels": [
+    { "region": "abdomen", "anatomy": "multifidus", "side": "right", "value": 1 },
+    { "region": "abdomen", "anatomy": "multifidus", "side": "left", "value": 2 },
+    { "region": "abdomen", "anatomy": "erector spinae", "side": "right", "value": 3 },
+    { "region": "abdomen", "anatomy": "erector spinae", "side": "left", "value": 4 },
+    { "region": "abdomen", "anatomy": "psoas major", "side": "right", "value": 5 },
+    { "region": "abdomen", "anatomy": "psoas major", "side": "left", "value": 6 },
+    { "region": "abdomen", "anatomy": "quadratus lumborum", "side": "right", "value": 7 },
+    { "region": "abdomen", "anatomy": "quadratus lumborum", "side": "left", "value": 8 }
+  ]
+}
