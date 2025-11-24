@@ -14,6 +14,7 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -607,11 +608,12 @@ def connected_chunks(
     
     """
     Keeps only the largest connected component per label in a multi-label segmentation.
+    Optimized for speed with bounding box extraction and in-place operations.
     - Supports both 3D (X,Y,Z) and 4D (1,X,Y,Z) arrays.
-    - Incorporated to get optimize RAM memory management during inference for large images
-    - 
+    - Processes only bounding boxes instead of full volume
+    - Uses in-place operations to minimize memory allocation
     """
-    #Ensure that is nparray
+    # Ensure that is nparray
     seg = np.asarray(seg)
 
     # Add channel dimension if necessary (to unify shape to 4D)
@@ -635,38 +637,49 @@ def connected_chunks(
     # Extract the 3D volume from channel 0 for processing
     vol = seg_ch[0]
 
-    # Connectivity structure for 3D, rank 3 = 26-connectivity to be not to conversative
+    # Connectivity structure for 3D, rank 3 = 26-connectivity
     structure = ndi.generate_binary_structure(rank=3, connectivity=connectivity)
 
-    # Buffers for 3D mask and labels
-    mask3d = np.empty(vol.shape, dtype=bool)
-    lab3d  = np.empty(vol.shape, dtype=np.int32)
-
-    # Process each label independently on the 3D volume
-    for lab_id in labels:
-        np.equal(vol, lab_id, out=mask3d)
-        if not mask3d.any():
-            continue
-        # Label connected components on mask3d
-        ndi.label(mask3d, structure=structure, output=lab3d)
-        max_lab = int(lab3d.max())
-        if max_lab <= 1:
-            continue
-
-        # Compute sizes and pick the largest component
-        counts = np.bincount(lab3d.ravel())
-        keep = counts[1:].argmax() + 1
-        del counts
-
-        # Zero out everything except the largest component for this label
-        np.logical_and(mask3d, lab3d != keep, out=mask3d)
-        vol[mask3d] = 0
+    # Process each label independently with progress bar
+    with tqdm(total=len(labels), desc="Filtering components", unit="label") as pbar:
+        for lab_id in labels:
+            # Create binary mask for this label
+            mask = (vol == lab_id)
+            
+            if not mask.any():
+                pbar.update(1)
+                continue
+            
+            # Find bounding box to work only on region of interest (MAJOR speedup!)
+            coords = np.argwhere(mask)
+            min_coords = coords.min(axis=0)
+            max_coords = coords.max(axis=0) + 1
+            
+            # Extract bounding box region (much smaller than full volume)
+            bbox_slice = tuple(slice(min_c, max_c) for min_c, max_c in zip(min_coords, max_coords))
+            mask_bbox = mask[bbox_slice]
+            
+            # Label connected components only within bounding box
+            labeled_bbox, num_features = ndi.label(mask_bbox, structure=structure)
+            
+            if num_features <= 1:
+                pbar.update(1)
+                continue
+            
+            # Find largest component (vectorized, no bincount needed for small regions)
+            component_sizes = ndi.sum_labels(mask_bbox, labeled_bbox, range(1, num_features + 1))
+            largest_component = np.argmax(component_sizes) + 1
+            
+            # Create mask of voxels to remove (NOT in largest component)
+            remove_mask = (labeled_bbox > 0) & (labeled_bbox != largest_component)
+            
+            # Zero out small components in original volume (in-place)
+            vol[bbox_slice][remove_mask] = 0
+            
+            pbar.update(1)
 
     # Write back the processed 3D volume into output array
     seg_ch[0] = vol
-
-    # Cleanup
-    del mask3d, lab3d
 
     # Convert to int16 and drop channel dim if needed
     result = seg_ch.astype(np.int16, copy=False)
@@ -685,6 +698,91 @@ def _make_out_path(image_path, output_dir, tag="_dseg"):
     elif fname.endswith(".nii"):
         base = fname[:-4]
     return os.path.join(output_dir, f"{base}{tag}.nii.gz")
+
+def estimate_chunk_size(
+    device: torch.device,
+    roi_size: Tuple[int, int],
+    in_channels: int,
+    out_channels: int,
+    channels: list,
+    spatial_window_batch_size: int,
+    overlap: float,
+    use_fp16: bool = True,
+) -> int:
+    """
+    Estimate optimal chunk size based on GPU memory availability.
+    
+    Args:
+        device: torch device (cuda or cpu)
+        roi_size: (H, W) size of ROI for sliding window
+        in_channels: number of input channels
+        out_channels: number of output channels
+        channels: list of channel counts at each UNet level [64, 128, 256, 512, 1024]
+        spatial_window_batch_size: batch size for sliding window inference
+        overlap: spatial overlap ratio (0.5 = 50% overlap)
+        use_fp16: whether FP16 is enabled
+    
+    Returns:
+        Estimated chunk size (number of slices)
+    """
+    if device.type != 'cuda':
+        logging.info("CPU detected, using default chunk size of 10")
+        return 10
+    
+    # Get GPU memory info
+    total_memory = torch.cuda.get_device_properties(0).total_memory
+    reserved_memory = torch.cuda.memory_reserved(0)
+    
+    # Available memory (leave 2GB buffer for safety)
+    available_memory = total_memory - reserved_memory - (2 * 1024**3)
+    
+    # Bytes per value based on precision
+    bytes_per_value = 2 if use_fp16 else 4
+    
+    # Calculate memory per slice
+    # 1. Input memory per slice
+    input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
+    
+    # 2. Output memory per slice (before argmax)
+    output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
+    
+    # 3. Calculate UNet activation memory across all encoder/decoder levels
+    activation_size = 0
+    for i, ch in enumerate(channels):
+        # Spatial dimensions reduce by 2^i at each level
+        spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
+        # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
+        activation_size += spatial_size * ch * bytes_per_value * 3
+    
+    # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
+    activation_size_per_slice = activation_size * 1.3
+    
+    # 4. Account for sliding window overlap
+    # With 50% overlap, effective windows = 1 / (1 - overlap)
+    # More overlap = more windows = more memory
+    # For 50% overlap: 2x windows, for 90% overlap: 10x windows
+    overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
+    
+    # Total memory per slice accounting for all factors
+    total_per_slice = (
+        input_size_per_slice + 
+        activation_size_per_slice + 
+        output_size_per_slice
+    ) * spatial_window_batch_size * overlap_multiplier
+    
+    # Calculate chunk size using 80% of available memory
+    chunk_size = max(1, int((available_memory * 0.8) / total_per_slice))
+    
+    # Apply safety limits: 5 to 100 slices
+    chunk_size = max(5, min(chunk_size, 100))
+    
+    # Log memory information
+    logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
+    logging.info(f"Overlap: {overlap*100:.0f}% (multiplier: {overlap_multiplier:.2f}x)")
+    logging.info(f"Estimated memory per slice: {total_per_slice / 1024**2:.2f} MB")
+    logging.info(f"Estimated chunk size: {chunk_size} slices")
+    
+    return chunk_size
 
 def run_inference(
     image_path,
@@ -759,7 +857,7 @@ def run_inference(
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         
         # Cleanup
-        del tensor, tensor_batch, pred, single_pred, post_in, post_out, seg_np, full_seg
+        del tensor, tensor_batch, pred, single_pred, seg_np, full_seg, data
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -770,47 +868,81 @@ def run_inference(
     # Large volume - efficient in-memory chunking
     logging.info(f"Processing {D} slices in chunks of {chunk_size}...")
     
-    # Preallocate output in preprocessed space
-    pred_full = torch.zeros((1, H, W, D), dtype=torch.int16, device='cpu')
+    # Process chunks and collect results as int16 (post-argmax) to save memory
+    # Preallocate only for final segmentation (not logits!)
+    pred_full = torch.zeros((H, W, D), dtype=torch.int16, device='cpu')
     
     num_chunks = (D + chunk_size - 1) // chunk_size
-    for chunk_idx, start in enumerate(range(0, D, chunk_size)):
-        end = min(start + chunk_size, D)
-        logging.info(f"Processing chunk {chunk_idx + 1}/{num_chunks}: slices {start}-{end}")
-        
-        # Extract chunk from preprocessed tensor (no disk I/O!)
-        chunk_tensor = tensor[..., start:end].unsqueeze(0)  # [1, C, H, W, chunk_d]
-        chunk_tensor = chunk_tensor.to(device, non_blocking=True)
-        
-        # Inference on chunk
-        with amp_context, torch.inference_mode():
-            pred_chunk = inferer(chunk_tensor, model)
-        
-        # Take argmax and move to CPU immediately to free GPU memory
-        pred_chunk = pred_chunk.squeeze(0).argmax(dim=0, keepdim=True)  # [1, H, W, chunk_d]
-        pred_chunk = pred_chunk.cpu().to(torch.int16)
-        
-        # Store in preallocated array
-        pred_full[..., start:end] = pred_chunk
-        
-        # Cleanup chunk
-        del chunk_tensor, pred_chunk
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()
     
-    logging.info("All chunks processed, applying post-transforms...")
+    # Process chunks with progress bar
+    with tqdm(total=D, desc="Predicting slices", unit="slice") as pbar:
+        for start in range(0, D, chunk_size):
+            end = min(start + chunk_size, D)
+            chunk_slices = end - start
+            
+            # Extract chunk from preprocessed tensor (no disk I/O!)
+            chunk_tensor = tensor[..., start:end].unsqueeze(0)  # [1, C, H, W, chunk_d]
+            chunk_tensor = chunk_tensor.to(device, non_blocking=True)
+            
+            # Inference on chunk
+            with amp_context, torch.inference_mode():
+                pred_chunk = inferer(chunk_tensor, model)
+            
+            # Apply argmax immediately to reduce memory (90 channels -> 1)
+            # pred_chunk shape: [1, out_channels, H, W, chunk_d] -> [H, W, chunk_d]
+            pred_chunk = pred_chunk.squeeze(0).argmax(dim=0).cpu().to(torch.int16)
+            
+            # Store in preallocated array
+            pred_full[..., start:end] = pred_chunk
+            
+            # Cleanup chunk
+            del chunk_tensor, pred_chunk
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            gc.collect()
+            
+            # Update progress bar
+            pbar.update(chunk_slices)
     
-    # Apply post-transforms to full prediction
-    pred_full_squeezed = pred_full.squeeze(0)  # [H, W, D]
-    post_in = {
-        "pred": pred_full_squeezed,
-        "image": data["image"],
-        "image_meta_dict": image_meta,
-    }
+    logging.info("All chunks processed, applying manual inverse transforms...")
     
-    post_out = post_transforms(post_in)
-    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
+    # Manual inverse transform approach (like nnU-Net)
+    # We need to reverse: CropForeground -> Spacing -> Orientation
+    # MONAI's Invertd is too fragile after chunking, so we do it manually
+    
+    seg_tensor = pred_full
+    
+    # Step 1: Reverse CropForeground by padding back
+    if 'foreground_start_coord' in image_meta and 'foreground_end_coord' in image_meta:
+        start_coord = image_meta['foreground_start_coord']
+        end_coord = image_meta['foreground_end_coord']
+        original_shape = image_meta.get('spatial_shape', image_meta.get('dim', [512, 512, 2001]))[:3]
+        
+        # Create full-sized array and insert cropped result
+        seg_full = torch.zeros(original_shape, dtype=torch.int16)
+        seg_full[start_coord[0]:end_coord[0], 
+                 start_coord[1]:end_coord[1], 
+                 start_coord[2]:end_coord[2]] = seg_tensor
+        seg_tensor = seg_full
+        logging.info(f"Reversed crop: {pred_full.shape} -> {seg_tensor.shape}")
+    
+    # Step 2: Resample back to original spacing (reverse Spacingd)
+    # Use MONAI's Resize with mode='nearest' for segmentation
+    from monai.transforms import Resize
+    if 'spatial_shape' in image_meta:
+        original_shape = image_meta['spatial_shape'][:3]
+        if list(seg_tensor.shape) != list(original_shape):
+            resize = Resize(spatial_size=original_shape, mode='nearest')
+            seg_tensor = resize(seg_tensor.unsqueeze(0)).squeeze(0)  # Add/remove channel dim
+            logging.info(f"Resampled to original spacing: -> {seg_tensor.shape}")
+    
+    # Step 3: Reverse orientation (reverse Orientationd RAS)
+    if 'original_orientation' in image_meta or 'original_affine' in image_meta:
+        # MONAI stores the inverse orientation automatically
+        # We rely on original_affine to save with correct orientation
+        pass
+    
+    seg_np = seg_tensor.cpu().numpy().astype(np.int16)
     
     # Apply connected components filtering
     logging.info("Applying connected components filtering...")
@@ -829,7 +961,7 @@ def run_inference(
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     
     # Final cleanup
-    del tensor, pred_full, pred_full_squeezed, post_in, post_out, seg_np, full_seg, data
+    del tensor, pred_full, seg_tensor, seg_np, full_seg, data
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
