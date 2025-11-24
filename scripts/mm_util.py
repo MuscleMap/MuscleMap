@@ -845,15 +845,12 @@ def run_inference(
         # Apply connected components
         full_seg = connected_chunks(seg_np)
         
-        # Extract original space affine/header from metadata
-        affine = image_meta.get("original_affine", image_meta.get("affine"))
-        if isinstance(affine, torch.Tensor):
-            affine = affine.cpu().numpy()
-        
-        # Load original header for proper metadata
+        # Load original file to get exact affine and header (bypass metadata issues)
         orig_nii = nib.load(image_path)
+        affine = orig_nii.affine.copy()
         header = orig_nii.header.copy()
         
+        # Save with original affine/header
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         
         # Cleanup
@@ -948,16 +945,12 @@ def run_inference(
     logging.info("Applying connected components filtering...")
     full_seg = connected_chunks(seg_np)
     
-    # Extract original space affine/header from metadata
-    affine = image_meta.get("original_affine", image_meta.get("affine"))
-    if isinstance(affine, torch.Tensor):
-        affine = affine.cpu().numpy()
-    
-    # Load original header for proper metadata
+    # Load original file to get exact affine and header (bypass metadata issues)
     orig_nii = nib.load(image_path)
+    affine = orig_nii.affine.copy()
     header = orig_nii.header.copy()
     
-    # Save final result
+    # Save final result with original affine/header
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     
     # Final cleanup
