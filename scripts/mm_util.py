@@ -17,8 +17,6 @@ from pathlib import Path
 import pandas as pd
 import time
 from tqdm import tqdm
-import time
-from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -950,7 +948,6 @@ def run_inference(
         report_gpu_stats(device)
         chunk_files = []
         for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
-        for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)
             vol_chunk = img_data[..., start:end]
             chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
@@ -961,7 +958,6 @@ def run_inference(
 
         del img_data, img_nii
 
-        for entry in tqdm(chunk_files, desc="Predicting segmentation per chunk", unit="chunk"):
         for entry in tqdm(chunk_files, desc="Predicting segmentation per chunk", unit="chunk"):
             data   = {"image": entry["image"]}
             data   = pre_transforms(data)
@@ -995,16 +991,13 @@ def run_inference(
             nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
             entry["seg"] = seg_path
             del seg_np
-            del seg_np
 
             del data, tensor, pred, single_pred, post_in, post_out, seg_tensor
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
         dims     = header.get_data_shape()
-        dims     = header.get_data_shape()
         full_seg = np.zeros(dims, dtype=np.int16)
-        for entry in tqdm(chunk_files, desc="Merging chunks", unit="chunk"):
         for entry in tqdm(chunk_files, desc="Merging chunks", unit="chunk"):
             s, e, sp = entry["start"], entry["end"], entry["seg"]
             vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
@@ -1019,7 +1012,6 @@ def run_inference(
 
         gc.collect()
 
-        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         shutil.rmtree(temp_dir, ignore_errors=True)

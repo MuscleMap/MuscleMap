@@ -32,7 +32,6 @@ from monai.transforms import (
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
 import time
-import time
 from time import perf_counter
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
@@ -122,14 +121,11 @@ def main():
 
     if args.output_dir is None:
         output_dir = os.getcwd()
-
     elif not os.path.exists(args.output_dir):
         output_dir = os.path.abspath(args.output_dir) 
         os.makedirs(output_dir)
-
     elif os.path.exists(args.output_dir):
        output_dir=args.output_dir
-
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
