@@ -36,10 +36,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage
 import torch
 
 #naming not functional
@@ -213,13 +213,8 @@ def main():
         t0 = perf_counter()
         proc_start = time.process_time()
         try:
-            out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, quantize=args.quantize )
-            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
-            try:
-                from mm_util import report_compute_usage
-            except Exception:
-                # when running as package, import relative
-                from .mm_util import report_compute_usage
+            out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model)
+            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")                
             # print CPU/GPU diagnostics
             report_compute_usage(out_path, t0, proc_start, device)
         except Exception as e:

@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
 import time
+from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -834,17 +835,17 @@ def run_inference(
         temp_dir = os.path.join(output_dir, "temp_chunks")
         os.makedirs(temp_dir, exist_ok=True)
         chunk_files = []
-        for start in range(0, D, chunk_size):
+        for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)
             vol_chunk = img_data[..., start:end]
             chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
             nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-            del vol_chunk  
+            del vol_chunk
             chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
         del img_data, img_nii
 
-        for entry in chunk_files:
+        for entry in tqdm(chunk_files, desc="Running inference per chunk", unit="chunk"):
             data   = {"image": entry["image"]}
             data   = pre_transforms(data)
             tensor = data["image"]
@@ -863,7 +864,7 @@ def run_inference(
                 "image": data["image"],
                 "image_meta_dict": data["image_meta_dict"],
             }
-            del data  
+            del data
             post_out = post_transforms(post_in)
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
             seg_np = seg_tensor.numpy()
@@ -873,19 +874,19 @@ def run_inference(
             )
             nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
             entry["seg"] = seg_path
-            del seg_np  
+            del seg_np
 
             del tensor, pred, single_pred, post_in, post_out, seg_tensor
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-        dims     = header.get_data_shape()  
+        dims     = header.get_data_shape()
         full_seg = np.zeros(dims, dtype=np.int16)
-        for entry in chunk_files:
+        for entry in tqdm(chunk_files, desc="Merging chunks", unit="chunk"):
             s, e, sp = entry["start"], entry["end"], entry["seg"]
             vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
             full_seg[..., s:e] = vol_seg
-            del vol_seg 
+            del vol_seg
 
         full_seg = connected_chunks(full_seg)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
