@@ -102,7 +102,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 ### Dependencies
 
-* Python 3.9.23
+* Python 3.12.12
 
 ### Installation
 
@@ -111,7 +111,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 2. Create python environment:
     ~~~
-    conda create --name MuscleMap python=3.9.23
+    conda create --name MuscleMap python=3.12.12
     ~~~
 
 3. Activate python environment:
@@ -147,7 +147,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    pip install .
    ~~~
 
-7. **To use a GPU,** you need a compatible NVIDIA GPU with [CUDA](https://developer.nvidia.com/cuda-toolkit) installed or a compatible AMD GPU with [ROCM](https://www.amd.com/en/products/software/rocm.html) installed. You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip. After installing the correct GPU-compatible version of PyTorch, rerun:
+7. **To use a GPU,** you need a compatible NVIDIA GPU with [CUDA](https://developer.nvidia.com/cuda-toolkit) installed or a compatible AMD GPU with [ROCM](https://www.amd.com/en/products/software/rocm.html) installed. You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.1](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip. After installing the correct GPU-compatible version of PyTorch, rerun:
 
    ~~~
    pip install .
@@ -264,9 +264,9 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Fibula 8162
           ```
        </details>
-    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
+    * The default spatial overlap during sliding window inference is 50%. If segmentation performance needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90%:
        ~~~
-       mm_segment -i image.nii.gz -s 50
+       mm_segment -i image.nii.gz -s 90
        ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.

@@ -6,8 +6,8 @@ with open('requirements.txt') as f:
 
 setup(
     name='scripts',
-    version='1.1',
-    authors='Kenneth Weber, Eddo Wesselink, Benjamin DeLeener,' 'Richard Yin',  # Add authors' names
+    version='1.1.1',
+    authors='Kenneth Weber, Eddo Wesselink, Benjamin DeLeener, Brian Kim, Richard Yin',  # Add authors' names
     description='A toolbox for muscle imaging.',
     url='https://github.com/MuscleMap/MuscleMap.git',
     packages=find_packages(),
@@ -24,5 +24,5 @@ setup(
         'scripts': ['models/**/*.json', 'models/**/*.pth', 'templates/**/*nii.gz'],
     },
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.9', # latest conda version 25 is last to support Python 3.9
 )
