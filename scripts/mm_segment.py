@@ -78,7 +78,7 @@ def get_parser():
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" # avoid memory fragmentation
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     import torch
 
     script_path = os.path.abspath(__file__)
@@ -121,11 +121,14 @@ def main():
 
     if args.output_dir is None:
         output_dir = os.getcwd()
+
     elif not os.path.exists(args.output_dir):
         output_dir = os.path.abspath(args.output_dir) 
         os.makedirs(output_dir)
+
     elif os.path.exists(args.output_dir):
        output_dir=args.output_dir
+
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
@@ -244,7 +247,7 @@ def main():
                     logging.warning("Auto-estimation failed; falling back to default chunk size %d", chunk_size)
             except Exception:
                 chunk_size = 25
-                logging.warning("Auto-estimation raised an exception; falling back to chunk size %d", chunk_size)
+                logging.warning("Auto-estimation raised an exception; falling back to default chunk size %d", chunk_size)
         else:
             try:
                 chunk_size = int(chunk_size_arg)
@@ -294,7 +297,3 @@ def main():
 #%%
 if __name__ == "__main__":
     main()
-
-
-
-

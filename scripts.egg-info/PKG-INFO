@@ -1,9 +1,9 @@
 Metadata-Version: 2.4
 Name: scripts
-Version: 1.1
+Version: 1.1.1
 Summary: A toolbox for muscle imaging.
 Home-page: https://github.com/MuscleMap/MuscleMap.git
-Requires-Python: >=3.6
+Requires-Python: >=3.9
 License-File: LICENSE
 Requires-Dist: monai==1.5.1
 Requires-Dist: torch==2.4.1

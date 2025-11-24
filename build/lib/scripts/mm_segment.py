@@ -3,7 +3,8 @@
 
 # For usage, type: python mm_segment.py -h
 
-# Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
 # IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
 
@@ -36,11 +37,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats, estimate_max_chunk_slices
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats
-import torch
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats, estimate_max_chunk_slices
 
 #naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
@@ -70,14 +70,17 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
     
-    optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+    optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 'auto'")
 
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" # avoid memory fragmentation
+    import torch
+
     script_path = os.path.abspath(__file__)
     print(f"The absolute path of the script is: {script_path}")
 
@@ -92,7 +95,25 @@ def main():
     
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    if device =='cuda':
+    if device.type == "cuda":
+        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+        gpu_report = report_gpu_stats(device)
+        if gpu_report:
+            dev = gpu_report.get("device")
+            total_mb = gpu_report.get("total_mb")
+            free_mb = gpu_report.get("free_mb")
+            alloc_mb = gpu_report.get("allocated_mb")
+            pct_free = gpu_report.get("pct_free")
+            logging.info(
+                "GPU report: device=%s; total=%.0f MB; free=%.0f MB (%.1f%%); allocated=%.1f MB",
+                dev,
+                total_mb if total_mb is not None else 0.0,
+                free_mb if free_mb is not None else 0.0,
+                pct_free if pct_free is not None else 0.0,
+                alloc_mb if alloc_mb is not None else 0.0,
+            )
+        else:
+            logging.info("GPU report: unavailable")
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
@@ -100,14 +121,11 @@ def main():
 
     if args.output_dir is None:
         output_dir = os.getcwd()
-
     elif not os.path.exists(args.output_dir):
         output_dir = os.path.abspath(args.output_dir) 
         os.makedirs(output_dir)
-
     elif os.path.exists(args.output_dir):
        output_dir=args.output_dir
-
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
@@ -207,15 +225,31 @@ def main():
 
     overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
-    chunk_size = args.chunk_size
+    # args.chunk_size may be an integer string or the literal 'auto'
+    chunk_size_arg = args.chunk_size
+    chunk_size = None
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         proc_start = time.process_time()
-        if device.type == 'cuda':
-            report_gpu_stats()
+        # determine chunk size for this image
+        if isinstance(chunk_size_arg, str) and chunk_size_arg.lower() == 'auto':
+            try:
+                est = estimate_max_chunk_slices(test['image'], device, pre_transforms, inferer, model, amp_context, safety_fraction=0.98)
+                if est is not None and est > 0:
+                    chunk_size = int(est)
+                    logging.info("Auto-estimated chunk size: %d slices (98%% of free GPU VRAM)", chunk_size)
+                else:
+                    chunk_size = 25
+                    logging.warning("Auto-estimation failed; falling back to default chunk size %d", chunk_size)
+            except Exception:
+                chunk_size = 25
+                logging.warning("Auto-estimation raised an exception; falling back to chunk size %d", chunk_size)
         else:
-            logging.info("GPU not used, skipping GPU stats report.")
+            try:
+                chunk_size = int(chunk_size_arg)
+            except Exception:
+                chunk_size = 25
         try:
             out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model)
             elapsed = perf_counter() - t0
@@ -225,8 +259,33 @@ def main():
                 logging.info(f"Inference of {test} finished in {minutes}m {seconds:.2f}s")
             else:
                 logging.info(f"Inference of {test} finished in {elapsed:.2f}s")    
-            # print CPU usage report
-            report_compute_usage(out_path, t0, proc_start, device)
+            # capture CPU usage report and log it (Usage report)
+            cpu_report = report_compute_usage(out_path, t0, proc_start, device)
+            if cpu_report:
+                outp = cpu_report.get("out_path")
+                system_cpu = cpu_report.get("system_cpu_pct")
+                proc_cpu_time = cpu_report.get("proc_cpu_time")
+                process_pct = cpu_report.get("process_cpu_pct")
+
+                # format proc_cpu_time as mm:ss when > 60s
+                if proc_cpu_time is None:
+                    time_str = "N/A"
+                elif proc_cpu_time >= 60:
+                    m = int(proc_cpu_time // 60)
+                    s = proc_cpu_time % 60
+                    time_str = f"{m}m {s:.2f}s"
+                else:
+                    time_str = f"{proc_cpu_time:.2f}s"
+
+                logging.info(
+                    "Usage report: out=%s; system_cpu=%s%%; proc_cpu_time=%s; process_cpu_pct=%s%%",
+                    outp,
+                    f"{system_cpu:.1f}" if system_cpu is not None else "N/A",
+                    time_str,
+                    f"{process_pct:.1f}" if process_pct is not None else "N/A",
+                )
+            else:
+                logging.info("Usage report: unavailable")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
             continue

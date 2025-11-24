@@ -11,6 +11,7 @@ import gc
 import torch
 import shutil
 from scipy import ndimage as ndi
+from contextlib import nullcontext
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
@@ -118,7 +119,7 @@ def validate_seg_arguments(args):
             logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
             sys.exit(1)
 
-def report_compute_usage(out_path: str, start_wall: float, proc_start: float, device: Optional[torch.device] = None) -> None:
+def report_compute_usage(out_path: str, start_wall: float, proc_start: float, device: Optional[torch.device] = None) -> Dict[str, Any]:
     """Report approximate CPU/GPU usage and print a small diagnostics summary.
 
     - out_path: final output path to print
@@ -157,95 +158,167 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
     else:
         system_cpu_pct = None
 
-    # Print minimal output path then diagnostics
-    print(out_path)
-    if system_cpu_pct is not None:
-        print(f"System CPU utilization (recent): {system_cpu_pct:.1f}%")
-    else:
-        print("System CPU utilization: psutil not available")
+    # Return a structured CPU report so callers can log or persist it
+    report: Dict[str, Any] = {
+        "out_path": out_path,
+        "system_cpu_pct": system_cpu_pct,
+        "proc_cpu_time": proc_cpu_time,
+        "process_cpu_pct": process_cpu_pct,
+    }
 
-    print(f"Process CPU time: {proc_cpu_time:.2f}s")
-    print(f"Approx. process utilization of total CPU capacity: {process_cpu_pct:.1f}%")
+    return report
 
-    # GPU diagnostics when CUDA is available and device indicates CUDA
+def report_gpu_stats(device: Optional[torch.device] = None) -> Optional[Dict[str, Any]]:
+    """Return a short GPU status summary as a dict, or None if unavailable.
+
+    Tries PyTorch CUDA APIs first, falls back to `nvidia-smi` if needed.
+    """
     try:
-        using_cuda = False
+        # Determine device index
         if device is not None and getattr(device, "type", None) == "cuda":
-            using_cuda = True
+            idx = device.index if getattr(device, "index", None) is not None else torch.cuda.current_device()
         elif torch.cuda.is_available():
-            using_cuda = True
-        if using_cuda:
-            try:
-                dev = torch.cuda.current_device()
-                props = torch.cuda.get_device_properties(dev)
-                total_bytes = getattr(props, "total_memory", None)
-                total_mb = (total_bytes / 1024 ** 2) if total_bytes is not None else None
-                allocated_mb = torch.cuda.memory_allocated(dev) / 1024 ** 2
-                reserved_mb = torch.cuda.memory_reserved(dev) / 1024 ** 2
-                # approximate free: total - reserved (OS may use additional memory)
-                free_mb = (total_mb - reserved_mb) if total_mb is not None else None
-
-                if total_mb is not None and free_mb is not None:
-                    pct_free = 100.0 * free_mb / total_mb
-                    print(f"GPU {dev} memory: total {total_mb:.0f} MB, approx free {free_mb:.0f} MB ({pct_free:.1f}% )")
-                elif total_mb is not None:
-                    print(f"GPU {dev} memory: total {total_mb:.0f} MB")
-                else:
-                    print(f"GPU detected (id {dev}), memory stats unavailable")
-
-                print(f"GPU allocated: {allocated_mb:.1f} MB, reserved: {reserved_mb:.1f} MB")
-            except Exception:
-                # fallback: try nvidia-smi if available
-                try:
-                    import subprocess, json
-                    q = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"], capture_output=True, text=True)
-                    if q.returncode == 0:
-                        lines = [l.strip() for l in q.stdout.strip().splitlines() if l.strip()]
-                        if lines:
-                            total_str, free_str = lines[0].split(',')
-                            print(f"GPU memory (nvidia-smi): total {total_str.strip()} MB, free {free_str.strip()} MB")
-                except Exception:
-                    pass
-    except Exception:
-        pass
-
-def get_gpu_memory(device: Optional[torch.device] = None) -> tuple[float, float, float]:
-    """
-    Return a simple GPU memory tuple (total_mb, allocated_mb, free_mb).
-
-    Uses the current CUDA device (or the device passed in) and avoids
-    any external tooling. On any error or if CUDA is unavailable,
-    returns (0.0, 0.0, 0.0).
-    """
-    try:
-        if not torch.cuda.is_available():
-            return 0.0, 0.0, 0.0
-
-        if device is not None and getattr(device, "type", None) == "cuda":
-            dev = device
+            idx = torch.cuda.current_device()
         else:
-            dev = torch.device("cuda")
+            return None
 
-        idx = dev.index if dev.index is not None else torch.cuda.current_device()
         props = torch.cuda.get_device_properties(idx)
         total_mb = props.total_memory / (1024 ** 2)
         allocated_mb = torch.cuda.memory_allocated(idx) / (1024 ** 2)
         free_mb = total_mb - allocated_mb
-        return float(total_mb), float(allocated_mb), float(free_mb)
+
+        pct_free = 100.0 * free_mb / total_mb if total_mb else None
+        return {
+            "device": int(idx),
+            "total_mb": float(total_mb),
+            "allocated_mb": float(allocated_mb),
+            "free_mb": float(free_mb),
+            "pct_free": float(pct_free) if pct_free is not None else None,
+        }
     except Exception:
-        return 0.0, 0.0, 0.0
+        # fallback to nvidia-smi if available
+        try:
+            import subprocess
+            q = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"], capture_output=True, text=True)
+            if q.returncode == 0:
+                lines = [l.strip() for l in q.stdout.strip().splitlines() if l.strip()]
+                if lines:
+                    total_str, free_str = lines[0].split(',')
+                    total_mb = float(total_str.strip())
+                    free_mb = float(free_str.strip())
+                    pct_free = 100.0 * free_mb / total_mb if total_mb else None
+                    return {
+                        "device": None,
+                        "total_mb": total_mb,
+                        "allocated_mb": None,
+                        "free_mb": free_mb,
+                        "pct_free": float(pct_free) if pct_free is not None else None,
+                    }
+        except Exception:
+            pass
 
-def report_gpu_stats(out_path: str, device: Optional[torch.device] = None) -> None:
-    """Print a short GPU status summary before doing chunked processing."""
-    print(out_path)
-    total_mb, allocated_mb, free_mb = get_gpu_memory(device=device)
-    if total_mb == 0.0:
-        print("CUDA not available or GPU stats unavailable")
-        return
+    return None
 
-    pct_free = 100.0 * free_mb / total_mb if total_mb else 0.0
-    print(f"GPU memory: total {total_mb:.0f} MB, free {free_mb:.0f} MB ({pct_free:.1f}%)")
-    print(f"GPU allocated: {allocated_mb:.1f} MB")
+
+def estimate_max_chunk_slices(
+    image_path: str,
+    device: Optional[torch.device],
+    pre_transforms,
+    inferer,
+    model,
+    amp_context=None,
+    safety_fraction: float = 0.98,
+    probe_slice_index: Optional[int] = None,
+    temp_dir: Optional[str] = None,
+) -> Optional[int]:
+    """Estimate the largest number of axial slices that can fit in GPU memory.
+
+    Strategy:
+    - Create a temporary 1-slice NIfTI (from either the provided probe index or the
+      middle slice) and run a full inference pass on that single-slice chunk.
+    - Measure peak GPU memory used by that pass (uses `torch.cuda.max_memory_allocated`).
+    - Obtain currently free GPU memory from `report_gpu_stats` and allow using
+      `safety_fraction` (e.g. 0.9 for 90%).
+    - Compute `max_slices = floor(allowed_free_mb / per_slice_mb)` and return that.
+
+    Returns None on CPU or if estimation failed.
+    """
+    # Only works for CUDA
+    if device is None or getattr(device, "type", None) != "cuda":
+        return None
+
+    # minimal validation
+    if safety_fraction <= 0 or safety_fraction > 1.0:
+        safety_fraction = 0.9
+
+    import tempfile
+    try:
+        img = nib.load(image_path)
+    except Exception:
+        return None
+
+    D = img.shape[-1]
+    if D == 0:
+        return None
+
+    # choose probe slice index
+    if probe_slice_index is None:
+        probe_slice_index = D // 2
+    probe_slice_index = max(0, min(D - 1, int(probe_slice_index)))
+
+    # create temp dir
+    td = temp_dir or tempfile.mkdtemp(prefix="mm_chunk_probe_")
+    try:
+        # create 1-slice volume
+        slice_vol = img.get_fdata(dtype=np.float32)[..., probe_slice_index:probe_slice_index + 1]
+        slice_path = os.path.join(td, f"probe_slice_{probe_slice_index}.nii.gz")
+        nib.save(nib.Nifti1Image(slice_vol, img.affine, img.header), slice_path)
+
+        # prepare data via pre_transforms (which expects a filename key)
+        data = {"image": slice_path}
+        data = pre_transforms(data)
+        tensor = data["image"]
+        if getattr(device, "type", None) == "cpu":
+            tensor = tensor.float()
+        if tensor.ndim == 4:
+            tensor = tensor.unsqueeze(0)
+        tensor = tensor.to(device, non_blocking=True)
+
+        # ensure clean GPU baseline
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats(device.index if getattr(device, "index", None) is not None else torch.cuda.current_device())
+        baseline = torch.cuda.memory_allocated(device)
+
+        # run a single inference pass to capture peak memory
+        with amp_context if amp_context is not None else nullcontext(), torch.inference_mode():
+            _ = inferer(tensor, model)
+
+        peak = torch.cuda.max_memory_allocated(device)
+        used_bytes = max(0, int(peak) - int(baseline))
+        per_slice_mb = used_bytes / (1024 ** 2)
+
+        # fetch free MB from GPU report
+        gpu = report_gpu_stats(device)
+        if not gpu or gpu.get("free_mb") is None:
+            return None
+        free_mb = float(gpu.get("free_mb"))
+        allowed_mb = free_mb * float(safety_fraction)
+
+        if per_slice_mb <= 0:
+            return None
+
+        max_slices = int(max(1, allowed_mb // per_slice_mb))
+        # cap to D
+        max_slices = min(max_slices, D)
+
+        return max_slices
+    except Exception:
+        return None
+    finally:
+        try:
+            shutil.rmtree(td)
+        except Exception:
+            pass
 
 def save_nifti(data: np.ndarray, affine, header, out_path):
     new_hdr = header.copy()                            
@@ -841,7 +914,7 @@ def run_inference(
         data   = {"image": image_path}
         data   = pre_transforms(data)
         tensor = data["image"]
-        if device.type == "cpu":
+        if device.type == "cpu" and tensor.dtype != torch.float32:
             tensor = tensor.float()
         if tensor.ndim == 4:
             tensor = tensor.unsqueeze(0)              
@@ -856,15 +929,14 @@ def run_inference(
             "image": data["image"],
             "image_meta_dict": data["image_meta_dict"],
         }
-        del data
         post_out    = post_transforms(post_in)
-        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
+        seg_tensor  = post_out["pred"].detach().to('cpu', dtype=torch.int16)
         seg_np      = seg_tensor.numpy()
         full_seg = connected_chunks(seg_np)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         del seg_np  
         # cleanup
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+        del data, tensor, pred, single_pred, post_in, post_out, seg_tensor
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         return out_path
@@ -873,13 +945,14 @@ def run_inference(
         temp_dir = os.path.join(output_dir, "temp_chunks")
         os.makedirs(temp_dir, exist_ok=True)
         # Print GPU stats before creating/writing chunk files to help diagnose memory pressure
-        report_gpu_stats(out_path, device)
+        report_gpu_stats(device)
         chunk_files = []
         for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)
             vol_chunk = img_data[..., start:end]
             chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
             nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+            del vol_chunk
             del vol_chunk
             chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
@@ -889,7 +962,7 @@ def run_inference(
             data   = {"image": entry["image"]}
             data   = pre_transforms(data)
             tensor = data["image"]
-            if device.type == "cpu":
+            if device.type == "cpu" and tensor.dtype != torch.float32:
                 tensor = tensor.float()
             if tensor.ndim == 4:
                 tensor = tensor.unsqueeze(0)
@@ -904,10 +977,13 @@ def run_inference(
                 "image": data["image"],
                 "image_meta_dict": data["image_meta_dict"],
             }
-            del data
             post_out = post_transforms(post_in)
-            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_tensor = post_out["pred"].detach().to('cpu', dtype=torch.int16)
             seg_np = seg_tensor.numpy()
+            
+            # Apply connectivity per chunk to avoid full-volume processing
+            seg_np = connected_chunks(seg_np)
+            
             seg_path = os.path.join(
                 temp_dir,
                 f"seg_{entry['start']}_{entry['end']}.nii.gz"
@@ -916,7 +992,7 @@ def run_inference(
             entry["seg"] = seg_path
             del seg_np
 
-            del tensor, pred, single_pred, post_in, post_out, seg_tensor
+            del data, tensor, pred, single_pred, post_in, post_out, seg_tensor
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
@@ -927,14 +1003,15 @@ def run_inference(
             vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
             full_seg[..., s:e] = vol_seg
             del vol_seg
+            del vol_seg
 
-        full_seg = connected_chunks(full_seg)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
         # final cleanup
         del full_seg
 
         gc.collect()
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         shutil.rmtree(temp_dir, ignore_errors=True)

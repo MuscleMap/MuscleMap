@@ -944,15 +944,12 @@ def run_inference(
     else:
         temp_dir = os.path.join(output_dir, "temp_chunks")
         os.makedirs(temp_dir, exist_ok=True)
-        # Print GPU stats before creating/writing chunk files to help diagnose memory pressure
-        report_gpu_stats(device)
         chunk_files = []
         for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)
             vol_chunk = img_data[..., start:end]
             chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
             nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-            del vol_chunk
             del vol_chunk
             chunk_files.append({"image": chunk_path, "start": start, "end": end})
 
@@ -1003,7 +1000,6 @@ def run_inference(
             vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
             full_seg[..., s:e] = vol_seg
             del vol_seg
-            del vol_seg
 
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
@@ -1011,7 +1007,6 @@ def run_inference(
         del full_seg
 
         gc.collect()
-
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         shutil.rmtree(temp_dir, ignore_errors=True)
