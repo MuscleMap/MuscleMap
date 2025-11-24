@@ -66,11 +66,11 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
-
-    optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
+                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
+    
+    optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 'auto'")
 
     return parser
 
@@ -89,9 +89,12 @@ def main():
     
     logging.info(f"Processing using cuda or cpu: {device}")
     
-    amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
+    # Enable FP16 autocast for RTX A5500 (Ampere architecture) for better performance
+    amp_context = torch.amp.autocast('cuda', dtype=torch.float16) if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    if device =='cuda':
+    if device.type == 'cuda':
+        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+        logging.info("FP16 mixed precision enabled for faster inference")
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
@@ -203,23 +206,42 @@ def main():
   
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
+    
+    # Convert model to FP16 which CUDA tensor cores are optimized for
+    if device.type == 'cuda':
+        model = model.half()
 
     overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
-    chunk_size = args.chunk_size
+    
+    chunk_size_arg = args.chunk_size # args.chunk_size may be an integer string or the literal 'auto'
+
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
+        if isinstance(chunk_size_arg, str) and chunk_size_arg.lower() == 'auto':
+            # Estimate chunk size based on available GPU memory
+            if device.type == 'cuda':
+                total_memory = torch.cuda.get_device_properties(0).total_memory
+                # Use 90% of GPU memory for chunk processing with FP16 (2 bytes per value)
+                bytes_per_voxel = 2 if amp_context.fast_dtype == torch.float16 else 4
+                chunk_size = max(1, int((total_memory * 0.9) / (bytes_per_voxel * roi_size[0] * roi_size[1] * in_channels)))
+                logging.info(f"Estimated chunk size based on 90% GPU memory utilization: {chunk_size}")
+            else:
+                chunk_size = 10  # Default chunk size for CPU
+                logging.info("CPU detected, using default chunk size of 10")
+
         try:
             run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
-# %%
+    
     logging.info("Inference completed. All outputs saved.")
-if __name__ == "__main__":
 
+#%%
+if __name__ == "__main__":
     main()
 
 
