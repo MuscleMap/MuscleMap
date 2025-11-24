@@ -14,6 +14,7 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+import time
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -115,6 +116,97 @@ def validate_seg_arguments(args):
         if arg_value and not isinstance(arg_value, str):
             logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
             sys.exit(1)
+
+def report_compute_usage(out_path: str, start_wall: float, proc_start: float, device: Optional[torch.device] = None) -> None:
+    """Report approximate CPU/GPU usage and print a small diagnostics summary.
+
+    - out_path: final output path to print
+    - start_wall: wall-clock start time (perf_counter)
+    - proc_start: process CPU time at start (time.process_time())
+    - device: torch.device used for inference (optional)
+
+    The function tries to use `psutil` when available and uses PyTorch CUDA APIs
+    to report GPU memory. It degrades gracefully when dependencies are missing.
+    """
+    try:
+        import psutil
+        psutil_available = True
+    except Exception:
+        psutil_available = False
+
+    # Wall and process CPU timings
+    wall_end = time.perf_counter()
+    elapsed = wall_end - start_wall
+    try:
+        proc_cpu_time = time.process_time() - proc_start
+    except Exception:
+        proc_cpu_time = 0.0
+
+    cpu_count = os.cpu_count() or 1
+    try:
+        process_cpu_pct = (proc_cpu_time / elapsed) * 100.0 / cpu_count if elapsed > 0 else 0.0
+    except Exception:
+        process_cpu_pct = 0.0
+
+    if psutil_available:
+        try:
+            system_cpu_pct = psutil.cpu_percent(interval=0.1)
+        except Exception:
+            system_cpu_pct = None
+    else:
+        system_cpu_pct = None
+
+    # Print minimal output path then diagnostics
+    print(out_path)
+    if system_cpu_pct is not None:
+        print(f"System CPU utilization (recent): {system_cpu_pct:.1f}%")
+    else:
+        print("System CPU utilization: psutil not available")
+
+    print(f"Process CPU time: {proc_cpu_time:.2f}s, Wall time: {elapsed:.2f}s")
+    print(f"Approx. process utilization of total CPU capacity: {process_cpu_pct:.1f}%")
+
+    # GPU diagnostics when CUDA is available and device indicates CUDA
+    try:
+        using_cuda = False
+        if device is not None and getattr(device, "type", None) == "cuda":
+            using_cuda = True
+        elif torch.cuda.is_available():
+            using_cuda = True
+        if using_cuda:
+            try:
+                dev = torch.cuda.current_device()
+                props = torch.cuda.get_device_properties(dev)
+                total_bytes = getattr(props, "total_memory", None)
+                total_mb = (total_bytes / 1024 ** 2) if total_bytes is not None else None
+                allocated_mb = torch.cuda.memory_allocated(dev) / 1024 ** 2
+                reserved_mb = torch.cuda.memory_reserved(dev) / 1024 ** 2
+                # approximate free: total - reserved (OS may use additional memory)
+                free_mb = (total_mb - reserved_mb) if total_mb is not None else None
+
+                if total_mb is not None and free_mb is not None:
+                    pct_free = 100.0 * free_mb / total_mb
+                    print(f"GPU {dev} memory: total {total_mb:.0f} MB, approx free {free_mb:.0f} MB ({pct_free:.1f}% )")
+                elif total_mb is not None:
+                    print(f"GPU {dev} memory: total {total_mb:.0f} MB")
+                else:
+                    print(f"GPU detected (id {dev}), memory stats unavailable")
+
+                print(f"GPU allocated: {allocated_mb:.1f} MB, reserved: {reserved_mb:.1f} MB")
+            except Exception:
+                # fallback: try nvidia-smi if available
+                try:
+                    import subprocess, json
+                    q = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"], capture_output=True, text=True)
+                    if q.returncode == 0:
+                        lines = [l.strip() for l in q.stdout.strip().splitlines() if l.strip()]
+                        if lines:
+                            total_str, free_str = lines[0].split(',')
+                            print(f"GPU memory (nvidia-smi): total {total_str.strip()} MB, free {free_str.strip()} MB")
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 def save_nifti(data: np.ndarray, affine, header, out_path):
     new_hdr = header.copy()                            
@@ -800,6 +892,8 @@ def run_inference(
 
         # final cleanup
         del full_seg
+
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         shutil.rmtree(temp_dir, ignore_errors=True)
