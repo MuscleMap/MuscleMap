@@ -209,6 +209,44 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
     except Exception:
         pass
 
+def get_gpu_memory(device: Optional[torch.device] = None) -> tuple[float, float, float]:
+    """
+    Return a simple GPU memory tuple (total_mb, allocated_mb, free_mb).
+
+    Uses the current CUDA device (or the device passed in) and avoids
+    any external tooling. On any error or if CUDA is unavailable,
+    returns (0.0, 0.0, 0.0).
+    """
+    try:
+        if not torch.cuda.is_available():
+            return 0.0, 0.0, 0.0
+
+        if device is not None and getattr(device, "type", None) == "cuda":
+            dev = device
+        else:
+            dev = torch.device("cuda")
+
+        idx = dev.index if dev.index is not None else torch.cuda.current_device()
+        props = torch.cuda.get_device_properties(idx)
+        total_mb = props.total_memory / (1024 ** 2)
+        allocated_mb = torch.cuda.memory_allocated(idx) / (1024 ** 2)
+        free_mb = total_mb - allocated_mb
+        return float(total_mb), float(allocated_mb), float(free_mb)
+    except Exception:
+        return 0.0, 0.0, 0.0
+
+def report_gpu_stats(out_path: str, device: Optional[torch.device] = None) -> None:
+    """Print a short GPU status summary before doing chunked processing."""
+    print(out_path)
+    total_mb, allocated_mb, free_mb = get_gpu_memory(device=device)
+    if total_mb == 0.0:
+        print("CUDA not available or GPU stats unavailable")
+        return
+
+    pct_free = 100.0 * free_mb / total_mb if total_mb else 0.0
+    print(f"GPU memory: total {total_mb:.0f} MB, free {free_mb:.0f} MB ({pct_free:.1f}%)")
+    print(f"GPU allocated: {allocated_mb:.1f} MB")
+
 def save_nifti(data: np.ndarray, affine, header, out_path):
     new_hdr = header.copy()                            
     img = nib.Nifti1Image(data, affine, new_hdr)
@@ -834,6 +872,8 @@ def run_inference(
     else:
         temp_dir = os.path.join(output_dir, "temp_chunks")
         os.makedirs(temp_dir, exist_ok=True)
+        # Print GPU stats before creating/writing chunk files to help diagnose memory pressure
+        report_gpu_stats(out_path, device)
         chunk_files = []
         for start in tqdm(range(0, D, chunk_size), desc="Creating chunks", unit="chunk"):
             end       = min(start + chunk_size, D)

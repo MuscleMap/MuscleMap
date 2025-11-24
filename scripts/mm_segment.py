@@ -36,10 +36,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, report_compute_usage, report_gpu_stats
 import torch
 
 #naming not functional
@@ -212,6 +212,10 @@ def main():
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         proc_start = time.process_time()
+        if device.type == 'cuda':
+            report_gpu_stats()
+        else:
+            logging.info("GPU not used, skipping GPU stats report.")
         try:
             out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model)
             elapsed = perf_counter() - t0
@@ -221,7 +225,7 @@ def main():
                 logging.info(f"Inference of {test} finished in {minutes}m {seconds:.2f}s")
             else:
                 logging.info(f"Inference of {test} finished in {elapsed:.2f}s")    
-            # print CPU/GPU diagnostics
+            # print CPU usage report
             report_compute_usage(out_path, t0, proc_start, device)
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
