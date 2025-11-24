@@ -71,18 +71,15 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
     
-    optional.add_argument("-c", '--chunk_size', required=False, default = '25', type=str,
-                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 25.")
+    optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 'auto'")
 
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
-    import torch
-
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True" # avoid memory fragmentation
     import torch
 
     script_path = os.path.abspath(__file__)
@@ -251,7 +248,7 @@ def main():
                     logging.warning("Auto-estimation failed; falling back to default chunk size %d", chunk_size)
             except Exception:
                 chunk_size = 25
-                logging.warning("Auto-estimation raised an exception; falling back to default chunk size %d", chunk_size)
+                logging.warning("Auto-estimation raised an exception; falling back to chunk size %d", chunk_size)
         else:
             try:
                 chunk_size = int(chunk_size_arg)
@@ -295,11 +292,8 @@ def main():
                 logging.info("Usage report: unavailable")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
-            logging.exception(f"Error processing {test['image']}: {e}")
             continue
     logging.info("Inference completed. All outputs saved.")
-
-#%%
 
 #%%
 if __name__ == "__main__":
