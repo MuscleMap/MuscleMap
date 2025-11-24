@@ -692,120 +692,147 @@ def run_inference(
     pre_transforms,
     post_transforms,
     amp_context=None,
-    chunk_size=50,
+    chunk_size=10,
     device=None,
     inferer=None,
     model=None,
 ):
-    # 1) Load header + data
+    """
+    Efficient in-memory chunking for large volumes.
+    - Preprocesses ONCE before chunking
+    - No disk I/O for intermediate chunks
+    - Processes chunks directly in memory
+    """
     out_path = _make_out_path(image_path, output_dir, "_dseg")
-    img_nii  = nib.load(image_path)
-    affine   = img_nii.affine.copy()
-    header   = img_nii.header.copy()
-    img_data = img_nii.get_fdata().astype(np.float32)
-    D        = img_data.shape[-1]
     
+    # Load and preprocess the full volume ONCE
+    logging.info("Loading and preprocessing image...")
+    data = {"image": image_path}
+    data = pre_transforms(data)
+    
+    # Get preprocessed tensor and metadata
+    tensor = data["image"]
+    image_meta = data["image_meta_dict"]
+    
+    # Get dimensions in preprocessed space
+    if tensor.ndim == 3:
+        tensor = tensor.unsqueeze(0)  # Add channel: [C, H, W, D]
+    C, H, W, D = tensor.shape
+    
+    logging.info(f"Preprocessed volume shape: {tensor.shape}, depth: {D} slices")
+    
+    # Ensure proper dtype
+    if device.type == "cpu":
+        tensor = tensor.float()
+    
+    # Small volume - process in one shot
     if D <= chunk_size:
-        data   = {"image": image_path}
-        data   = pre_transforms(data)
-        tensor = data["image"]
-        if device.type == "cpu":
-            tensor = tensor.float()
-        if tensor.ndim == 4:
-            tensor = tensor.unsqueeze(0)              
-        tensor = tensor.to(device, non_blocking=True)
-
+        logging.info("Volume small enough, processing in single inference...")
+        tensor_batch = tensor.unsqueeze(0)  # [1, C, H, W, D]
+        tensor_batch = tensor_batch.to(device, non_blocking=True)
+        
         with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
-
-        single_pred = pred.squeeze(0).squeeze(0)     
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data
-        post_out    = post_transforms(post_in)
-        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np      = seg_tensor.numpy()
-        full_seg = connected_chunks(seg_np)
-        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-        del seg_np  
-        # cleanup
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        return out_path
-
-    temp_dir = os.path.join(output_dir, "temp_chunks")
-    os.makedirs(temp_dir, exist_ok=True)
-    gc.collect()  
-    chunk_files = []
-    for start in range(0, D, chunk_size):
-        end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
-        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-        del vol_chunk  
-        chunk_files.append({"image": chunk_path, "start": start, "end": end})
-
-    del img_data, img_nii
-    gc.collect()
-
-    for entry in chunk_files:
-        data   = {"image": entry["image"]}
-        data   = pre_transforms(data)
-        tensor = data["image"]
-        if device.type == "cpu":
-            tensor = tensor.float()
-        if tensor.ndim == 4:
-            tensor = tensor.unsqueeze(0)
-        tensor = tensor.to(device, non_blocking=True)
-
-        with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
-
+            pred = inferer(tensor_batch, model)
+        
         single_pred = pred.squeeze(0).squeeze(0)
         post_in = {
             "pred": single_pred,
             "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
+            "image_meta_dict": image_meta,
         }
-        del data  
+        
         post_out = post_transforms(post_in)
-        seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np = seg_tensor.numpy()
-        seg_path = os.path.join(
-            temp_dir,
-            f"seg_{entry['start']}_{entry['end']}.nii.gz"
-        )
-        nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
-        entry["seg"] = seg_path
-        del seg_np  
-
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
+        
+        # Apply connected components
+        full_seg = connected_chunks(seg_np)
+        
+        # Extract original space affine/header from metadata
+        affine = image_meta.get("original_affine", image_meta.get("affine"))
+        if isinstance(affine, torch.Tensor):
+            affine = affine.cpu().numpy()
+        
+        # Load original header for proper metadata
+        orig_nii = nib.load(image_path)
+        header = orig_nii.header.copy()
+        
+        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        
+        # Cleanup
+        del tensor, tensor_batch, pred, single_pred, post_in, post_out, seg_np, full_seg
+        gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        gc.collect()  
-
-    dims     = header.get_data_shape()  
-    full_seg = np.zeros(dims, dtype=np.int16)
-    for entry in chunk_files:
-        s, e, sp = entry["start"], entry["end"], entry["seg"]
-        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
-        full_seg[..., s:e] = vol_seg
+        
+        logging.info(f"Segmentation saved to {out_path}")
+        return out_path
+    
+    # Large volume - efficient in-memory chunking
+    logging.info(f"Processing {D} slices in chunks of {chunk_size}...")
+    
+    # Preallocate output in preprocessed space
+    pred_full = torch.zeros((1, H, W, D), dtype=torch.int16, device='cpu')
+    
+    num_chunks = (D + chunk_size - 1) // chunk_size
+    for chunk_idx, start in enumerate(range(0, D, chunk_size)):
+        end = min(start + chunk_size, D)
+        logging.info(f"Processing chunk {chunk_idx + 1}/{num_chunks}: slices {start}-{end}")
+        
+        # Extract chunk from preprocessed tensor (no disk I/O!)
+        chunk_tensor = tensor[..., start:end].unsqueeze(0)  # [1, C, H, W, chunk_d]
+        chunk_tensor = chunk_tensor.to(device, non_blocking=True)
+        
+        # Inference on chunk
+        with amp_context, torch.inference_mode():
+            pred_chunk = inferer(chunk_tensor, model)
+        
+        # Take argmax and move to CPU immediately to free GPU memory
+        pred_chunk = pred_chunk.squeeze(0).argmax(dim=0, keepdim=True)  # [1, H, W, chunk_d]
+        pred_chunk = pred_chunk.cpu().to(torch.int16)
+        
+        # Store in preallocated array
+        pred_full[..., start:end] = pred_chunk
+        
+        # Cleanup chunk
+        del chunk_tensor, pred_chunk
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         gc.collect()
-        del vol_seg 
-
-    gc.collect()  
-    full_seg = connected_chunks(full_seg)
+    
+    logging.info("All chunks processed, applying post-transforms...")
+    
+    # Apply post-transforms to full prediction
+    pred_full_squeezed = pred_full.squeeze(0)  # [H, W, D]
+    post_in = {
+        "pred": pred_full_squeezed,
+        "image": data["image"],
+        "image_meta_dict": image_meta,
+    }
+    
+    post_out = post_transforms(post_in)
+    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
+    
+    # Apply connected components filtering
+    logging.info("Applying connected components filtering...")
+    full_seg = connected_chunks(seg_np)
+    
+    # Extract original space affine/header from metadata
+    affine = image_meta.get("original_affine", image_meta.get("affine"))
+    if isinstance(affine, torch.Tensor):
+        affine = affine.cpu().numpy()
+    
+    # Load original header for proper metadata
+    orig_nii = nib.load(image_path)
+    header = orig_nii.header.copy()
+    
+    # Save final result
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-    # final cleanup
-    del full_seg
+    
+    # Final cleanup
+    del tensor, pred_full, pred_full_squeezed, post_in, post_out, seg_np, full_seg, data
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    logging.info(f"Segmentation saved to {out_path}")
     return out_path
