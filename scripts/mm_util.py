@@ -164,7 +164,7 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
     else:
         print("System CPU utilization: psutil not available")
 
-    print(f"Process CPU time: {proc_cpu_time:.2f}s, Wall time: {elapsed:.2f}s")
+    print(f"Process CPU time: {proc_cpu_time:.2f}s")
     print(f"Approx. process utilization of total CPU capacity: {process_cpu_pct:.1f}%")
 
     # GPU diagnostics when CUDA is available and device indicates CUDA
@@ -845,7 +845,7 @@ def run_inference(
 
         del img_data, img_nii
 
-        for entry in tqdm(chunk_files, desc="Running inference per chunk", unit="chunk"):
+        for entry in tqdm(chunk_files, desc="Predicting segmentation per chunk", unit="chunk"):
             data   = {"image": entry["image"]}
             data   = pre_transforms(data)
             tensor = data["image"]

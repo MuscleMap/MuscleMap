@@ -214,7 +214,13 @@ def main():
         proc_start = time.process_time()
         try:
             out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model)
-            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")                
+            elapsed = perf_counter() - t0
+            if elapsed >= 60:
+                minutes = int(elapsed // 60)
+                seconds = elapsed % 60
+                logging.info(f"Inference of {test} finished in {minutes}m {seconds:.2f}s")
+            else:
+                logging.info(f"Inference of {test} finished in {elapsed:.2f}s")    
             # print CPU/GPU diagnostics
             report_compute_usage(out_path, t0, proc_start, device)
         except Exception as e:
@@ -222,10 +228,8 @@ def main():
             continue
     logging.info("Inference completed. All outputs saved.")
 
-# %%
-    logging.info("Inference completed. All outputs saved.")
+#%%
 if __name__ == "__main__":
-
     main()
 
 
