@@ -30,6 +30,7 @@ from monai.transforms import (
 )
 from monai.networks.layers import Norm
 from monai.utils import set_determinism
+import time
 from time import perf_counter
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
@@ -66,9 +67,9 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
-
+    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
+                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
+    
     optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
 
@@ -210,12 +211,22 @@ def main():
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
+        proc_start = time.process_time()
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
+            out_path = run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, quantize=args.quantize )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
+            try:
+                from mm_util import report_compute_usage
+            except Exception:
+                # when running as package, import relative
+                from .mm_util import report_compute_usage
+            # print CPU/GPU diagnostics
+            report_compute_usage(out_path, t0, proc_start, device)
         except Exception as e:
-            logging.exception(f"Error processing {test['image']}: {e}"),
+            logging.exception(f"Error processing {test['image']}: {e}")
             continue
+    logging.info("Inference completed. All outputs saved.")
+
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
