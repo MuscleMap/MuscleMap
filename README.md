@@ -102,7 +102,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 ### Dependencies
 
-* Python 3.9.23
+* Python 3.12.12
 
 ### Installation
 
