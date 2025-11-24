@@ -3,7 +3,7 @@
 
 # For usage, type: python mm_segment.py -h
 
-# Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
 # IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
 

@@ -209,43 +209,50 @@ def report_compute_usage(out_path: str, start_wall: float, proc_start: float, de
     except Exception:
         pass
 
-def get_gpu_memory(device: Optional[torch.device] = None) -> tuple[float, float, float]:
-    """
-    Return a simple GPU memory tuple (total_mb, allocated_mb, free_mb).
+# consolidated GPU reporting: get_gpu_memory removed, logic now in report_gpu_stats
 
-    Uses the current CUDA device (or the device passed in) and avoids
-    any external tooling. On any error or if CUDA is unavailable,
-    returns (0.0, 0.0, 0.0).
+def report_gpu_stats(out_path: str, device: Optional[torch.device] = None) -> None:
+    """Print a short GPU status summary before doing chunked processing.
+
+    This function attempts to get GPU memory stats via PyTorch CUDA APIs
+    and falls back to `nvidia-smi` when necessary. It prints the
+    `out_path` first for context.
     """
+    print(out_path)
     try:
-        if not torch.cuda.is_available():
-            return 0.0, 0.0, 0.0
-
+        # Determine device index
         if device is not None and getattr(device, "type", None) == "cuda":
-            dev = device
+            idx = device.index if getattr(device, "index", None) is not None else torch.cuda.current_device()
+        elif torch.cuda.is_available():
+            idx = torch.cuda.current_device()
         else:
-            dev = torch.device("cuda")
+            print("CUDA not available or GPU stats unavailable")
+            return
 
-        idx = dev.index if dev.index is not None else torch.cuda.current_device()
         props = torch.cuda.get_device_properties(idx)
         total_mb = props.total_memory / (1024 ** 2)
         allocated_mb = torch.cuda.memory_allocated(idx) / (1024 ** 2)
         free_mb = total_mb - allocated_mb
-        return float(total_mb), float(allocated_mb), float(free_mb)
-    except Exception:
-        return 0.0, 0.0, 0.0
 
-def report_gpu_stats(out_path: str, device: Optional[torch.device] = None) -> None:
-    """Print a short GPU status summary before doing chunked processing."""
-    print(out_path)
-    total_mb, allocated_mb, free_mb = get_gpu_memory(device=device)
-    if total_mb == 0.0:
-        print("CUDA not available or GPU stats unavailable")
+        pct_free = 100.0 * free_mb / total_mb if total_mb else 0.0
+        print(f"GPU memory: total {total_mb:.0f} MB, free {free_mb:.0f} MB ({pct_free:.1f}%)")
+        print(f"GPU allocated: {allocated_mb:.1f} MB")
         return
+    except Exception:
+        # fallback to nvidia-smi if available
+        try:
+            import subprocess
+            q = subprocess.run(["nvidia-smi", "--query-gpu=memory.total,memory.free", "--format=csv,nounits,noheader"], capture_output=True, text=True)
+            if q.returncode == 0:
+                lines = [l.strip() for l in q.stdout.strip().splitlines() if l.strip()]
+                if lines:
+                    total_str, free_str = lines[0].split(',')
+                    print(f"GPU memory (nvidia-smi): total {total_str.strip()} MB, free {free_str.strip()} MB")
+                    return
+        except Exception:
+            pass
 
-    pct_free = 100.0 * free_mb / total_mb if total_mb else 0.0
-    print(f"GPU memory: total {total_mb:.0f} MB, free {free_mb:.0f} MB ({pct_free:.1f}%)")
-    print(f"GPU allocated: {allocated_mb:.1f} MB")
+        print("CUDA not available or GPU stats unavailable")
 
 def save_nifti(data: np.ndarray, affine, header, out_path):
     new_hdr = header.copy()                            
