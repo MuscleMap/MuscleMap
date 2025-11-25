@@ -71,6 +71,9 @@ def get_parser():
     
     optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 'auto'")
+    
+    optional.add_argument("-v", '--verbose', action='store_true',
+                    help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
 
     return parser
 
@@ -181,7 +184,7 @@ def main():
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=False, device=device
+        to_tensor=False, device="cpu"  # Use CPU to avoid OOM during inverse transforms
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
@@ -237,8 +240,8 @@ def main():
             chunk_size = int(chunk_size_arg)
 
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
-            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
+            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, verbose=args.verbose)
+            logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
