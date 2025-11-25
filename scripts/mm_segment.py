@@ -70,7 +70,7 @@ def get_parser():
                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
     
     optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
-                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from GPU memory. Default is 'auto'")
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 'auto'")
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
@@ -88,20 +88,32 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
          
-    device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
+    # Device selection: CUDA > MPS (Apple Silicon) > CPU
+    if torch.cuda.is_available() and args.use_GPU == 'Y':
+        device = torch.device("cuda")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() and args.use_GPU == 'Y':
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     
-    logging.info(f"Processing using cuda or cpu: {device}")
+    logging.info(f"Processing using device: {device}")
     
-    # Enable FP16 autocast for RTX A5500 (Ampere architecture) for better performance
-    amp_context = torch.amp.autocast('cuda', dtype=torch.float16) if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
+    # Set up mixed precision context
+    if device.type == 'cuda':
+        amp_context = torch.amp.autocast('cuda', dtype=torch.float16)
+    else:
+        amp_context = nullcontext()
     
     if device.type == 'cuda':
         logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
         logging.info("FP16 mixed precision enabled for faster inference")
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
+    elif device.type == 'mps':
+        logging.info("Using Apple Silicon GPU (MPS)")
+        logging.info("Note: MPS may have different performance characteristics than CUDA")
     else:
-        logging.info(f"Processing on a CPU will slow down inference speed")
+        logging.info("Processing on CPU will slow down inference speed")
 
     if args.output_dir is None:
         output_dir = os.getcwd()
@@ -215,6 +227,8 @@ def main():
         model = model.half()
 
     overlap_inference = args.overlap / 100
+    
+    # Create SliceInferer (2D model)
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     
     chunk_size_arg = args.chunk_size # args.chunk_size may be an integer string or the literal 'auto'
@@ -222,8 +236,15 @@ def main():
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
+        
+        # Use optimized disk-based chunking with auto chunk size
         if isinstance(chunk_size_arg, str) and chunk_size_arg.lower() == 'auto':
-            # Estimate chunk size based on GPU memory and model configuration
+            # Load image header to get shape for OOM history lookup
+            import nibabel as nib
+            img_nii = nib.load(test['image'])
+            img_shape = img_nii.header.get_data_shape()
+            del img_nii  # Free memory
+            
             use_fp16 = (device.type == 'cuda' and amp_context.fast_dtype == torch.float16)
             chunk_size = estimate_chunk_size(
                 device=device,
@@ -233,17 +254,34 @@ def main():
                 channels=channels,
                 spatial_window_batch_size=spatial_window_batch_size,
                 overlap=overlap_inference,
-                use_fp16=use_fp16
+                use_fp16=use_fp16,
+                image_shape=img_shape
             )
         else:
-            # User specified chunk size
             chunk_size = int(chunk_size_arg)
 
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, verbose=args.verbose)
-            logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s")
+            # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
+            fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
+            
+            run_inference(
+                test["image"], 
+                output_dir, 
+                pre_transforms, 
+                post_transforms, 
+                amp_context, 
+                chunk_size, 
+                device, 
+                inferer, 
+                model, 
+                verbose=args.verbose,
+                fallback_device=fallback_device
+            )
+            
+            method = "disk-based chunking" if chunk_size else "full volume"
+            logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
         except Exception as e:
-            logging.exception(f"Error processing {test['image']}: {e}"),
+            logging.exception(f"Error processing {test['image']}: {e}")
             continue
     
     logging.info("Inference completed. All outputs saved.")

@@ -15,6 +15,126 @@ from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+import psutil
+import hashlib
+
+# Global OOM cache to track failures and enable automatic fallback
+OOM_CACHE_FILE = os.path.expanduser("~/.musclemap_oom_cache.json")
+
+def _load_oom_cache():
+    """Load OOM failure history from disk"""
+    if os.path.exists(OOM_CACHE_FILE):
+        try:
+            with open(OOM_CACHE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def _save_oom_cache(cache):
+    """Save OOM failure history to disk"""
+    try:
+        with open(OOM_CACHE_FILE, 'w') as f:
+            json.dump(cache, f, indent=2)
+    except:
+        pass
+
+def _get_image_signature(shape, device_type):
+    """Generate unique signature for image dimensions and device"""
+    sig_str = f"{shape}_{device_type}"
+    return hashlib.md5(sig_str.encode()).hexdigest()[:16]
+
+def _should_use_cpu_fallback(shape, device_type):
+    """Check if similar images have OOM'd before on GPU"""
+    if device_type != 'cuda':
+        return False
+    
+    cache = _load_oom_cache()
+    sig = _get_image_signature(shape, device_type)
+    
+    # Check if this exact size has failed before
+    if sig in cache:
+        failure_count = cache[sig].get('failures', 0)
+        if failure_count > 0:
+            logging.info(f"Previous OOM detected for similar image size {shape}. Using CPU fallback.")
+            return True
+    
+    # Check if similar sizes have failed (within 10% tolerance)
+    for cached_sig, info in cache.items():
+        cached_shape = info.get('shape')
+        if cached_shape and len(cached_shape) == len(shape):
+            # Check if volumes are similar (within 20%)
+            cached_vol = np.prod(cached_shape)
+            current_vol = np.prod(shape)
+            ratio = current_vol / cached_vol if cached_vol > 0 else 0
+            if 0.8 <= ratio <= 1.2 and info.get('failures', 0) > 0:
+                logging.info(f"Similar image size {cached_shape} previously OOM'd. Using CPU fallback.")
+                return True
+    
+    return False
+
+def _record_oom_failure(shape, device_type, chunk_size=None):
+    """Record an OOM failure for this image size"""
+    cache = _load_oom_cache()
+    sig = _get_image_signature(shape, device_type)
+    
+    if sig not in cache:
+        cache[sig] = {'shape': shape, 'failures': 0, 'device': device_type, 'failed_chunk_sizes': []}
+    
+    cache[sig]['failures'] += 1
+    cache[sig]['last_failure'] = pd.Timestamp.now().isoformat()
+    
+    # Track which chunk sizes have failed
+    if chunk_size is not None and 'failed_chunk_sizes' in cache[sig]:
+        if chunk_size not in cache[sig]['failed_chunk_sizes']:
+            cache[sig]['failed_chunk_sizes'].append(chunk_size)
+    
+    _save_oom_cache(cache)
+    logging.info(f"Recorded OOM failure for shape {shape} on {device_type} (chunk_size={chunk_size})")
+
+class MemoryMonitor:
+    """Context manager to track peak memory usage during operations"""
+    def __init__(self, device_type='cuda', verbose=True):
+        self.device_type = device_type
+        self.verbose = verbose
+        self.stage_peak_gpu = 0
+        self.stage_peak_ram = 0
+        self.stage_start_gpu = 0
+        self.stage_start_ram = 0
+    
+    def start_stage(self, stage_name):
+        """Begin monitoring a new stage"""
+        self.current_stage = stage_name
+        if self.device_type == 'cuda' and torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+            self.stage_start_gpu = torch.cuda.memory_allocated() / 1024**3
+        
+        process = psutil.Process()
+        self.stage_start_ram = process.memory_info().rss / 1024**3
+    
+    def end_stage(self):
+        """End monitoring and log the stage summary"""
+        if not self.verbose:
+            return
+        
+        if self.device_type == 'cuda' and torch.cuda.is_available():
+            self.stage_peak_gpu = torch.cuda.max_memory_allocated() / 1024**3
+            logging.info(f"[{self.current_stage}] Peak GPU VRAM: {self.stage_peak_gpu:.2f} GB")
+        elif self.device_type == 'mps' and torch.backends.mps.is_available():
+            # MPS doesn't have direct memory tracking like CUDA
+            logging.info(f"[{self.current_stage}] MPS device (memory tracking not available)")
+        
+        process = psutil.Process()
+        self.stage_peak_ram = process.memory_info().rss / 1024**3
+        logging.info(f"[{self.current_stage}] RAM usage: {self.stage_peak_ram:.2f} GB")
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -708,81 +828,160 @@ def estimate_chunk_size(
     spatial_window_batch_size: int,
     overlap: float,
     use_fp16: bool = True,
+    image_shape: tuple = None,
 ) -> int:
     """
-    Estimate optimal chunk size based on GPU memory availability.
+    Robustly estimate optimal chunk size with self-tuning based on OOM history.
     
     Args:
-        device: torch device (cuda or cpu)
+        device: torch device (cuda, mps, or cpu)
         roi_size: (H, W) size of ROI for sliding window
         in_channels: number of input channels
         out_channels: number of output channels
         channels: list of channel counts at each UNet level [64, 128, 256, 512, 1024]
         spatial_window_batch_size: batch size for sliding window inference
         overlap: spatial overlap ratio (0.5 = 50% overlap)
-        use_fp16: whether FP16 is enabled
+        use_fp16: whether FP16 is enabled (CUDA only)
+        image_shape: optional image shape for OOM history lookup
     
     Returns:
         Estimated chunk size (number of slices)
     """
-    if device.type != 'cuda':
-        logging.info("CPU detected, using default chunk size of 10")
-        return 10
+    # Validate inputs
+    if not isinstance(roi_size, (tuple, list)) or len(roi_size) != 2:
+        raise ValueError(f"roi_size must be (H, W) tuple, got {roi_size}")
+    if roi_size[0] <= 0 or roi_size[1] <= 0:
+        raise ValueError(f"roi_size dimensions must be positive, got {roi_size}")
+    if in_channels <= 0 or out_channels <= 0:
+        raise ValueError(f"channels must be positive, got in={in_channels}, out={out_channels}")
+    if not 0 <= overlap < 1:
+        raise ValueError(f"overlap must be in [0, 1), got {overlap}")
     
-    # Get GPU memory info
-    total_memory = torch.cuda.get_device_properties(0).total_memory
-    reserved_memory = torch.cuda.memory_reserved(0)
+    # Check OOM history for similar images and adjust safety factor
+    oom_penalty = 1.0
+    if image_shape is not None:
+        cache = _load_oom_cache()
+        sig = _get_image_signature(image_shape, device.type)
+        
+        if sig in cache:
+            failures = cache[sig].get('failures', 0)
+            if failures > 0:
+                # Reduce estimate by 20% per failure, up to 60% reduction
+                oom_penalty = max(0.4, 1.0 - (failures * 0.2))
+                logging.info(f"OOM history found: {failures} failure(s) for similar images. Applying {(1-oom_penalty)*100:.0f}% safety reduction.")
     
-    # Available memory (leave 2GB buffer for safety)
-    available_memory = total_memory - reserved_memory - (2 * 1024**3)
+    if device.type in ['cpu', 'mps']:
+        # For CPU/MPS, estimate based on available RAM
+        try:
+            import psutil
+            mem_info = psutil.virtual_memory()
+            available_ram = mem_info.available
+            total_ram = mem_info.total
+            
+            # Validate memory values
+            if available_ram <= 0 or total_ram <= 0:
+                logging.warning(f"Invalid memory values: available={available_ram}, total={total_ram}. Using conservative default.")
+                return 15
+            
+            # Calculate memory needed per slice
+            bytes_per_value = 4  # float32 for CPU/MPS
+            input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
+            output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
+            
+            # Conservative estimate with overhead
+            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 5.0
+            
+            # Start conservative: use 20% of available RAM
+            memory_utilization = 0.20 * oom_penalty
+            chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
+            
+            # Conservative bounds: 10-50 slices
+            chunk_size = max(10, min(chunk_size, 50))
+            
+            device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
+            logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
+            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
+            logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
+            return chunk_size
+            
+        except Exception as e:
+            logging.warning(f"Failed to estimate CPU/MPS chunk size: {e}. Using safe default of 15 slices.")
+            return 15
     
-    # Bytes per value based on precision
-    bytes_per_value = 2 if use_fp16 else 4
-    
-    # Calculate memory per slice
-    # 1. Input memory per slice
-    input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
-    
-    # 2. Output memory per slice (before argmax)
-    output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
-    
-    # 3. Calculate UNet activation memory across all encoder/decoder levels
-    activation_size = 0
-    for i, ch in enumerate(channels):
-        # Spatial dimensions reduce by 2^i at each level
-        spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
-        # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
-        activation_size += spatial_size * ch * bytes_per_value * 3
-    
-    # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
-    activation_size_per_slice = activation_size * 1.3
-    
-    # 4. Account for sliding window overlap
-    # With 50% overlap, effective windows = 1 / (1 - overlap)
-    # More overlap = more windows = more memory
-    # For 50% overlap: 2x windows, for 90% overlap: 10x windows
-    overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
-    
-    # Total memory per slice accounting for all factors
-    total_per_slice = (
-        input_size_per_slice + 
-        activation_size_per_slice + 
-        output_size_per_slice
-    ) * spatial_window_batch_size * overlap_multiplier
-    
-    # Calculate chunk size using 90% of available memory
-    chunk_size = max(1, int((available_memory * 0.9) / total_per_slice))
-    
-    # Apply safety limits: 5 to 250 slices
-    chunk_size = max(5, min(chunk_size, 250))
-    
-    # Log memory information
-    logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
-    logging.info(f"Estimated chunk size: {chunk_size} slices")
-    
-    return chunk_size
+    # GPU (CUDA) estimation
+    try:
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA not available")
+        
+        total_memory = torch.cuda.get_device_properties(0).total_memory
+        reserved_memory = torch.cuda.memory_reserved(0)
+        allocated_memory = torch.cuda.memory_allocated(0)
+        
+        # Validate GPU memory values
+        if total_memory <= 0:
+            raise RuntimeError(f"Invalid GPU total memory: {total_memory}")
+        
+        # Available memory (leave 2GB buffer for safety)
+        safety_buffer = 2 * 1024**3
+        available_memory = total_memory - reserved_memory - safety_buffer
+        
+        if available_memory <= 0:
+            logging.warning(f"Insufficient GPU memory available. Reserved={reserved_memory/1024**3:.2f}GB")
+            return 5  # Minimum safe chunk
+        
+        # Bytes per value based on precision
+        bytes_per_value = 2 if use_fp16 else 4
+        
+        # Calculate memory per slice (SIMPLE - from working version)
+        # 1. Input memory per slice
+        input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
+        
+        # 2. Output memory per slice (before argmax)
+        output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
+        
+        # 3. Calculate UNet activation memory across all encoder/decoder levels
+        activation_size = 0
+        for i, ch in enumerate(channels):
+            # Spatial dimensions reduce by 2^i at each level
+            spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
+            # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
+            activation_size += spatial_size * ch * bytes_per_value * 3
+        
+        # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
+        activation_size_per_slice = activation_size * 1.3
+        
+        # 4. Account for sliding window overlap
+        overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
+        
+        # Total memory per slice accounting for all factors
+        inference_memory_per_slice = (
+            input_size_per_slice + 
+            activation_size_per_slice + 
+            output_size_per_slice
+        ) * spatial_window_batch_size * overlap_multiplier
+        
+        # CRITICAL: Invertd post-processing tries to allocate massive GPU memory (20+ GB)
+        # for resampling back to original space. Use aggressive 3.5x multiplier to
+        # account for pre+post transform overhead and PyTorch memory fragmentation
+        total_per_slice = inference_memory_per_slice * 3.5
+        
+        # Calculate chunk size using 90% of available memory
+        chunk_size = max(1, int((available_memory * 0.9) / total_per_slice))
+        
+        # Apply safety limits: 5 to 250 slices
+        chunk_size = max(5, min(chunk_size, 250))
+        
+        # Log memory information
+        logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
+        logging.info(f"Estimated chunk size: {chunk_size} slices")
+        
+        return chunk_size
+        
+    except Exception as e:
+        logging.warning(f"Failed to estimate GPU chunk size: {e}. Using safe default of 20 slices.")
+        return 20
 
-def log_memory_usage(stage, verbose=True):
+def log_memory_usage(stage, verbose=True, device_type='cuda'):
     """Log CPU and GPU memory usage"""
     if not verbose:
         return
@@ -797,8 +996,8 @@ def log_memory_usage(stage, verbose=True):
     
     log_msg = f"[{stage}] CPU: {cpu_usage:.1f}% usage, {cpu_mem_gb:.2f}/{total_cpu_gb:.2f} GB RAM"
     
-    # GPU Memory
-    if torch.cuda.is_available():
+    # GPU Memory (only if running on GPU)
+    if device_type == 'cuda' and torch.cuda.is_available():
         gpu_mem_allocated = torch.cuda.memory_allocated() / 1024**3
         gpu_mem_reserved = torch.cuda.memory_reserved() / 1024**3
         gpu_mem_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
@@ -806,18 +1005,116 @@ def log_memory_usage(stage, verbose=True):
     
     logging.info(log_msg)
 
-def get_peak_memory():
-    """Get peak memory usage (CPU RAM and GPU VRAM)"""
+def get_peak_memory(reset=False):
+    """Get peak memory usage (CPU RAM and GPU VRAM)
+    
+    Args:
+        reset: If True, reset GPU peak stats to start tracking from this point
+    
+    Returns:
+        Tuple of (peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb)
+    """
     import psutil
+    
+    if reset and torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
     
     process = psutil.Process()
     peak_cpu_gb = process.memory_info().rss / 1024**3
     
-    peak_gpu_gb = 0
+    peak_gpu_allocated_gb = 0
+    peak_gpu_reserved_gb = 0
     if torch.cuda.is_available():
-        peak_gpu_gb = torch.cuda.max_memory_allocated() / 1024**3
+        peak_gpu_allocated_gb = torch.cuda.max_memory_allocated() / 1024**3
+        peak_gpu_reserved_gb = torch.cuda.max_memory_reserved() / 1024**3
     
-    return peak_cpu_gb, peak_gpu_gb
+    return peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb
+
+
+
+def run_inference_sliding_window(
+    image_path,
+    output_dir,
+    pre_transforms,
+    post_transforms,
+    amp_context=None,
+    device=None,
+    model=None,
+    inferer=None,  # Pass the SliceInferer from main
+    verbose=False,
+):
+    """
+    Fast whole-volume inference using SliceInferer on preprocessed volume (no disk chunking).
+    Processes entire preprocessed volume at once - much faster than disk-based chunking!
+    """
+    out_path = _make_out_path(image_path, output_dir, "_dseg")
+    logging.info(f"Loading and preprocessing image: {os.path.basename(image_path)}")
+    
+    # Preprocess once
+    data = {"image": image_path}
+    data = pre_transforms(data)
+    tensor = data["image"]
+    
+    if device.type == "cpu":
+        tensor = tensor.float()
+    
+    if tensor.ndim == 4:
+        tensor = tensor.unsqueeze(0)
+    
+    if verbose:
+        logging.info(f"Preprocessed shape: {tensor.shape}")
+    
+    # Move to device
+    tensor = tensor.to(device, non_blocking=True)
+    
+    # Inference on whole volume using SliceInferer (2D model)
+    logging.info("Running slice inference on full preprocessed volume...")
+    with amp_context, torch.inference_mode():
+        pred = inferer(tensor, model)
+    
+    # Move to CPU for post-processing
+    single_pred = pred.squeeze(0).squeeze(0).cpu()
+    
+    del tensor, pred
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
+    # Post-transforms (Invertd, AsDiscreted, etc.)
+    logging.info("Applying post-transforms...")
+    post_in = {
+        "pred": single_pred,
+        "image": data["image"],
+        "image_meta_dict": data["image_meta_dict"],
+    }
+    del data
+    
+    post_out = post_transforms(post_in)
+    # Convert to float32 first if on MPS to avoid float64 error
+    seg_out = post_out["pred"].detach()
+    if seg_out.device.type == 'mps':
+        seg_out = seg_out.float()
+    seg_tensor = seg_out.cpu().to(torch.int16)
+    seg_np = seg_tensor.numpy()
+    
+    del single_pred, post_in, post_out, seg_tensor
+    gc.collect()
+    
+    # Connected components
+    logging.info("Applying connected components filtering...")
+    full_seg = connected_chunks(seg_np)
+    
+    # Save
+    img_nii = nib.load(image_path)
+    nib.save(nib.Nifti1Image(full_seg, img_nii.affine, img_nii.header), out_path)
+    
+    del seg_np, full_seg
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
+    logging.info(f"Segmentation saved to {out_path}")
+    return out_path
+
 
 def run_inference(
     image_path,
@@ -825,235 +1122,201 @@ def run_inference(
     pre_transforms,
     post_transforms,
     amp_context=None,
-    chunk_size=10,
+    chunk_size=50,
     device=None,
     inferer=None,
     model=None,
     verbose=False,
+    fallback_device=None,
 ):
+    """ORIGINAL disk-based implementation with automatic chunk size and CPU fallback
+    
+    Args:
+        fallback_device: Optional CPU device to fall back to on OOM
     """
-    FAST in-memory chunking with single preprocessing pass.
-    
-    Workflow:
-    1. Preprocess entire volume ONCE
-    2. Chunk in preprocessed space (in-memory, no I/O)
-    3. Inference per chunk (fast, GPU stays busy)
-    4. Argmax immediately (90→1 channels, huge memory savings)
-    5. Stitch in preprocessed space
-    6. ONE manual inverse transform on full result (CPU, to avoid OOM)
-    
-    This is 3-5× faster than disk-based chunking.
-    """
-    from scipy.ndimage import zoom as scipy_zoom
-    
+    # 1) Load header + data
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     
-    # Load original metadata for final saving
-    logging.info(f"Loading image: {os.path.basename(image_path)}")
-    orig_nii = nib.load(image_path)
-    orig_affine = orig_nii.affine.copy()
-    orig_header = orig_nii.header.copy()
-    orig_shape = orig_nii.shape
-    del orig_nii
+    # Initialize memory monitor
+    mem_monitor = MemoryMonitor(device.type, verbose)
     
-    log_memory_usage("After loading metadata", verbose)
-    if verbose:
-        logging.info(f"Original image shape: {orig_shape}")
+    mem_monitor.start_stage("Preprocessing")
+    img_nii  = nib.load(image_path)
+    affine   = img_nii.affine.copy()
+    header   = img_nii.header.copy()
+    img_data = img_nii.get_fdata().astype(np.float32)
+    img_shape = img_data.shape  # Store shape before potential deletion
+    D        = img_data.shape[-1]
     
-    # Step 1: Preprocess ENTIRE volume ONCE (major optimization)
-    if verbose:
-        logging.info("Preprocessing entire volume (Orient→Space→Normalize→Crop)...")
-    data = {"image": image_path}
-    data = pre_transforms(data)
-    tensor = data["image"]  # Shape: [C, H, W, D] in preprocessed space
-    meta = data["image_meta_dict"]
+    # Check if we should use CPU fallback based on OOM history
+    if device.type in ['cuda', 'mps'] and fallback_device is not None:
+        if _should_use_cpu_fallback(img_shape, device.type):
+            logging.info(f"Automatic CPU fallback activated due to OOM history on {device.type}")
+            device = fallback_device
+            model = model.to(device).float()  # Move model to CPU and convert to FP32
+            amp_context = torch.autocast('cpu', enabled=False)  # Disable AMP on CPU
+            mem_monitor = MemoryMonitor(device.type, verbose)  # Reinitialize for CPU
     
-    log_memory_usage("After preprocessing", verbose)
+    mem_monitor.end_stage()
     
-    # Extract metadata for manual inverse transforms
-    crop_start = meta.get("foreground_start_coord", torch.tensor([0, 0, 0]))
-    if hasattr(crop_start, 'cpu'):
-        crop_start = crop_start.cpu().numpy()
-    else:
-        crop_start = np.array(crop_start)
-    
-    # Get original orientation
-    orig_ornt = nib.orientations.io_orientation(orig_affine)
-    ras_ornt = nib.orientations.axcodes2ornt(('R', 'A', 'S'))
-    
-    # Prepare tensor for inference
-    if tensor.ndim == 3:
-        tensor = tensor.unsqueeze(0)  # Add channel: [C, H, W, D]
-    if tensor.ndim == 4:
-        tensor = tensor.unsqueeze(0)  # Add batch: [1, C, H, W, D]
-    
-    _, C, H, W, D = tensor.shape
-    preprocessed_shape = (H, W, D)
-    
-    if verbose:
-        logging.info(f"Preprocessed shape: {preprocessed_shape}, depth: {D} slices")
-        logging.info(f"Chunk size: {chunk_size} slices")
-    
-    if device.type == "cpu":
-        tensor = tensor.float()
-    
-    # Reset peak memory tracking
-    if torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats()
-    
-    # Determine if chunking is needed
     if D <= chunk_size:
-        logging.info("Volume fits in single chunk, processing in one inference...")
-        tensor = tensor.to(device, non_blocking=True)
-        
-        log_memory_usage("After moving to GPU", verbose)
-        
-        with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
-        
-        log_memory_usage("After inference", verbose)
-        
-        # Argmax immediately on GPU (90 channels → 1)
-        seg = torch.argmax(pred, dim=1).squeeze(0).cpu().numpy().astype(np.int16)
-        
-        del tensor, pred
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        
-        log_memory_usage("After argmax and GPU cleanup", verbose)
-    else:
-        # Step 2: Chunk in PREPROCESSED space (in-memory, no disk I/O!)
-        num_chunks = (D + chunk_size - 1) // chunk_size
-        logging.info(f"Processing {D} slices in {num_chunks} chunks (IN-MEMORY)")
-        
-        # Preallocate output in preprocessed space (H×W×D, already after argmax)
-        seg = np.zeros(preprocessed_shape, dtype=np.int16)
-        
-        log_memory_usage("After allocating output array", verbose)
-        
-        # Process chunks
-        with tqdm(total=D, desc="Predicting slices", unit="slice") as pbar:
-            for start in range(0, D, chunk_size):
-                end = min(start + chunk_size, D)
+        try:
+            mem_monitor.start_stage("Inference")
+            data   = {"image": image_path}
+            data   = pre_transforms(data)
+            tensor = data["image"]
+            if device.type in ["cpu", "mps"]:
+                tensor = tensor.float()  # MPS doesn't support float64
+            if tensor.ndim == 4:
+                tensor = tensor.unsqueeze(0)              
+            tensor = tensor.to(device, non_blocking=True)
+
+            with amp_context, torch.inference_mode():
+                pred = inferer(tensor, model)
+            
+            mem_monitor.end_stage()
+
+            # Stage: Post-processing
+            mem_monitor.start_stage("Post-processing")
+            single_pred = pred.squeeze(0).squeeze(0)
+            post_in = {
+                "pred": single_pred,
+                "image": data["image"],
+                "image_meta_dict": data["image_meta_dict"],
+            }
+            del data
+            
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy()
+            full_seg = connected_chunks(seg_np)
+            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            mem_monitor.end_stage()
+            
+            del seg_np  
+            # cleanup
+            del tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            return out_path
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                logging.warning(f"{device.type.upper()} OOM on small image, falling back to CPU: {e}")
+                _record_oom_failure(img_shape, device.type, chunk_size=None)
+                # Retry on CPU
+                torch.cuda.empty_cache()
+                gc.collect()
+                device = fallback_device
+                model = model.to(device).float()
+                amp_context = torch.autocast('cpu', enabled=False)
                 
-                # Extract chunk from preprocessed tensor (IN MEMORY - fast!)
-                chunk = tensor[:, :, :, :, start:end].to(device, non_blocking=True)
-                
-                # Inference on GPU
+                # Retry inference on CPU
+                return run_inference(
+                    image_path, output_dir, pre_transforms, post_transforms,
+                    amp_context, chunk_size, device, inferer, model, verbose, None
+                )
+            else:
+                raise
+
+    temp_dir = os.path.join(output_dir, "temp_chunks")
+    os.makedirs(temp_dir, exist_ok=True)
+    gc.collect()  
+    chunk_files = []
+    for start in range(0, D, chunk_size):
+        end       = min(start + chunk_size, D)
+        vol_chunk = img_data[..., start:end]
+        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+        del vol_chunk  
+        chunk_files.append({"image": chunk_path, "start": start, "end": end})
+
+    del img_data, img_nii
+    gc.collect()
+
+    mem_monitor.start_stage("Inference")
+    with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
+        for i, entry in enumerate(chunk_files):
+            try:
+                data   = {"image": entry["image"]}
+                data   = pre_transforms(data)
+                tensor = data["image"]
+                if device.type in ["cpu", "mps"]:
+                    tensor = tensor.float()  # MPS doesn't support float64
+                if tensor.ndim == 4:
+                    tensor = tensor.unsqueeze(0)
+                tensor = tensor.to(device, non_blocking=True)
+
                 with amp_context, torch.inference_mode():
-                    pred_chunk = inferer(chunk, model)
-                
-                # Argmax immediately on GPU (90 → 1 channel) and move to CPU
-                seg_chunk = torch.argmax(pred_chunk, dim=1).squeeze(0).cpu().numpy().astype(np.int16)
-                
-                # Store in stitched array
-                seg[:, :, start:end] = seg_chunk
-                
-                del chunk, pred_chunk, seg_chunk
+                    pred = inferer(tensor, model)
+
+                single_pred = pred.squeeze(0).squeeze(0)
+                post_in = {
+                    "pred": single_pred,
+                    "image": data["image"],
+                    "image_meta_dict": data["image_meta_dict"],
+                }
+                del data  
+                post_out = post_transforms(post_in)
+                seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+                seg_np = seg_tensor.numpy()
+                seg_path = os.path.join(
+                    temp_dir,
+                    f"seg_{entry['start']}_{entry['end']}.nii.gz"
+                )
+                nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
+                entry["seg"] = seg_path
+                del seg_np  
+
+                del tensor, pred, single_pred, post_in, post_out, seg_tensor
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
-                
-                pbar.update(end - start)
-        
-        del tensor
-        
-        # Log peak memory usage
-        peak_cpu_gb, peak_gpu_gb = get_peak_memory()
-        logging.info(f"Peak memory usage - CPU: {peak_cpu_gb:.2f} GB, GPU: {peak_gpu_gb:.2f} GB")
-        log_memory_usage("After chunked inference", verbose)
+                gc.collect()
+                pbar.update(1)
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                    logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU for remaining chunks: {e}")
+                    _record_oom_failure(img_shape, device.type, chunk_size=chunk_size)
+                    
+                    # Retry on CPU
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    device = fallback_device
+                    model = model.to(device).float()
+                    amp_context = torch.autocast('cpu', enabled=False)
+                    
+                    # Clean up and retry with CPU
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    return run_inference(
+                        image_path, output_dir, pre_transforms, post_transforms,
+                        amp_context, chunk_size, device, inferer, model, verbose, None
+                    )
+                else:
+                    raise
     
-    del data
-    gc.collect()
-    
-    # Step 3: Apply connected components filtering (in preprocessed space, fast)
-    logging.info("Applying connected components filtering...")
-    seg = connected_chunks(seg)
-    log_memory_usage("After connected components", verbose)
-    
-    # Step 4: Manual inverse transforms (CPU, to avoid OOM)
-    if verbose:
-        logging.info("Applying manual inverse transforms (CPU)...")
-    
-    # 4a. Inverse CropForeground - pad back to shape after spacing
-    margin = 20  # matches CropForegroundd margin
-    crop_start_with_margin = np.maximum(crop_start.astype(int) - margin, 0)
-    
-    # Calculate shape after spacing (before crop)
-    # This requires understanding the spacing transform's effect
-    orig_pixdim = np.abs(np.diag(orig_affine)[:3])
-    target_pixdim = meta.get("pixdim", None)
-    if target_pixdim is not None:
-        if hasattr(target_pixdim, 'cpu'):
-            target_pixdim = target_pixdim.cpu().numpy()
-        target_pixdim = np.array(target_pixdim)[:3]
-        
-        # After orientation to RAS, pixdim may be permuted
-        ornt_transform_fwd = nib.orientations.ornt_transform(orig_ornt, ras_ornt)
-        axis_order = ornt_transform_fwd[:, 0].astype(int)
-        pixdim_after_orient = orig_pixdim[axis_order]
-        shape_after_orient = np.array(orig_shape)[axis_order]
-        
-        # Shape after spacing = shape_after_orient * (pixdim_after_orient / target_pixdim)
-        zoom_fwd = pixdim_after_orient / target_pixdim
-        shape_after_spacing = np.round(shape_after_orient * zoom_fwd).astype(int)
-    else:
-        # No spacing transform applied
-        shape_after_spacing = np.array(orig_shape)
-    
-    if not np.array_equal(crop_start_with_margin, [0, 0, 0]) or tuple(seg.shape) != tuple(shape_after_spacing):
-        if verbose:
-            logging.info(f"Inverse crop: padding {seg.shape} -> {tuple(shape_after_spacing)}")
-        seg_padded = np.zeros(tuple(shape_after_spacing), dtype=np.int16)
-        
-        # Calculate insertion range
-        insert_end = np.minimum(crop_start_with_margin + np.array(seg.shape), shape_after_spacing)
-        src_end = insert_end - crop_start_with_margin
-        
-        seg_padded[
-            crop_start_with_margin[0]:insert_end[0],
-            crop_start_with_margin[1]:insert_end[1],
-            crop_start_with_margin[2]:insert_end[2]
-        ] = seg[:src_end[0], :src_end[1], :src_end[2]]
-        
-        seg = seg_padded
-        del seg_padded
+    mem_monitor.end_stage()
+
+    # Stage: Post-processing
+    mem_monitor.start_stage("Post-processing")
+    dims     = header.get_data_shape()  
+    full_seg = np.zeros(dims, dtype=np.int16)
+    for entry in chunk_files:
+        s, e, sp = entry["start"], entry["end"], entry["seg"]
+        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
+        full_seg[..., s:e] = vol_seg
         gc.collect()
+        del vol_seg 
+
+    gc.collect()  
+    full_seg = connected_chunks(full_seg)
+    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     
-    log_memory_usage("After inverse crop", verbose)
-    
-    # 4b. Inverse Spacing - resample back to shape_after_orient
-    if target_pixdim is not None and tuple(seg.shape) != tuple(shape_after_orient):
-        inv_zoom = target_pixdim / pixdim_after_orient
-        if verbose:
-            logging.info(f"Inverse spacing: resampling {seg.shape} -> {tuple(shape_after_orient)} (zoom={inv_zoom})")
-        seg = scipy_zoom(seg, inv_zoom, order=0, mode='nearest').astype(np.int16)
-        gc.collect()
-    
-    log_memory_usage("After inverse spacing", verbose)
-    
-    # 4c. Inverse Orientation - reorient from RAS back to original
-    ornt_transform_inv = nib.orientations.ornt_transform(ras_ornt, orig_ornt)
-    if verbose:
-        logging.info(f"Inverse orientation: reorienting {seg.shape} back to original")
-    seg = nib.orientations.apply_orientation(seg, ornt_transform_inv).astype(np.int16)
-    gc.collect()
-    
-    log_memory_usage("After inverse orientation", verbose)
-    
-    # 4d. Final safety check - ensure exact shape match
-    if seg.shape != orig_shape:
-        logging.warning(f"Shape mismatch after inverse! {seg.shape} vs {orig_shape}, forcing resize...")
-        zoom_factors = np.array(orig_shape) / np.array(seg.shape)
-        seg = scipy_zoom(seg, zoom_factors, order=0, mode='nearest').astype(np.int16)
-    
-    # Save with original affine and header
-    nib.save(nib.Nifti1Image(seg, orig_affine, orig_header), out_path)
-    
-    del seg
+    mem_monitor.end_stage()
+
+    # final cleanup
+    del full_seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    
-    log_memory_usage("After saving", verbose)
-    logging.info(f"Segmentation saved to {out_path}")
+    shutil.rmtree(temp_dir, ignore_errors=True)
     return out_path
