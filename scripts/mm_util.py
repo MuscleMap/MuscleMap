@@ -773,8 +773,8 @@ def estimate_chunk_size(
     # Calculate chunk size using 80% of available memory
     chunk_size = max(1, int((available_memory * 0.8) / total_per_slice))
     
-    # Apply safety limits: 5 to 100 slices
-    chunk_size = max(5, min(chunk_size, 100))
+    # Apply safety limits: 5 to 250 slices
+    chunk_size = max(5, min(chunk_size, 250))
     
     # Log memory information
     logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
@@ -802,6 +802,11 @@ def run_inference(
     - Processes chunks directly in memory
     """
     out_path = _make_out_path(image_path, output_dir, "_dseg")
+    
+    # Load original image affine/header FIRST (before any transforms)
+    orig_nii = nib.load(image_path)
+    orig_affine = orig_nii.affine.copy()
+    orig_header = orig_nii.header.copy()
     
     # Load and preprocess the full volume ONCE
     logging.info("Loading and preprocessing image...")
@@ -845,13 +850,8 @@ def run_inference(
         # Apply connected components
         full_seg = connected_chunks(seg_np)
         
-        # Load original file to get exact affine and header (bypass metadata issues)
-        orig_nii = nib.load(image_path)
-        affine = orig_nii.affine.copy()
-        header = orig_nii.header.copy()
-        
-        # Save with original affine/header
-        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        # Save with original affine/header (loaded at function start)
+        nib.save(nib.Nifti1Image(full_seg, orig_affine, orig_header), out_path)
         
         # Cleanup
         del tensor, tensor_batch, pred, single_pred, seg_np, full_seg, data
@@ -945,13 +945,8 @@ def run_inference(
     logging.info("Applying connected components filtering...")
     full_seg = connected_chunks(seg_np)
     
-    # Load original file to get exact affine and header (bypass metadata issues)
-    orig_nii = nib.load(image_path)
-    affine = orig_nii.affine.copy()
-    header = orig_nii.header.copy()
-    
-    # Save final result with original affine/header
-    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+    # Save final result with original affine/header (loaded at function start)
+    nib.save(nib.Nifti1Image(full_seg, orig_affine, orig_header), out_path)
     
     # Final cleanup
     del tensor, pred_full, seg_tensor, seg_np, full_seg, data
