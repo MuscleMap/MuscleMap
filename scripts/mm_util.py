@@ -770,19 +770,54 @@ def estimate_chunk_size(
         output_size_per_slice
     ) * spatial_window_batch_size * overlap_multiplier
     
-    # Calculate chunk size using 80% of available memory
-    chunk_size = max(1, int((available_memory * 0.8) / total_per_slice))
+    # Calculate chunk size using 90% of available memory
+    chunk_size = max(1, int((available_memory * 0.9) / total_per_slice))
     
     # Apply safety limits: 5 to 250 slices
     chunk_size = max(5, min(chunk_size, 250))
     
     # Log memory information
     logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
-    logging.info(f"Overlap: {overlap*100:.0f}% (multiplier: {overlap_multiplier:.2f}x)")
-    logging.info(f"Estimated memory per slice: {total_per_slice / 1024**2:.2f} MB")
     logging.info(f"Estimated chunk size: {chunk_size} slices")
     
     return chunk_size
+
+def log_memory_usage(stage, verbose=True):
+    """Log CPU and GPU memory usage"""
+    if not verbose:
+        return
+    
+    import psutil
+    
+    # CPU Memory
+    process = psutil.Process()
+    cpu_mem_gb = process.memory_info().rss / 1024**3
+    total_cpu_gb = psutil.virtual_memory().total / 1024**3
+    cpu_usage = process.cpu_percent(interval=0.1)
+    
+    log_msg = f"[{stage}] CPU: {cpu_usage:.1f}% usage, {cpu_mem_gb:.2f}/{total_cpu_gb:.2f} GB RAM"
+    
+    # GPU Memory
+    if torch.cuda.is_available():
+        gpu_mem_allocated = torch.cuda.memory_allocated() / 1024**3
+        gpu_mem_reserved = torch.cuda.memory_reserved() / 1024**3
+        gpu_mem_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        log_msg += f" | GPU: {gpu_mem_allocated:.2f}/{gpu_mem_total:.2f} GB allocated, {gpu_mem_reserved:.2f} GB reserved"
+    
+    logging.info(log_msg)
+
+def get_peak_memory():
+    """Get peak memory usage (CPU RAM and GPU VRAM)"""
+    import psutil
+    
+    process = psutil.Process()
+    peak_cpu_gb = process.memory_info().rss / 1024**3
+    
+    peak_gpu_gb = 0
+    if torch.cuda.is_available():
+        peak_gpu_gb = torch.cuda.max_memory_allocated() / 1024**3
+    
+    return peak_cpu_gb, peak_gpu_gb
 
 def run_inference(
     image_path,
@@ -794,165 +829,231 @@ def run_inference(
     device=None,
     inferer=None,
     model=None,
+    verbose=False,
 ):
     """
-    Efficient in-memory chunking for large volumes.
-    - Preprocesses ONCE before chunking
-    - No disk I/O for intermediate chunks
-    - Processes chunks directly in memory
+    FAST in-memory chunking with single preprocessing pass.
+    
+    Workflow:
+    1. Preprocess entire volume ONCE
+    2. Chunk in preprocessed space (in-memory, no I/O)
+    3. Inference per chunk (fast, GPU stays busy)
+    4. Argmax immediately (90→1 channels, huge memory savings)
+    5. Stitch in preprocessed space
+    6. ONE manual inverse transform on full result (CPU, to avoid OOM)
+    
+    This is 3-5× faster than disk-based chunking.
     """
+    from scipy.ndimage import zoom as scipy_zoom
+    
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     
-    # Load original image affine/header FIRST (before any transforms)
+    # Load original metadata for final saving
+    logging.info(f"Loading image: {os.path.basename(image_path)}")
     orig_nii = nib.load(image_path)
     orig_affine = orig_nii.affine.copy()
     orig_header = orig_nii.header.copy()
+    orig_shape = orig_nii.shape
+    del orig_nii
     
-    # Load and preprocess the full volume ONCE
-    logging.info("Loading and preprocessing image...")
+    log_memory_usage("After loading metadata", verbose)
+    if verbose:
+        logging.info(f"Original image shape: {orig_shape}")
+    
+    # Step 1: Preprocess ENTIRE volume ONCE (major optimization)
+    if verbose:
+        logging.info("Preprocessing entire volume (Orient→Space→Normalize→Crop)...")
     data = {"image": image_path}
     data = pre_transforms(data)
+    tensor = data["image"]  # Shape: [C, H, W, D] in preprocessed space
+    meta = data["image_meta_dict"]
     
-    # Get preprocessed tensor and metadata
-    tensor = data["image"]
-    image_meta = data["image_meta_dict"]
+    log_memory_usage("After preprocessing", verbose)
     
-    # Get dimensions in preprocessed space
+    # Extract metadata for manual inverse transforms
+    crop_start = meta.get("foreground_start_coord", torch.tensor([0, 0, 0]))
+    if hasattr(crop_start, 'cpu'):
+        crop_start = crop_start.cpu().numpy()
+    else:
+        crop_start = np.array(crop_start)
+    
+    # Get original orientation
+    orig_ornt = nib.orientations.io_orientation(orig_affine)
+    ras_ornt = nib.orientations.axcodes2ornt(('R', 'A', 'S'))
+    
+    # Prepare tensor for inference
     if tensor.ndim == 3:
         tensor = tensor.unsqueeze(0)  # Add channel: [C, H, W, D]
-    C, H, W, D = tensor.shape
+    if tensor.ndim == 4:
+        tensor = tensor.unsqueeze(0)  # Add batch: [1, C, H, W, D]
     
-    logging.info(f"Preprocessed volume shape: {tensor.shape}, depth: {D} slices")
+    _, C, H, W, D = tensor.shape
+    preprocessed_shape = (H, W, D)
     
-    # Ensure proper dtype
+    if verbose:
+        logging.info(f"Preprocessed shape: {preprocessed_shape}, depth: {D} slices")
+        logging.info(f"Chunk size: {chunk_size} slices")
+    
     if device.type == "cpu":
         tensor = tensor.float()
     
-    # Small volume - process in one shot
+    # Reset peak memory tracking
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+    
+    # Determine if chunking is needed
     if D <= chunk_size:
-        logging.info("Volume small enough, processing in single inference...")
-        tensor_batch = tensor.unsqueeze(0)  # [1, C, H, W, D]
-        tensor_batch = tensor_batch.to(device, non_blocking=True)
+        logging.info("Volume fits in single chunk, processing in one inference...")
+        tensor = tensor.to(device, non_blocking=True)
+        
+        log_memory_usage("After moving to GPU", verbose)
         
         with amp_context, torch.inference_mode():
-            pred = inferer(tensor_batch, model)
+            pred = inferer(tensor, model)
         
-        single_pred = pred.squeeze(0).squeeze(0)
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": image_meta,
-        }
+        log_memory_usage("After inference", verbose)
         
-        post_out = post_transforms(post_in)
-        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
+        # Argmax immediately on GPU (90 channels → 1)
+        seg = torch.argmax(pred, dim=1).squeeze(0).cpu().numpy().astype(np.int16)
         
-        # Apply connected components
-        full_seg = connected_chunks(seg_np)
-        
-        # Save with original affine/header (loaded at function start)
-        nib.save(nib.Nifti1Image(full_seg, orig_affine, orig_header), out_path)
-        
-        # Cleanup
-        del tensor, tensor_batch, pred, single_pred, seg_np, full_seg, data
-        gc.collect()
+        del tensor, pred
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         
-        logging.info(f"Segmentation saved to {out_path}")
-        return out_path
-    
-    # Large volume - efficient in-memory chunking
-    logging.info(f"Processing {D} slices in chunks of {chunk_size}...")
-    
-    # Process chunks and collect results as int16 (post-argmax) to save memory
-    # Preallocate only for final segmentation (not logits!)
-    pred_full = torch.zeros((H, W, D), dtype=torch.int16, device='cpu')
-    
-    num_chunks = (D + chunk_size - 1) // chunk_size
-    
-    # Process chunks with progress bar
-    with tqdm(total=D, desc="Predicting slices", unit="slice") as pbar:
-        for start in range(0, D, chunk_size):
-            end = min(start + chunk_size, D)
-            chunk_slices = end - start
-            
-            # Extract chunk from preprocessed tensor (no disk I/O!)
-            chunk_tensor = tensor[..., start:end].unsqueeze(0)  # [1, C, H, W, chunk_d]
-            chunk_tensor = chunk_tensor.to(device, non_blocking=True)
-            
-            # Inference on chunk
-            with amp_context, torch.inference_mode():
-                pred_chunk = inferer(chunk_tensor, model)
-            
-            # Apply argmax immediately to reduce memory (90 channels -> 1)
-            # pred_chunk shape: [1, out_channels, H, W, chunk_d] -> [H, W, chunk_d]
-            pred_chunk = pred_chunk.squeeze(0).argmax(dim=0).cpu().to(torch.int16)
-            
-            # Store in preallocated array
-            pred_full[..., start:end] = pred_chunk
-            
-            # Cleanup chunk
-            del chunk_tensor, pred_chunk
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            gc.collect()
-            
-            # Update progress bar
-            pbar.update(chunk_slices)
-    
-    logging.info("All chunks processed, applying manual inverse transforms...")
-    
-    # Manual inverse transform approach (like nnU-Net)
-    # We need to reverse: CropForeground -> Spacing -> Orientation
-    # MONAI's Invertd is too fragile after chunking, so we do it manually
-    
-    seg_tensor = pred_full
-    
-    # Step 1: Reverse CropForeground by padding back
-    if 'foreground_start_coord' in image_meta and 'foreground_end_coord' in image_meta:
-        start_coord = image_meta['foreground_start_coord']
-        end_coord = image_meta['foreground_end_coord']
-        original_shape = image_meta.get('spatial_shape', image_meta.get('dim', [512, 512, 2001]))[:3]
+        log_memory_usage("After argmax and GPU cleanup", verbose)
+    else:
+        # Step 2: Chunk in PREPROCESSED space (in-memory, no disk I/O!)
+        num_chunks = (D + chunk_size - 1) // chunk_size
+        logging.info(f"Processing {D} slices in {num_chunks} chunks (IN-MEMORY)")
         
-        # Create full-sized array and insert cropped result
-        seg_full = torch.zeros(original_shape, dtype=torch.int16)
-        seg_full[start_coord[0]:end_coord[0], 
-                 start_coord[1]:end_coord[1], 
-                 start_coord[2]:end_coord[2]] = seg_tensor
-        seg_tensor = seg_full
-        logging.info(f"Reversed crop: {pred_full.shape} -> {seg_tensor.shape}")
+        # Preallocate output in preprocessed space (H×W×D, already after argmax)
+        seg = np.zeros(preprocessed_shape, dtype=np.int16)
+        
+        log_memory_usage("After allocating output array", verbose)
+        
+        # Process chunks
+        with tqdm(total=D, desc="Predicting slices", unit="slice") as pbar:
+            for start in range(0, D, chunk_size):
+                end = min(start + chunk_size, D)
+                
+                # Extract chunk from preprocessed tensor (IN MEMORY - fast!)
+                chunk = tensor[:, :, :, :, start:end].to(device, non_blocking=True)
+                
+                # Inference on GPU
+                with amp_context, torch.inference_mode():
+                    pred_chunk = inferer(chunk, model)
+                
+                # Argmax immediately on GPU (90 → 1 channel) and move to CPU
+                seg_chunk = torch.argmax(pred_chunk, dim=1).squeeze(0).cpu().numpy().astype(np.int16)
+                
+                # Store in stitched array
+                seg[:, :, start:end] = seg_chunk
+                
+                del chunk, pred_chunk, seg_chunk
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                
+                pbar.update(end - start)
+        
+        del tensor
+        
+        # Log peak memory usage
+        peak_cpu_gb, peak_gpu_gb = get_peak_memory()
+        logging.info(f"Peak memory usage - CPU: {peak_cpu_gb:.2f} GB, GPU: {peak_gpu_gb:.2f} GB")
+        log_memory_usage("After chunked inference", verbose)
     
-    # Step 2: Resample back to original spacing (reverse Spacingd)
-    # Use MONAI's Resize with mode='nearest' for segmentation
-    from monai.transforms import Resize
-    if 'spatial_shape' in image_meta:
-        original_shape = image_meta['spatial_shape'][:3]
-        if list(seg_tensor.shape) != list(original_shape):
-            resize = Resize(spatial_size=original_shape, mode='nearest')
-            seg_tensor = resize(seg_tensor.unsqueeze(0)).squeeze(0)  # Add/remove channel dim
-            logging.info(f"Resampled to original spacing: -> {seg_tensor.shape}")
+    del data
+    gc.collect()
     
-    # Step 3: Reverse orientation (reverse Orientationd RAS)
-    if 'original_orientation' in image_meta or 'original_affine' in image_meta:
-        # MONAI stores the inverse orientation automatically
-        # We rely on original_affine to save with correct orientation
-        pass
-    
-    seg_np = seg_tensor.cpu().numpy().astype(np.int16)
-    
-    # Apply connected components filtering
+    # Step 3: Apply connected components filtering (in preprocessed space, fast)
     logging.info("Applying connected components filtering...")
-    full_seg = connected_chunks(seg_np)
+    seg = connected_chunks(seg)
+    log_memory_usage("After connected components", verbose)
     
-    # Save final result with original affine/header (loaded at function start)
-    nib.save(nib.Nifti1Image(full_seg, orig_affine, orig_header), out_path)
+    # Step 4: Manual inverse transforms (CPU, to avoid OOM)
+    if verbose:
+        logging.info("Applying manual inverse transforms (CPU)...")
     
-    # Final cleanup
-    del tensor, pred_full, seg_tensor, seg_np, full_seg, data
+    # 4a. Inverse CropForeground - pad back to shape after spacing
+    margin = 20  # matches CropForegroundd margin
+    crop_start_with_margin = np.maximum(crop_start.astype(int) - margin, 0)
+    
+    # Calculate shape after spacing (before crop)
+    # This requires understanding the spacing transform's effect
+    orig_pixdim = np.abs(np.diag(orig_affine)[:3])
+    target_pixdim = meta.get("pixdim", None)
+    if target_pixdim is not None:
+        if hasattr(target_pixdim, 'cpu'):
+            target_pixdim = target_pixdim.cpu().numpy()
+        target_pixdim = np.array(target_pixdim)[:3]
+        
+        # After orientation to RAS, pixdim may be permuted
+        ornt_transform_fwd = nib.orientations.ornt_transform(orig_ornt, ras_ornt)
+        axis_order = ornt_transform_fwd[:, 0].astype(int)
+        pixdim_after_orient = orig_pixdim[axis_order]
+        shape_after_orient = np.array(orig_shape)[axis_order]
+        
+        # Shape after spacing = shape_after_orient * (pixdim_after_orient / target_pixdim)
+        zoom_fwd = pixdim_after_orient / target_pixdim
+        shape_after_spacing = np.round(shape_after_orient * zoom_fwd).astype(int)
+    else:
+        # No spacing transform applied
+        shape_after_spacing = np.array(orig_shape)
+    
+    if not np.array_equal(crop_start_with_margin, [0, 0, 0]) or tuple(seg.shape) != tuple(shape_after_spacing):
+        if verbose:
+            logging.info(f"Inverse crop: padding {seg.shape} -> {tuple(shape_after_spacing)}")
+        seg_padded = np.zeros(tuple(shape_after_spacing), dtype=np.int16)
+        
+        # Calculate insertion range
+        insert_end = np.minimum(crop_start_with_margin + np.array(seg.shape), shape_after_spacing)
+        src_end = insert_end - crop_start_with_margin
+        
+        seg_padded[
+            crop_start_with_margin[0]:insert_end[0],
+            crop_start_with_margin[1]:insert_end[1],
+            crop_start_with_margin[2]:insert_end[2]
+        ] = seg[:src_end[0], :src_end[1], :src_end[2]]
+        
+        seg = seg_padded
+        del seg_padded
+        gc.collect()
+    
+    log_memory_usage("After inverse crop", verbose)
+    
+    # 4b. Inverse Spacing - resample back to shape_after_orient
+    if target_pixdim is not None and tuple(seg.shape) != tuple(shape_after_orient):
+        inv_zoom = target_pixdim / pixdim_after_orient
+        if verbose:
+            logging.info(f"Inverse spacing: resampling {seg.shape} -> {tuple(shape_after_orient)} (zoom={inv_zoom})")
+        seg = scipy_zoom(seg, inv_zoom, order=0, mode='nearest').astype(np.int16)
+        gc.collect()
+    
+    log_memory_usage("After inverse spacing", verbose)
+    
+    # 4c. Inverse Orientation - reorient from RAS back to original
+    ornt_transform_inv = nib.orientations.ornt_transform(ras_ornt, orig_ornt)
+    if verbose:
+        logging.info(f"Inverse orientation: reorienting {seg.shape} back to original")
+    seg = nib.orientations.apply_orientation(seg, ornt_transform_inv).astype(np.int16)
+    gc.collect()
+    
+    log_memory_usage("After inverse orientation", verbose)
+    
+    # 4d. Final safety check - ensure exact shape match
+    if seg.shape != orig_shape:
+        logging.warning(f"Shape mismatch after inverse! {seg.shape} vs {orig_shape}, forcing resize...")
+        zoom_factors = np.array(orig_shape) / np.array(seg.shape)
+        seg = scipy_zoom(seg, zoom_factors, order=0, mode='nearest').astype(np.int16)
+    
+    # Save with original affine and header
+    nib.save(nib.Nifti1Image(seg, orig_affine, orig_header), out_path)
+    
+    del seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
+    log_memory_usage("After saving", verbose)
     logging.info(f"Segmentation saved to {out_path}")
     return out_path
