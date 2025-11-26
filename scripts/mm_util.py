@@ -6,7 +6,7 @@ import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-from monai.transforms import (MapTransform)
+from monai.transforms import (MapTransform, Compose)
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
@@ -936,13 +936,13 @@ def estimate_chunk_size(
         bytes_per_value = 2 if use_fp16 else 4
         
         # Calculate memory per slice (SIMPLE - from working version)
-        # 1. Input memory per slice
+        # Input memory per slice
         input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
         
-        # 2. Output memory per slice (before argmax)
+        # Output memory per slice (before argmax)
         output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
         
-        # 3. Calculate UNet activation memory across all encoder/decoder levels
+        # Calculate UNet activation memory across all encoder/decoder levels
         activation_size = 0
         for i, ch in enumerate(channels):
             # Spatial dimensions reduce by 2^i at each level
@@ -953,7 +953,7 @@ def estimate_chunk_size(
         # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
         activation_size_per_slice = activation_size * 1.3
         
-        # 4. Account for sliding window overlap
+        # Account for sliding window overlap
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
         
         # Total memory per slice accounting for all factors
@@ -1411,27 +1411,63 @@ def run_inference(
             else:
                 raise
 
-    temp_dir = os.path.join(output_dir, "temp_chunks")
-    os.makedirs(temp_dir, exist_ok=True)
-    gc.collect()  
-    chunk_files = []
-    for start in range(0, D, chunk_size):
-        end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
-        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-        del vol_chunk  
-        chunk_files.append({"image": chunk_path, "start": start, "end": end})
-
-    del img_data, img_nii
-    gc.collect()
-
+    # In-memory chunking: process chunks directly from numpy without writing chunk files to disk
     mem_monitor.start_stage("Inference")
-    with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
-        for i, entry in enumerate(chunk_files):
+
+    # Create a Compose that excludes LoadImaged (we will feed numpy arrays directly)
+    try:
+        pre_transforms_no_load = Compose(pre_transforms.transforms[1:])
+    except Exception:
+        # Fallback: if pre_transforms isn't a MONAI Compose or has no .transforms, reuse original
+        pre_transforms_no_load = pre_transforms
+
+    # If post_transforms contains an Invertd instance, replace its transform with the one we applied
+    import copy
+    local_post_transforms = None
+    try:
+        if hasattr(post_transforms, 'transforms'):
+            new_transforms = []
+            for t in post_transforms.transforms:
+                if getattr(t, "__class__", None).__name__ == 'Invertd':
+                    # clone and swap transform to pre_transforms_no_load
+                    t_copy = copy.deepcopy(t)
+                    try:
+                        t_copy.transform = pre_transforms_no_load
+                    except Exception:
+                        pass
+                    new_transforms.append(t_copy)
+                else:
+                    new_transforms.append(copy.deepcopy(t))
+            local_post_transforms = Compose(new_transforms)
+        else:
+            local_post_transforms = post_transforms
+    except Exception:
+        local_post_transforms = post_transforms
+
+    dims = header.get_data_shape()
+    full_seg = np.zeros(dims, dtype=np.int16)
+    total_chunks = (D + chunk_size - 1) // chunk_size
+    with tqdm(total=total_chunks, desc="Processing chunks (in-memory)", unit="chunk") as pbar:
+        for i, start in enumerate(range(0, D, chunk_size)):
+            end = min(start + chunk_size, D)
             try:
-                data   = {"image": entry["image"]}
-                data   = pre_transforms(data)
+                # Extract chunk as numpy array
+                vol_chunk = img_data[..., start:end]
+
+                # Build initial data with meta so downstream transforms/inversion can use it
+                data = {
+                    "image": vol_chunk,
+                    "image_meta_dict": {
+                        "affine": affine.copy(),
+                        "original_affine": affine.copy(),
+                        "filename_or_obj": image_path,
+                        "spatial_shape": vol_chunk.shape,
+                    },
+                }
+
+                # Apply preprocessing excluding LoadImaged
+                data = pre_transforms_no_load(data)
+
                 tensor = data["image"]
                 if device.type in ["cpu", "mps"]:
                     tensor = tensor.float()  # MPS doesn't support float64
@@ -1443,77 +1479,65 @@ def run_inference(
                     pred = inferer(tensor, model)
 
                 single_pred = pred.squeeze(0).squeeze(0)
+
                 post_in = {
                     "pred": single_pred,
-                    "image": data["image"],
-                    "image_meta_dict": data["image_meta_dict"],
+                    "image": data.get("image"),
+                    "image_meta_dict": data.get("image_meta_dict"),
                 }
-                del data  
-                post_out = post_transforms(post_in)
+                del data
+
+                post_out = local_post_transforms(post_in)
                 seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
                 seg_np = seg_tensor.numpy()
-                seg_path = os.path.join(
-                    temp_dir,
-                    f"seg_{entry['start']}_{entry['end']}.nii.gz"
-                )
-                nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
-                entry["seg"] = seg_path
-                del seg_np  
 
-                del tensor, pred, single_pred, post_in, post_out, seg_tensor
+                # Place chunk into full segmentation
+                full_seg[..., start:end] = seg_np
+
+                # cleanup
+                del seg_np, seg_tensor, pred, single_pred, tensor
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 gc.collect()
-                
+
                 # Collect metrics after each chunk if verbose
                 if verbose and metrics_data is not None:
                     cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
                     metrics_data.append({
                         'stage': 'Inference',
-                        'label': f'Chunk {i+1}/{len(chunk_files)}',
+                        'label': f'Chunk {i+1}/{total_chunks}',
                         'cpu_used': cpu_used,
                         'cpu_total': cpu_total,
                         'gpu_used': gpu_used,
                         'gpu_reserved': gpu_reserved,
                         'gpu_total': gpu_total
                     })
-                
+
                 pbar.update(1)
             except RuntimeError as e:
                 if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
                     logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU for remaining chunks: {e}")
                     _record_oom_failure(img_shape, device.type, chunk_size=chunk_size)
-                    
-                    # Retry on CPU
+
+                    # Retry entire inference on CPU fallback
                     torch.cuda.empty_cache()
                     gc.collect()
                     device = fallback_device
                     model = model.to(device).float()
                     amp_context = torch.autocast('cpu', enabled=False)
-                    
-                    # Clean up and retry with CPU
-                    shutil.rmtree(temp_dir, ignore_errors=True)
+
                     return run_inference(
                         image_path, output_dir, pre_transforms, post_transforms,
                         amp_context, chunk_size, device, inferer, model, verbose, None
                     )
                 else:
                     raise
-    
+
     mem_monitor.end_stage()
 
     # Stage: Post-processing
     mem_monitor.start_stage("Post-processing")
-    dims     = header.get_data_shape()  
-    full_seg = np.zeros(dims, dtype=np.int16)
-    for entry in chunk_files:
-        s, e, sp = entry["start"], entry["end"], entry["seg"]
-        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
-        full_seg[..., s:e] = vol_seg
-        gc.collect()
-        del vol_seg 
-
-    gc.collect()  
+    gc.collect()
     full_seg = connected_chunks(full_seg)
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     
@@ -1541,5 +1565,4 @@ def run_inference(
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    shutil.rmtree(temp_dir, ignore_errors=True)
     return out_path
