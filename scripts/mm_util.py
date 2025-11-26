@@ -19,6 +19,9 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import psutil
 import hashlib
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
 
 # Global OOM cache to track failures and enable automatic fallback
 OOM_CACHE_FILE = os.path.expanduser("~/.musclemap_oom_cache.json")
@@ -1031,6 +1034,149 @@ def get_peak_memory(reset=False):
     return peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb
 
 
+def _get_memory_usage():
+    """Get current CPU and GPU memory usage in GB"""
+    import psutil
+    
+    # CPU memory - process usage and total system RAM
+    process = psutil.Process()
+    cpu_used = process.memory_info().rss / 1024**3
+    cpu_total = psutil.virtual_memory().total / 1024**3
+    
+    # GPU memory - allocated, reserved, and total
+    gpu_used = 0
+    gpu_reserved = 0
+    gpu_total = 0
+    if torch.cuda.is_available():
+        gpu_used = torch.cuda.memory_allocated() / 1024**3
+        gpu_reserved = torch.cuda.memory_reserved() / 1024**3
+        gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    
+    return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
+
+
+def _plot_performance_metrics(metrics_data, output_path):
+    """Create a line plot of CPU and GPU usage across processing stages"""
+    if not metrics_data:
+        return
+    
+    # Create figure with dual y-axes
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+    
+    # Extract data
+    x_positions = list(range(len(metrics_data)))
+    gpu_used = [m['gpu_used'] for m in metrics_data]
+    gpu_reserved = [m['gpu_reserved'] for m in metrics_data]
+    gpu_total = [m['gpu_total'] for m in metrics_data]
+    cpu_used = [m['cpu_used'] for m in metrics_data]
+    cpu_total = [m['cpu_total'] for m in metrics_data]
+    stages = [m['stage'] for m in metrics_data]
+    chunk_labels = [m['label'] for m in metrics_data]
+    
+    # Calculate cumulative sums (only increasing)
+    cpu_cumulative = []
+    gpu_cumulative = []
+    cpu_sum = 0
+    gpu_sum = 0
+    for cpu, gpu in zip(cpu_used, gpu_used):
+        cpu_sum += cpu
+        gpu_sum += gpu
+        cpu_cumulative.append(cpu_sum)
+        gpu_cumulative.append(gpu_sum)
+    
+    # Get total memory values (should be constant)
+    gpu_total_val = gpu_total[0] if gpu_total and gpu_total[0] > 0 else None
+    cpu_total_val = cpu_total[0] if cpu_total else None
+    
+    # Plot GPU on left y-axis
+    color_gpu = '#2563eb'  # Blue
+    color_gpu_reserved = '#7c3aed'  # Purple
+    color_gpu_cumulative = '#06b6d4'  # Cyan
+    color_gpu_total = '#93c5fd'  # Light blue
+    ax1.set_xlabel('Processing Stage', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('GPU Memory (GB)', color=color_gpu, fontsize=12, fontweight='bold')
+    
+    # Plot GPU used (allocated)
+    ax1.plot(x_positions, gpu_used, color=color_gpu, linewidth=2, 
+             marker='o', markersize=4, label='GPU Used (Allocated)')
+    
+    # Plot GPU reserved
+    ax1.plot(x_positions, gpu_reserved, color=color_gpu_reserved, linewidth=2, 
+             marker='^', markersize=4, linestyle='--', label='GPU Reserved')
+    
+    # Plot GPU cumulative
+    ax1.plot(x_positions, gpu_cumulative, color=color_gpu_cumulative, linewidth=2.5, 
+             marker='*', markersize=5, linestyle=':', alpha=0.7, label='GPU Cumulative')
+    
+    # Plot GPU total as horizontal line if available
+    if gpu_total_val:
+        ax1.axhline(y=gpu_total_val, color=color_gpu_total, linestyle='--', 
+                   linewidth=1.5, alpha=0.7, label=f'GPU Total ({gpu_total_val:.1f} GB)')
+    
+    ax1.tick_params(axis='y', labelcolor=color_gpu)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    
+    # Create right y-axis for CPU
+    ax2 = ax1.twinx()
+    color_cpu = '#dc2626'  # Red
+    color_cpu_cumulative = '#f59e0b'  # Orange
+    color_cpu_total = '#fca5a5'  # Light red
+    ax2.set_ylabel('CPU Memory (GB)', color=color_cpu, fontsize=12, fontweight='bold')
+    
+    # Plot CPU used
+    ax2.plot(x_positions, cpu_used, color=color_cpu, linewidth=2,
+             marker='s', markersize=4, label='CPU Used')
+    
+    # Plot CPU cumulative
+    ax2.plot(x_positions, cpu_cumulative, color=color_cpu_cumulative, linewidth=2.5,
+             marker='*', markersize=5, linestyle=':', alpha=0.7, label='CPU Cumulative')
+    
+    # Plot CPU total as horizontal line if available
+    if cpu_total_val:
+        ax2.axhline(y=cpu_total_val, color=color_cpu_total, linestyle='--', 
+                   linewidth=1.5, alpha=0.7, label=f'CPU Total ({cpu_total_val:.1f} GB)')
+    
+    ax2.tick_params(axis='y', labelcolor=color_cpu)
+    
+    # Set x-axis ticks and labels - show only every 3rd label
+    stage_starts = {}
+    for i, stage in enumerate(stages):
+        if stage not in stage_starts:
+            stage_starts[stage] = i
+    
+    # Set all tick positions but only label every 3rd one
+    ax1.set_xticks(x_positions)
+    x_labels = []
+    for i, label in enumerate(chunk_labels):
+        if i % 3 == 0:
+            x_labels.append(label)
+        else:
+            x_labels.append('')
+    ax1.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=6)
+    
+    # Add bold stage markers at the top
+    for stage, pos in stage_starts.items():
+        ax1.text(pos, ax1.get_ylim()[1] * 1.05, stage, 
+                fontweight='bold', fontsize=9, ha='left')
+    
+    # Add legend
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9)
+    
+    # Minimal theme adjustments
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    
+    plt.title('CPU and GPU Memory Usage During Processing (Used vs Total)', 
+             fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    
+    # Save plot
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    logging.info(f"Performance plot saved to: {output_path}")
+
 
 def run_inference_sliding_window(
     image_path,
@@ -1140,6 +1286,9 @@ def run_inference(
     # Initialize memory monitor
     mem_monitor = MemoryMonitor(device.type, verbose)
     
+    # Initialize metrics collection if verbose
+    metrics_data = [] if verbose else None
+    
     mem_monitor.start_stage("Preprocessing")
     img_nii  = nib.load(image_path)
     affine   = img_nii.affine.copy()
@@ -1159,6 +1308,19 @@ def run_inference(
     
     mem_monitor.end_stage()
     
+    # Collect metrics after preprocessing if verbose
+    if verbose and metrics_data is not None:
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'Preprocessing',
+            'label': 'Load Image',
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+    
     if D <= chunk_size:
         try:
             mem_monitor.start_stage("Inference")
@@ -1175,6 +1337,19 @@ def run_inference(
                 pred = inferer(tensor, model)
             
             mem_monitor.end_stage()
+            
+            # Collect metrics after inference if verbose
+            if verbose and metrics_data is not None:
+                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                metrics_data.append({
+                    'stage': 'Inference',
+                    'label': 'Single chunk',
+                    'cpu_used': cpu_used,
+                    'cpu_total': cpu_total,
+                    'gpu_used': gpu_used,
+                    'gpu_reserved': gpu_reserved,
+                    'gpu_total': gpu_total
+                })
 
             # Stage: Post-processing
             mem_monitor.start_stage("Post-processing")
@@ -1192,6 +1367,23 @@ def run_inference(
             full_seg = connected_chunks(seg_np)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
             mem_monitor.end_stage()
+            
+            # Collect metrics after post-processing if verbose
+            if verbose and metrics_data is not None:
+                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                metrics_data.append({
+                    'stage': 'Post-processing',
+                    'label': 'Save result',
+                    'cpu_used': cpu_used,
+                    'cpu_total': cpu_total,
+                    'gpu_used': gpu_used,
+                    'gpu_reserved': gpu_reserved,
+                    'gpu_total': gpu_total
+                })
+                
+                # Generate performance plot
+                plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
+                _plot_performance_metrics(metrics_data, plot_path)
             
             del seg_np  
             # cleanup
@@ -1272,6 +1464,20 @@ def run_inference(
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 gc.collect()
+                
+                # Collect metrics after each chunk if verbose
+                if verbose and metrics_data is not None:
+                    cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                    metrics_data.append({
+                        'stage': 'Inference',
+                        'label': f'Chunk {i+1}/{len(chunk_files)}',
+                        'cpu_used': cpu_used,
+                        'cpu_total': cpu_total,
+                        'gpu_used': gpu_used,
+                        'gpu_reserved': gpu_reserved,
+                        'gpu_total': gpu_total
+                    })
+                
                 pbar.update(1)
             except RuntimeError as e:
                 if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
@@ -1312,6 +1518,23 @@ def run_inference(
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     
     mem_monitor.end_stage()
+    
+    # Collect metrics after final post-processing if verbose
+    if verbose and metrics_data is not None:
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'Post-processing',
+            'label': 'Final assembly',
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+        
+        # Generate performance plot
+        plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
+        _plot_performance_metrics(metrics_data, plot_path)
 
     # final cleanup
     del full_seg
