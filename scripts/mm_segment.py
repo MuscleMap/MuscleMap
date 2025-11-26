@@ -234,14 +234,12 @@ def main():
     if device.type == 'cuda':
         model = model.half()
     
-    # Compile model for CPU/MPS optimization (PyTorch 2.0+)
-    if device.type in ['cpu', 'mps']:
+    # Compile model for CPU optimization (PyTorch 2.0+)
+    # Note: torch.compile only supports CPU and CUDA, not MPS
+    if device.type == 'cpu':
         try:
-            device_name = 'CPU' if device.type == 'cpu' else 'MPS'
-            logging.info(f"Compiling model with torch.compile for {device_name} optimization...")
-            # Use 'reduce-overhead' for MPS (more stable), 'max-autotune' for CPU
-            compile_mode = 'reduce-overhead' if device.type == 'mps' else 'max-autotune'
-            model = torch.compile(model, mode=compile_mode)
+            logging.info("Compiling model with torch.compile for CPU optimization...")
+            model = torch.compile(model, mode='max-autotune')
             logging.info("Model compilation successful")
         except Exception as e:
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
@@ -252,7 +250,8 @@ def main():
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     
     chunk_size_arg = args.chunk_size # args.chunk_size may be an integer string or the literal 'auto'
-
+    
+    errors_occurred = False
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
@@ -302,9 +301,11 @@ def main():
             logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
+            errors_occurred = True
             continue
     
-    logging.info("Inference completed. All outputs saved.")
+    if not errors_occurred:
+        logging.info("Inference completed. All outputs saved.")
 
 #%%
 if __name__ == "__main__":
