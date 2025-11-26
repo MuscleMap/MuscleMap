@@ -891,15 +891,15 @@ def estimate_chunk_size(
             input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
             output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
             
-            # Conservative estimate with overhead
-            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 5.0
+            # Aggressive estimate with reduced overhead for maximal speed
+            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 3.0
             
-            # Start conservative: use 20% of available RAM
-            memory_utilization = 0.20 * oom_penalty
+            # Use 60% of available RAM for maximal speed
+            memory_utilization = 0.60 * oom_penalty
             chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
             
-            # Conservative bounds: 10-50 slices
-            chunk_size = max(10, min(chunk_size, 50))
+            # Expanded bounds for maximal speed: 20-150 slices
+            chunk_size = max(20, min(chunk_size, 150))
             
             device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
             logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
