@@ -14,6 +14,9 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -678,6 +681,190 @@ def is_nifti(path: str) -> bool:
     p = path.lower()
     return p.endswith(".nii.gz") or p.endswith(".nii")
 
+def _get_memory_usage():
+    """Get current CPU and GPU memory usage in GB"""
+    import psutil
+    
+    # CPU memory - process usage and total system RAM
+    process = psutil.Process()
+    cpu_used = process.memory_info().rss / 1024**3
+    cpu_total = psutil.virtual_memory().total / 1024**3
+    
+    # GPU memory - allocated, reserved, and total
+    gpu_used = 0
+    gpu_reserved = 0
+    gpu_total = 0
+    if torch.cuda.is_available():
+        gpu_used = torch.cuda.memory_allocated() / 1024**3
+        gpu_reserved = torch.cuda.memory_reserved() / 1024**3
+        gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    
+    return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
+
+
+def get_peak_memory(reset: bool = False):
+    """Return peak CPU and GPU memory usage (GB).
+
+    Args:
+        reset: if True and CUDA is available, reset CUDA peak stats after reading.
+
+    Returns:
+        Tuple (peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb)
+    """
+    import psutil
+    peak_cpu_gb = 0.0
+    peak_gpu_allocated_gb = 0.0
+    peak_gpu_reserved_gb = 0.0
+
+    try:
+        process = psutil.Process()
+        # Use current RSS as a conservative peak indicator (portable)
+        peak_cpu_gb = process.memory_info().rss / 1024**3
+    except Exception:
+        peak_cpu_gb = 0.0
+
+    if torch.cuda.is_available():
+        try:
+            peak_gpu_allocated_gb = torch.cuda.max_memory_allocated() / 1024**3
+        except Exception:
+            peak_gpu_allocated_gb = 0.0
+        try:
+            peak_gpu_reserved_gb = torch.cuda.max_memory_reserved() / 1024**3
+        except Exception:
+            peak_gpu_reserved_gb = 0.0
+
+        if reset:
+            try:
+                torch.cuda.reset_peak_memory_stats()
+            except Exception:
+                pass
+
+    return peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb
+
+def _plot_performance_metrics(metrics_data, output_path):
+    """Create a line plot of CPU and GPU usage across processing stages"""
+    if not metrics_data:
+        return
+    
+    # Create figure with dual y-axes
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+    
+    # Extract data
+    x_positions = list(range(len(metrics_data)))
+    gpu_used = [m['gpu_used'] for m in metrics_data]
+    gpu_reserved = [m['gpu_reserved'] for m in metrics_data]
+    gpu_total = [m['gpu_total'] for m in metrics_data]
+    cpu_used = [m['cpu_used'] for m in metrics_data]
+    cpu_total = [m['cpu_total'] for m in metrics_data]
+    stages = [m['stage'] for m in metrics_data]
+    chunk_labels = [m['label'] for m in metrics_data]
+    
+    # Calculate cumulative sums (only increasing)
+    cpu_cumulative = []
+    gpu_cumulative = []
+    cpu_sum = 0
+    gpu_sum = 0
+    for cpu, gpu in zip(cpu_used, gpu_used):
+        cpu_sum += cpu
+        gpu_sum += gpu
+        cpu_cumulative.append(cpu_sum)
+        gpu_cumulative.append(gpu_sum)
+    
+    # Get total memory values (should be constant)
+    gpu_total_val = gpu_total[0] if gpu_total and gpu_total[0] > 0 else None
+    cpu_total_val = cpu_total[0] if cpu_total else None
+    
+    # Plot GPU on left y-axis
+    color_gpu = '#2563eb'  # Blue
+    color_gpu_reserved = '#7c3aed'  # Purple
+    color_gpu_cumulative = '#06b6d4'  # Cyan
+    color_gpu_total = '#93c5fd'  # Light blue
+    ax1.set_xlabel('Processing Stage', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('GPU Memory (GB)', color=color_gpu, fontsize=12, fontweight='bold')
+    
+    # Plot GPU used (allocated)
+    ax1.plot(x_positions, gpu_used, color=color_gpu, linewidth=2, 
+             marker='o', markersize=4, label='GPU Used (Allocated)')
+    
+    # Plot GPU reserved
+    ax1.plot(x_positions, gpu_reserved, color=color_gpu_reserved, linewidth=2, 
+             marker='^', markersize=4, linestyle='--', label='GPU Reserved')
+    
+    # Plot GPU cumulative
+    ax1.plot(x_positions, gpu_cumulative, color=color_gpu_cumulative, linewidth=2.5, 
+             marker='*', markersize=5, linestyle=':', alpha=0.7, label='GPU Cumulative')
+    
+    # Plot GPU total as horizontal line if available
+    if gpu_total_val:
+        ax1.axhline(y=gpu_total_val, color=color_gpu_total, linestyle='--', 
+                   linewidth=1.5, alpha=0.7, label=f'GPU Total ({gpu_total_val:.1f} GB)')
+    
+    ax1.tick_params(axis='y', labelcolor=color_gpu)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    
+    # Create right y-axis for CPU
+    ax2 = ax1.twinx()
+    color_cpu = '#dc2626'  # Red
+    color_cpu_cumulative = '#f59e0b'  # Orange
+    color_cpu_total = '#fca5a5'  # Light red
+    ax2.set_ylabel('CPU Memory (GB)', color=color_cpu, fontsize=12, fontweight='bold')
+    
+    # Plot CPU used
+    ax2.plot(x_positions, cpu_used, color=color_cpu, linewidth=2,
+             marker='s', markersize=4, label='CPU Used')
+    
+    # Plot CPU cumulative
+    ax2.plot(x_positions, cpu_cumulative, color=color_cpu_cumulative, linewidth=2.5,
+             marker='*', markersize=5, linestyle=':', alpha=0.7, label='CPU Cumulative')
+    
+    # Plot CPU total as horizontal line if available
+    if cpu_total_val:
+        ax2.axhline(y=cpu_total_val, color=color_cpu_total, linestyle='--', 
+                   linewidth=1.5, alpha=0.7, label=f'CPU Total ({cpu_total_val:.1f} GB)')
+    
+    ax2.tick_params(axis='y', labelcolor=color_cpu)
+    
+    # Set x-axis ticks and labels - show only every 3rd label (since pattern repeats: preprocess, predict, postprocess)
+    # Find stage boundaries for bold labels
+    stage_starts = {}
+    for i, stage in enumerate(stages):
+        if stage not in stage_starts:
+            stage_starts[stage] = i
+    
+    # Set all tick positions but only label every 3rd one
+    ax1.set_xticks(x_positions)
+    x_labels = []
+    for i, label in enumerate(chunk_labels):
+        if i % 3 == 0:  # Show every 3rd label
+            x_labels.append(label)
+        else:
+            x_labels.append('')  # Empty string for unlabeled ticks
+    ax1.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=6)
+    
+    # Add bold stage markers at the top
+    for stage, pos in stage_starts.items():
+        ax1.axvline(x=pos, color='gray', linestyle=':', alpha=0.5, linewidth=1.5)
+        ax1.text(pos, ax1.get_ylim()[1] * 1.02, stage.upper(), 
+                fontweight='bold', fontsize=11, ha='left')
+    
+    # Add legend
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9)
+    
+    # Minimal theme adjustments
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    
+    plt.title('CPU and GPU Memory Usage During Processing (Used vs Total)', 
+             fontsize=14, fontweight='bold', pad=20)
+    plt.tight_layout()
+    
+    # Save plot
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    logging.info(f"Performance plot saved to: {output_path}")
+
 def _make_out_path(image_path, output_dir, tag="_dseg"):
     fname = os.path.basename(image_path)
     if fname.endswith(".nii.gz"):
@@ -697,6 +884,9 @@ def run_inference(
     inferer=None,
     model=None,
 ):
+    # Initialize performance tracking
+    metrics_data = []
+    
     # 1) Load header + data
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
@@ -706,8 +896,25 @@ def run_inference(
     D        = img_data.shape[-1]
     
     if D <= chunk_size:
+        # Track preprocessing
+        logging.info("="*80)
+        logging.info("STARTING PREPROCESSING - Chunk 1")
+        logging.info("="*80)
+        CheckTransformMemory.reset_tracking()
+        
         data   = {"image": image_path}
         data   = pre_transforms(data)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'preprocessing',
+            'label': 'Chunk 1',
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+        
         tensor = data["image"]
         if device.type == "cpu":
             tensor = tensor.float()
@@ -715,8 +922,25 @@ def run_inference(
             tensor = tensor.unsqueeze(0)              
         tensor = tensor.to(device, non_blocking=True)
 
+        # Track prediction
+        logging.info("="*80)
+        logging.info("STARTING PREDICTION - Chunk 1")
+        logging.info("="*80)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        logging.info(f"Pre-prediction memory - RAM: {cpu_used:.2f}/{cpu_total:.1f} GB | GPU VRAM: {gpu_used:.2f} (Reserved: {gpu_reserved:.2f})/{gpu_total:.1f} GB")
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        logging.info(f"Post-prediction memory - RAM: {cpu_used:.2f}/{cpu_total:.1f} GB | GPU VRAM: {gpu_used:.2f} (Reserved: {gpu_reserved:.2f})/{gpu_total:.1f} GB")
+        metrics_data.append({
+            'stage': 'prediction',
+            'label': 'Chunk 1',
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
 
         single_pred = pred.squeeze(0).squeeze(0)     
         post_in = {
@@ -725,7 +949,23 @@ def run_inference(
             "image_meta_dict": data["image_meta_dict"],
         }
         del data
+        
+        # Track postprocessing
+        logging.info("="*80)
+        logging.info("STARTING POSTPROCESSING - Chunk 1")
+        logging.info("="*80)
         post_out    = post_transforms(post_in)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'postprocessing',
+            'label': 'Chunk 1',
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+        
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np      = seg_tensor.numpy()
         full_seg = connected_chunks(seg_np)
@@ -736,6 +976,11 @@ def run_inference(
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+        
+        # Generate performance plot
+        plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
+        _plot_performance_metrics(metrics_data, plot_path)
+        
         return out_path
 
     temp_dir = os.path.join(output_dir, "temp_chunks")
@@ -753,9 +998,28 @@ def run_inference(
     del img_data, img_nii
     gc.collect()
 
-    for entry in chunk_files:
+    for idx, entry in enumerate(chunk_files, 1):
+        chunk_label = f"Chunk {idx}"
+        
+        # Track preprocessing
+        logging.info("="*80)
+        logging.info(f"STARTING PREPROCESSING - {chunk_label}")
+        logging.info("="*80)
+        CheckTransformMemory.reset_tracking()
+        
         data   = {"image": entry["image"]}
         data   = pre_transforms(data)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'preprocessing',
+            'label': chunk_label,
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+        
         tensor = data["image"]
         if device.type == "cpu":
             tensor = tensor.float()
@@ -763,8 +1027,25 @@ def run_inference(
             tensor = tensor.unsqueeze(0)
         tensor = tensor.to(device, non_blocking=True)
 
+        # Track prediction
+        logging.info("="*80)
+        logging.info(f"STARTING PREDICTION - {chunk_label}")
+        logging.info("="*80)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        logging.info(f"Pre-prediction memory - RAM: {cpu_used:.2f}/{cpu_total:.1f} GB | GPU VRAM: {gpu_used:.2f} (Reserved: {gpu_reserved:.2f})/{gpu_total:.1f} GB")
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        logging.info(f"Post-prediction memory - RAM: {cpu_used:.2f}/{cpu_total:.1f} GB | GPU VRAM: {gpu_used:.2f} (Reserved: {gpu_reserved:.2f})/{gpu_total:.1f} GB")
+        metrics_data.append({
+            'stage': 'prediction',
+            'label': chunk_label,
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
 
         single_pred = pred.squeeze(0).squeeze(0)
         post_in = {
@@ -773,7 +1054,23 @@ def run_inference(
             "image_meta_dict": data["image_meta_dict"],
         }
         del data  
+        
+        # Track postprocessing
+        logging.info("="*80)
+        logging.info(f"STARTING POSTPROCESSING - {chunk_label}")
+        logging.info("="*80)
         post_out = post_transforms(post_in)
+        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        metrics_data.append({
+            'stage': 'postprocessing',
+            'label': chunk_label,
+            'cpu_used': cpu_used,
+            'cpu_total': cpu_total,
+            'gpu_used': gpu_used,
+            'gpu_reserved': gpu_reserved,
+            'gpu_total': gpu_total
+        })
+        
         seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np = seg_tensor.numpy()
         seg_path = os.path.join(
@@ -808,38 +1105,84 @@ def run_inference(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    # Generate performance plot
+    plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
+    _plot_performance_metrics(metrics_data, plot_path)
+    
     return out_path
 
 class CheckTransformMemory(MapTransform):
     """Check CPU and GPU memory usage before/after each transform"""
-    def __init__(self, transform_name, keys=None, allow_missing_keys=True):
+    # Class variables to track memory across transform calls
+    _last_cpu = None
+    _last_gpu = None
+    _peak_cpu = 0
+    _peak_gpu = 0
+    
+    def __init__(self, transform_name, keys=["image"], allow_missing_keys=True):
         super().__init__(keys if keys else [], allow_missing_keys)
         self.transform_name = transform_name
+    
+    @classmethod
+    def reset_tracking(cls):
+        """Reset memory tracking for a new chunk"""
+        cls._last_cpu = None
+        cls._last_gpu = None
+        cls._peak_cpu = 0
+        cls._peak_gpu = 0
         
     def __call__(self, data):
         import psutil
         
-        # Record memory BEFORE transform
+        # Record current memory
         process = psutil.Process()
-        cpu_before = process.memory_info().rss / 1024**3
+        cpu_current = process.memory_info().rss / 1024**3
         
-        gpu_before = 0
+        gpu_current = 0
         if torch.cuda.is_available():
-            gpu_before = torch.cuda.memory_allocated() / 1024**3
+            gpu_current = torch.cuda.memory_allocated() / 1024**3
+        
+        # Calculate delta from last measurement
+        if CheckTransformMemory._last_cpu is None:
+            cpu_delta = 0
+            gpu_delta = 0
+            CheckTransformMemory._peak_cpu = cpu_current
+            CheckTransformMemory._peak_gpu = gpu_current
+        else:
+            cpu_delta = cpu_current - CheckTransformMemory._last_cpu
+            gpu_delta = gpu_current - CheckTransformMemory._last_gpu
+            
+            # Track peaks
+            if cpu_current > CheckTransformMemory._peak_cpu:
+                CheckTransformMemory._peak_cpu = cpu_current
+            if gpu_current > CheckTransformMemory._peak_gpu:
+                CheckTransformMemory._peak_gpu = gpu_current
+        
+        # Update last values for next call
+        CheckTransformMemory._last_cpu = cpu_current
+        CheckTransformMemory._last_gpu = gpu_current
+        
+        # Determine spike/dip indicators with color codes
+        # ANSI color codes: green for spike, red for dip
+        GREEN = '\033[92m'
+        RED = '\033[91m'
+        RESET = '\033[0m'
+        
+        cpu_indicator = ""
+        gpu_indicator = ""
+        
+        if cpu_delta > 0.1:  # Spike threshold: 100MB
+            cpu_indicator = f" {GREEN}↑ SPIKE{RESET}"
+        elif cpu_delta < -0.1:  # Dip threshold: -100MB
+            cpu_indicator = f" {RED}↓ DIP{RESET}"
+        
+        if gpu_delta > 0.1:
+            gpu_indicator = f" {GREEN}↑ SPIKE{RESET}"
+        elif gpu_delta < -0.1:
+            gpu_indicator = f" {RED}↓ DIP{RESET}"
+        
+        logging.info(f"[{self.transform_name}] RAM: {cpu_current:.2f} GB (Δ {cpu_delta:+.3f} GB){cpu_indicator} | GPU VRAM: {gpu_current:.2f} GB (Δ {gpu_delta:+.3f} GB){gpu_indicator}")
         
         # Pass through data unchanged
-        d = dict(data)
-        
-        # Record memory AFTER (just from passthrough, no actual transform here)
-        cpu_after = process.memory_info().rss / 1024**3
-        gpu_after = 0
-        if torch.cuda.is_available():
-            gpu_after = torch.cuda.memory_allocated() / 1024**3
-        
-        # Log delta and total
-        cpu_delta = cpu_after - cpu_before
-        gpu_delta = gpu_after - gpu_before
-        
-        logging.info(f"[{self.transform_name}] RAM: {cpu_after:.2f} GB (Δ {cpu_delta:+.3f} GB) | GPU VRAM: {gpu_after:.2f} GB (Δ {gpu_delta:+.3f} GB)")
-        
-        return d
+        return dict(data)

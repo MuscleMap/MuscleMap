@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory, get_peak_memory
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory, get_peak_memory
 import torch
 
 #naming not functional
@@ -221,6 +221,11 @@ def main():
         try:
             run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
+            try:
+                peak_cpu, peak_gpu_alloc, peak_gpu_reserved = get_peak_memory(reset=True)
+                logging.info(f"Peak memory — CPU: {peak_cpu:.2f} GB | GPU allocated: {peak_gpu_alloc:.2f} GB | GPU reserved: {peak_gpu_reserved:.2f} GB")
+            except Exception as e:
+                logging.debug(f"Could not retrieve peak memory: {e}")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
