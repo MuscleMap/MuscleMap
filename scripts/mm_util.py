@@ -23,80 +23,6 @@ import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
-# Global OOM cache to track failures and enable automatic fallback
-OOM_CACHE_FILE = os.path.expanduser("~/.musclemap_oom_cache.json")
-
-def _load_oom_cache():
-    """Load OOM failure history from disk"""
-    if os.path.exists(OOM_CACHE_FILE):
-        try:
-            with open(OOM_CACHE_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def _save_oom_cache(cache):
-    """Save OOM failure history to disk"""
-    try:
-        with open(OOM_CACHE_FILE, 'w') as f:
-            json.dump(cache, f, indent=2)
-    except:
-        pass
-
-def _get_image_signature(shape, device_type):
-    """Generate unique signature for image dimensions and device"""
-    sig_str = f"{shape}_{device_type}"
-    return hashlib.md5(sig_str.encode()).hexdigest()[:16]
-
-def _should_use_cpu_fallback(shape, device_type):
-    """Check if similar images have OOM'd before on GPU"""
-    if device_type != 'cuda':
-        return False
-    
-    cache = _load_oom_cache()
-    sig = _get_image_signature(shape, device_type)
-    
-    # Check if this exact size has failed before
-    if sig in cache:
-        failure_count = cache[sig].get('failures', 0)
-        if failure_count > 0:
-            logging.info(f"Previous OOM detected for similar image size {shape}. Using CPU fallback.")
-            return True
-    
-    # Check if similar sizes have failed (within 10% tolerance)
-    for cached_sig, info in cache.items():
-        cached_shape = info.get('shape')
-        if cached_shape and len(cached_shape) == len(shape):
-            # Check if volumes are similar (within 20%)
-            cached_vol = np.prod(cached_shape)
-            current_vol = np.prod(shape)
-            ratio = current_vol / cached_vol if cached_vol > 0 else 0
-            if 0.8 <= ratio <= 1.2 and info.get('failures', 0) > 0:
-                logging.info(f"Similar image size {cached_shape} previously OOM'd. Using CPU fallback.")
-                return True
-    
-    return False
-
-def _record_oom_failure(shape, device_type, chunk_size=None):
-    """Record an OOM failure for this image size"""
-    cache = _load_oom_cache()
-    sig = _get_image_signature(shape, device_type)
-    
-    if sig not in cache:
-        cache[sig] = {'shape': shape, 'failures': 0, 'device': device_type, 'failed_chunk_sizes': []}
-    
-    cache[sig]['failures'] += 1
-    cache[sig]['last_failure'] = pd.Timestamp.now().isoformat()
-    
-    # Track which chunk sizes have failed
-    if chunk_size is not None and 'failed_chunk_sizes' in cache[sig]:
-        if chunk_size not in cache[sig]['failed_chunk_sizes']:
-            cache[sig]['failed_chunk_sizes'].append(chunk_size)
-    
-    _save_oom_cache(cache)
-    logging.info(f"Recorded OOM failure for shape {shape} on {device_type} (chunk_size={chunk_size})")
-
 class MemoryMonitor:
     """Context manager to track peak memory usage during operations"""
     def __init__(self, device_type='cuda', verbose=True):
@@ -860,19 +786,6 @@ def estimate_chunk_size(
     if not 0 <= overlap < 1:
         raise ValueError(f"overlap must be in [0, 1), got {overlap}")
     
-    # Check OOM history for similar images and adjust safety factor
-    oom_penalty = 1.0
-    if image_shape is not None:
-        cache = _load_oom_cache()
-        sig = _get_image_signature(image_shape, device.type)
-        
-        if sig in cache:
-            failures = cache[sig].get('failures', 0)
-            if failures > 0:
-                # Reduce estimate by 20% per failure, up to 60% reduction
-                oom_penalty = max(0.4, 1.0 - (failures * 0.2))
-                logging.info(f"OOM history found: {failures} failure(s) for similar images. Applying {(1-oom_penalty)*100:.0f}% safety reduction.")
-    
     if device.type in ['cpu', 'mps']:
         # For CPU/MPS, estimate based on available RAM
         try:
@@ -895,7 +808,7 @@ def estimate_chunk_size(
             memory_per_slice = (input_size_per_slice + output_size_per_slice) * 3.0
             
             # Use 60% of available RAM for maximal speed
-            memory_utilization = 0.60 * oom_penalty
+            memory_utilization = 0.60
             chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
             
             # Expanded bounds for maximal speed: 20-150 slices
@@ -1165,15 +1078,6 @@ def run_inference(
     img_shape = img_data.shape  # Store shape before potential deletion
     D        = img_data.shape[-1]
     
-    # Check if we should use CPU fallback based on OOM history
-    if device.type in ['cuda', 'mps'] and fallback_device is not None:
-        if _should_use_cpu_fallback(img_shape, device.type):
-            logging.info(f"Automatic CPU fallback activated due to OOM history on {device.type}")
-            device = fallback_device
-            model = model.to(device).float()  # Move model to CPU and convert to FP32
-            amp_context = torch.autocast('cpu', enabled=False)  # Disable AMP on CPU
-            mem_monitor = MemoryMonitor(device.type, verbose)  # Reinitialize for CPU
-    
     mem_monitor.end_stage()
     
     # Collect metrics after preprocessing if verbose
@@ -1263,7 +1167,6 @@ def run_inference(
         except RuntimeError as e:
             if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
                 logging.warning(f"{device.type.upper()} OOM on small image, falling back to CPU: {e}")
-                _record_oom_failure(img_shape, device.type, chunk_size=None)
                 # Retry on CPU
                 torch.cuda.empty_cache()
                 gc.collect()
@@ -1350,7 +1253,6 @@ def run_inference(
             except RuntimeError as e:
                 if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
                     logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU for remaining chunks: {e}")
-                    _record_oom_failure(img_shape, device.type, chunk_size=chunk_size)
                     
                     # Retry on CPU
                     torch.cuda.empty_cache()
