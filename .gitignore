@@ -31,3 +31,6 @@ scripts.egg-info/PKG-INFO
 scripts.egg-info/requires.txt
 scripts.egg-info/SOURCES.txt
 scripts.egg-info/top_level.txt
+scripts/__pycache__/__init__.cpython-312.pyc
+scripts/__pycache__/mm_segment.cpython-312.pyc
+scripts/__pycache__/mm_util.cpython-312.pyc
