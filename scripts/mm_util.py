@@ -950,8 +950,8 @@ def estimate_chunk_size(
             # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
             activation_size += spatial_size * ch * bytes_per_value * 3
         
-        # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
-        activation_size_per_slice = activation_size * 1.3
+        # Add buffer for intermediate convolutions, batch norm, etc (20% overhead)
+        activation_size_per_slice = activation_size * 1.2
         
         # 4. Account for sliding window overlap
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
@@ -1056,7 +1056,7 @@ def _get_memory_usage():
 
 
 def _plot_performance_metrics(metrics_data, output_path):
-    """Create a line plot of CPU and GPU usage across processing stages"""
+    """Create a line plot of CPU and GPU usage across chunks"""
     if not metrics_data:
         return
     
@@ -1065,99 +1065,52 @@ def _plot_performance_metrics(metrics_data, output_path):
     
     # Extract data
     x_positions = list(range(len(metrics_data)))
-    gpu_used = [m['gpu_used'] for m in metrics_data]
     gpu_reserved = [m['gpu_reserved'] for m in metrics_data]
     gpu_total = [m['gpu_total'] for m in metrics_data]
     cpu_used = [m['cpu_used'] for m in metrics_data]
     cpu_total = [m['cpu_total'] for m in metrics_data]
-    stages = [m['stage'] for m in metrics_data]
-    chunk_labels = [m['label'] for m in metrics_data]
     
-    # Calculate cumulative sums (only increasing)
-    cpu_cumulative = []
-    gpu_cumulative = []
-    cpu_sum = 0
-    gpu_sum = 0
-    for cpu, gpu in zip(cpu_used, gpu_used):
-        cpu_sum += cpu
-        gpu_sum += gpu
-        cpu_cumulative.append(cpu_sum)
-        gpu_cumulative.append(gpu_sum)
+    # Calculate free memory
+    gpu_free = [total - reserved for total, reserved in zip(gpu_total, gpu_reserved)]
+    ram_free = [total - used for total, used in zip(cpu_total, cpu_used)]
     
-    # Get total memory values (should be constant)
-    gpu_total_val = gpu_total[0] if gpu_total and gpu_total[0] > 0 else None
-    cpu_total_val = cpu_total[0] if cpu_total else None
+    # Plot VRAM on left y-axis
+    color_vram_reserved = '#7c3aed'  # Purple
+    color_vram_free = '#06b6d4'  # Cyan
+    ax1.set_xlabel('Chunk', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('VRAM (GB)', color=color_vram_reserved, fontsize=12, fontweight='bold')
     
-    # Plot GPU on left y-axis
-    color_gpu = '#2563eb'  # Blue
-    color_gpu_reserved = '#7c3aed'  # Purple
-    color_gpu_cumulative = '#06b6d4'  # Cyan
-    color_gpu_total = '#93c5fd'  # Light blue
-    ax1.set_xlabel('Processing Stage', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('GPU Memory (GB)', color=color_gpu, fontsize=12, fontweight='bold')
+    # Plot VRAM reserved
+    ax1.plot(x_positions, gpu_reserved, color=color_vram_reserved, linewidth=2, 
+             marker='^', markersize=4, label='VRAM Reserved')
     
-    # Plot GPU used (allocated)
-    ax1.plot(x_positions, gpu_used, color=color_gpu, linewidth=2, 
-             marker='o', markersize=4, label='GPU Used (Allocated)')
+    # Plot VRAM free
+    ax1.plot(x_positions, gpu_free, color=color_vram_free, linewidth=2, 
+             marker='o', markersize=4, linestyle='--', label='VRAM Free')
     
-    # Plot GPU reserved
-    ax1.plot(x_positions, gpu_reserved, color=color_gpu_reserved, linewidth=2, 
-             marker='^', markersize=4, linestyle='--', label='GPU Reserved')
-    
-    # Plot GPU cumulative
-    ax1.plot(x_positions, gpu_cumulative, color=color_gpu_cumulative, linewidth=2.5, 
-             marker='*', markersize=5, linestyle=':', alpha=0.7, label='GPU Cumulative')
-    
-    # Plot GPU total as horizontal line if available
-    if gpu_total_val:
-        ax1.axhline(y=gpu_total_val, color=color_gpu_total, linestyle='--', 
-                   linewidth=1.5, alpha=0.7, label=f'GPU Total ({gpu_total_val:.1f} GB)')
-    
-    ax1.tick_params(axis='y', labelcolor=color_gpu)
+    ax1.tick_params(axis='y', labelcolor=color_vram_reserved)
     ax1.grid(True, alpha=0.3, linestyle='--')
     
-    # Create right y-axis for CPU
+    # Create right y-axis for RAM
     ax2 = ax1.twinx()
-    color_cpu = '#dc2626'  # Red
-    color_cpu_cumulative = '#f59e0b'  # Orange
-    color_cpu_total = '#fca5a5'  # Light red
-    ax2.set_ylabel('CPU Memory (GB)', color=color_cpu, fontsize=12, fontweight='bold')
+    color_ram_used = '#dc2626'  # Red
+    color_ram_free = '#f59e0b'  # Orange
+    ax2.set_ylabel('RAM (GB)', color=color_ram_used, fontsize=12, fontweight='bold')
     
-    # Plot CPU used
-    ax2.plot(x_positions, cpu_used, color=color_cpu, linewidth=2,
-             marker='s', markersize=4, label='CPU Used')
+    # Plot RAM used
+    ax2.plot(x_positions, cpu_used, color=color_ram_used, linewidth=2,
+             marker='s', markersize=4, label='RAM Used')
     
-    # Plot CPU cumulative
-    ax2.plot(x_positions, cpu_cumulative, color=color_cpu_cumulative, linewidth=2.5,
-             marker='*', markersize=5, linestyle=':', alpha=0.7, label='CPU Cumulative')
+    # Plot RAM free
+    ax2.plot(x_positions, ram_free, color=color_ram_free, linewidth=2,
+             marker='D', markersize=4, linestyle='--', label='RAM Free')
     
-    # Plot CPU total as horizontal line if available
-    if cpu_total_val:
-        ax2.axhline(y=cpu_total_val, color=color_cpu_total, linestyle='--', 
-                   linewidth=1.5, alpha=0.7, label=f'CPU Total ({cpu_total_val:.1f} GB)')
+    ax2.tick_params(axis='y', labelcolor=color_ram_used)
     
-    ax2.tick_params(axis='y', labelcolor=color_cpu)
-    
-    # Set x-axis ticks and labels - show only every 3rd label
-    stage_starts = {}
-    for i, stage in enumerate(stages):
-        if stage not in stage_starts:
-            stage_starts[stage] = i
-    
-    # Set all tick positions but only label every 3rd one
+    # Set x-axis ticks and labels
     ax1.set_xticks(x_positions)
-    x_labels = []
-    for i, label in enumerate(chunk_labels):
-        if i % 3 == 0:
-            x_labels.append(label)
-        else:
-            x_labels.append('')
-    ax1.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=6)
-    
-    # Add bold stage markers at the top
-    for stage, pos in stage_starts.items():
-        ax1.text(pos, ax1.get_ylim()[1] * 1.05, stage, 
-                fontweight='bold', fontsize=9, ha='left')
+    x_labels = [str(i) for i in x_positions]
+    ax1.set_xticklabels(x_labels, rotation=0, ha='center', fontsize=9)
     
     # Add legend
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -1168,7 +1121,7 @@ def _plot_performance_metrics(metrics_data, output_path):
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
     
-    plt.title('CPU and GPU Memory Usage During Processing (Used vs Total)', 
+    plt.title('Memory Usage by Chunk', 
              fontsize=14, fontweight='bold', pad=20)
     plt.tight_layout()
     
@@ -1176,91 +1129,6 @@ def _plot_performance_metrics(metrics_data, output_path):
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
     logging.info(f"Performance plot saved to: {output_path}")
-
-
-def run_inference_sliding_window(
-    image_path,
-    output_dir,
-    pre_transforms,
-    post_transforms,
-    amp_context=None,
-    device=None,
-    model=None,
-    inferer=None,  # Pass the SliceInferer from main
-    verbose=False,
-):
-    """
-    Fast whole-volume inference using SliceInferer on preprocessed volume (no disk chunking).
-    Processes entire preprocessed volume at once - much faster than disk-based chunking!
-    """
-    out_path = _make_out_path(image_path, output_dir, "_dseg")
-    logging.info(f"Loading and preprocessing image: {os.path.basename(image_path)}")
-    
-    # Preprocess once
-    data = {"image": image_path}
-    data = pre_transforms(data)
-    tensor = data["image"]
-    
-    if device.type == "cpu":
-        tensor = tensor.float()
-    
-    if tensor.ndim == 4:
-        tensor = tensor.unsqueeze(0)
-    
-    if verbose:
-        logging.info(f"Preprocessed shape: {tensor.shape}")
-    
-    # Move to device
-    tensor = tensor.to(device, non_blocking=True)
-    
-    # Inference on whole volume using SliceInferer (2D model)
-    logging.info("Running slice inference on full preprocessed volume...")
-    with amp_context, torch.inference_mode():
-        pred = inferer(tensor, model)
-    
-    # Move to CPU for post-processing
-    single_pred = pred.squeeze(0).squeeze(0).cpu()
-    
-    del tensor, pred
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
-    # Post-transforms (Invertd, AsDiscreted, etc.)
-    logging.info("Applying post-transforms...")
-    post_in = {
-        "pred": single_pred,
-        "image": data["image"],
-        "image_meta_dict": data["image_meta_dict"],
-    }
-    del data
-    
-    post_out = post_transforms(post_in)
-    # Convert to float32 first if on MPS to avoid float64 error
-    seg_out = post_out["pred"].detach()
-    if seg_out.device.type == 'mps':
-        seg_out = seg_out.float()
-    seg_tensor = seg_out.cpu().to(torch.int16)
-    seg_np = seg_tensor.numpy()
-    
-    del single_pred, post_in, post_out, seg_tensor
-    gc.collect()
-    
-    # Connected components
-    logging.info("Applying connected components filtering...")
-    full_seg = connected_chunks(seg_np)
-    
-    # Save
-    img_nii = nib.load(image_path)
-    nib.save(nib.Nifti1Image(full_seg, img_nii.affine, img_nii.header), out_path)
-    
-    del seg_np, full_seg
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
-    logging.info(f"Segmentation saved to {out_path}")
-    return out_path
-
 
 def run_inference(
     image_path,
