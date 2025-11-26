@@ -111,9 +111,17 @@ def main():
         torch.backends.cudnn.benchmark = True
     elif device.type == 'mps':
         logging.info("Using Apple Silicon GPU (MPS)")
-        logging.info("Note: MPS may have different performance characteristics than CUDA")
+        # MPS-specific optimizations
+        os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.0'  # Aggressive memory management
+        logging.info("MPS memory optimizations enabled")
     else:
-        logging.info("Processing on CPU will slow down inference speed")
+        # Optimize CPU inference with threading and oneDNN
+        num_threads = os.cpu_count()
+        torch.set_num_threads(num_threads)
+        torch.set_num_interop_threads(num_threads)
+        if hasattr(torch.backends, 'mkldnn'):
+            torch.backends.mkldnn.enabled = True
+        logging.info(f"Processing on CPU with {num_threads} threads and oneDNN optimizations enabled")
 
     if args.output_dir is None:
         output_dir = os.getcwd()
@@ -225,6 +233,18 @@ def main():
     # Convert model to FP16 which CUDA tensor cores are optimized for
     if device.type == 'cuda':
         model = model.half()
+    
+    # Compile model for CPU/MPS optimization (PyTorch 2.0+)
+    if device.type in ['cpu', 'mps']:
+        try:
+            device_name = 'CPU' if device.type == 'cpu' else 'MPS'
+            logging.info(f"Compiling model with torch.compile for {device_name} optimization...")
+            # Use 'reduce-overhead' for MPS (more stable), 'max-autotune' for CPU
+            compile_mode = 'reduce-overhead' if device.type == 'mps' else 'max-autotune'
+            model = torch.compile(model, mode=compile_mode)
+            logging.info("Model compilation successful")
+        except Exception as e:
+            logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     overlap_inference = args.overlap / 100
     
