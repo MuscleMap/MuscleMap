@@ -1126,6 +1126,9 @@ def run_inference(
             # Stage: Post-processing
             mem_monitor.start_stage("Post-processing")
             single_pred = pred.squeeze(0).squeeze(0)
+            # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
+            if device.type == "mps":
+                single_pred = single_pred.cpu()
             post_in = {
                 "pred": single_pred,
                 "image": data["image"],
@@ -1214,6 +1217,9 @@ def run_inference(
                     pred = inferer(tensor, model)
 
                 single_pred = pred.squeeze(0).squeeze(0)
+                # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
+                if device.type == "mps":
+                    single_pred = single_pred.cpu()
                 post_in = {
                     "pred": single_pred,
                     "image": data["image"],
