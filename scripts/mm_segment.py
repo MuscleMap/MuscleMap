@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti, CheckTransformMemory
 import torch
 
 #naming not functional
@@ -165,11 +165,17 @@ def main():
 
     pre_transforms = Compose([
         LoadImaged(keys=["image"], image_only=False),
+        CheckTransformMemory("After LoadImaged"),
         EnsureChannelFirstd(keys=["image"]),
+        CheckTransformMemory("After EnsureChannelFirstd"),
         Orientationd(keys=["image"], axcodes="RAS"),
+        CheckTransformMemory("After Orientationd"),
         Spacingd(keys=["image"], pixdim=pix_dim, mode="bilinear"),
+        CheckTransformMemory("After Spacingd"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
+        CheckTransformMemory("After NormalizeIntensityd"),
         CropForegroundd(keys=["image"], source_key="image", margin=20),
+        CheckTransformMemory("After CropForegroundd"),
         EnsureTyped(keys=["image"]),
     ])
     
@@ -180,7 +186,9 @@ def main():
         meta_key_postfix="meta_dict", nearest_interp=False,
         to_tensor=False, device=device
     ),
+    CheckTransformMemory("After Invertd"),
     AsDiscreted(keys="pred", argmax=True),
+    CheckTransformMemory("After Discreted"),
     SqueezeTransform(keys=["pred"])]
 
     test_files = [{"image": image} for image in image_paths]

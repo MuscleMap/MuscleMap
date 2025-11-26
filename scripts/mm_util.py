@@ -809,3 +809,37 @@ def run_inference(
         torch.cuda.empty_cache()
     shutil.rmtree(temp_dir, ignore_errors=True)
     return out_path
+
+class CheckTransformMemory(MapTransform):
+    """Check CPU and GPU memory usage before/after each transform"""
+    def __init__(self, transform_name, keys=None, allow_missing_keys=True):
+        super().__init__(keys if keys else [], allow_missing_keys)
+        self.transform_name = transform_name
+        
+    def __call__(self, data):
+        import psutil
+        
+        # Record memory BEFORE transform
+        process = psutil.Process()
+        cpu_before = process.memory_info().rss / 1024**3
+        
+        gpu_before = 0
+        if torch.cuda.is_available():
+            gpu_before = torch.cuda.memory_allocated() / 1024**3
+        
+        # Pass through data unchanged
+        d = dict(data)
+        
+        # Record memory AFTER (just from passthrough, no actual transform here)
+        cpu_after = process.memory_info().rss / 1024**3
+        gpu_after = 0
+        if torch.cuda.is_available():
+            gpu_after = torch.cuda.memory_allocated() / 1024**3
+        
+        # Log delta and total
+        cpu_delta = cpu_after - cpu_before
+        gpu_delta = gpu_after - gpu_before
+        
+        logging.info(f"[{self.transform_name}] RAM: {cpu_after:.2f} GB (Δ {cpu_delta:+.3f} GB) | GPU VRAM: {gpu_after:.2f} GB (Δ {gpu_delta:+.3f} GB)")
+        
+        return d
