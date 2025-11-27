@@ -896,6 +896,7 @@ def run_inference_in_memory_chunking(
                 "pred": pred_metatensor,
                 "image": torch.from_numpy(img_array),
                 "image_meta_dict": stored_meta_dict,
+                "image_transforms": stored_applied_operations,  # Required by Invertd
             }
             
             post_out = invertd(post_in)
@@ -1098,6 +1099,7 @@ def run_inference_in_memory_chunking(
         "pred": pred_metatensor,
         "image": torch.from_numpy(img_array),
         "image_meta_dict": stored_meta_dict,
+        "image_transforms": stored_applied_operations,  # Required by Invertd
     }
     
     post_out = invertd(post_in)
