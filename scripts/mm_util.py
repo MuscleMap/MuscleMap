@@ -1185,21 +1185,18 @@ def estimate_chunk_size(
     image_shape: tuple = None,
 ) -> int:
     """
-    Estimate optimal chunk size for in-memory chunking (RAM-based, not disk-based).
-    
-    Since in-memory chunking has minimal MONAI overhead (no disk I/O, no full-volume
-    preprocessing), we can use much larger chunks and simpler estimates.
+    Estimate optimal chunk size for in-memory chunking.
     
     Args:
         device: torch device (cuda, mps, or cpu)
         roi_size: (H, W) size of ROI for sliding window
         in_channels: number of input channels
-        out_channels: number of output channels (only 1 channel stored after argmax)
-        channels: list of channel counts at each UNet level [64, 128, 256, 512, 1024]
+        out_channels: number of output channels
+        channels: list of channel counts at each UNet level
         spatial_window_batch_size: batch size for sliding window inference
         overlap: spatial overlap ratio (0.5 = 50% overlap)
         use_fp16: whether FP16 is enabled (CUDA only)
-        image_shape: optional image shape (unused in this simplified version)
+        image_shape: optional image shape
     
     Returns:
         Estimated chunk size (number of slices)
@@ -1215,44 +1212,30 @@ def estimate_chunk_size(
         raise ValueError(f"overlap must be in [0, 1), got {overlap}")
     
     if device.type in ['cpu', 'mps']:
-        # For CPU/MPS, estimate based on available RAM
         try:
             import psutil
             mem_info = psutil.virtual_memory()
             available_ram = mem_info.available
             total_ram = mem_info.total
             
-            # Validate memory values
             if available_ram <= 0 or total_ram <= 0:
                 logging.warning(f"Invalid memory values: available={available_ram}, total={total_ram}. Using conservative default.")
                 return 50
             
-            # Calculate memory needed per slice (in-memory: minimal overhead)
-            bytes_per_value = 4  # float32 for CPU/MPS
+            bytes_per_value = 4
             input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
-            
-            # CRITICAL for MPS: MONAI's sliding window inferer allocates the FULL output buffer
-            # (all 90 channels) BEFORE we can apply argmax. This is the source of "Invalid buffer size" errors.
-            # We must account for the full probability map, not just the final discrete labels.
             full_output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
             
-            # For MPS: Account for MONAI sliding window overhead
-            # The inferer creates intermediate buffers for patch accumulation and blending
             if device.type == 'mps':
-                # MPS needs to account for sliding window accumulation buffers
-                # Use empirical 2.5x multiplier for MONAI's patch blending and accumulation
-                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 2.5
-                memory_utilization = 0.80  # Aggressive - use 80% of available RAM
-                max_chunk = 500  # Allow large chunks if RAM permits
+                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 2.75
+                memory_utilization = 0.72
+                max_chunk = 500
             else:
-                # CPU can use virtual memory more flexibly
                 memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 1.1
-                memory_utilization = 0.80  # Aggressive for CPU too
+                memory_utilization = 0.80
                 max_chunk = 500
             
             chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
-            
-            # Apply device-specific bounds
             chunk_size = max(20, min(chunk_size, max_chunk))
             
             device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
@@ -1265,7 +1248,6 @@ def estimate_chunk_size(
             logging.warning(f"Failed to estimate CPU/MPS chunk size: {e}. Using safe default of 50 slices.")
             return 50
     
-    # GPU (CUDA) estimation for in-memory chunking
     try:
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA not available")
@@ -1274,80 +1256,48 @@ def estimate_chunk_size(
         reserved_memory = torch.cuda.memory_reserved(0)
         allocated_memory = torch.cuda.memory_allocated(0)
         
-        # Validate GPU memory values
         if total_memory <= 0:
             raise RuntimeError(f"Invalid GPU total memory: {total_memory}")
         
-        # Available memory (leave 2GB buffer for safety)
         safety_buffer = 2 * 1024**3
         available_memory = total_memory - reserved_memory - safety_buffer
         
         if available_memory <= 0:
             logging.warning(f"Insufficient GPU memory available. Reserved={reserved_memory/1024**3:.2f}GB")
-            return 20  # Minimum safe chunk
+            return 20
         
-        # Bytes per value based on precision
         bytes_per_value = 2 if use_fp16 else 4
         
-        # Calculate memory per slice for in-memory chunking
-        # CRITICAL: MONAI's sliding window inferer allocates the FULL output buffer
-        # (all 90 channels) at once, even though we apply argmax immediately after.
-        # This is the primary memory bottleneck that causes OOM errors.
-        
-        # 1. Input memory per slice
         input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
-        
-        # 2. FULL output memory per slice (all channels before argmax)
-        # This is what causes "Tried to allocate 33.28 GiB" errors
         full_output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
         
-        # 3. UNet activation memory (empirically ~20% of theoretical peak)
-        # PyTorch's efficient memory management reuses buffers during forward pass
         activation_size_naive = 0
         for i, ch in enumerate(channels):
             spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
             activation_size_naive += spatial_size * ch * bytes_per_value
         
         activation_size_per_slice = activation_size_naive * 0.20
-        
-        # 4. Sliding window overlap creates redundant computation but minimal extra memory
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
         
-        # Total memory per slice: input + full output buffer + activations
         base_memory_per_slice = (
             input_size_per_slice + 
             full_output_size_per_slice +
             activation_size_per_slice
         ) * spatial_window_batch_size * overlap_multiplier
         
-        # MONAI overhead for sliding window: patch accumulation and blending buffers
-        # Empirically tuned based on real-world testing showing optimal range is 90-150 slices
-        # Data shows: chunk 39-50 = slow (overhead), 90-150 = fast (sweet spot), 200+ = OOM/slow
-        
-        # Calculate theoretical maximum with conservative base multiplier
-        base_multiplier = 2.0  # Conservative to avoid OOM (empirically: chunk 402 OOM, 250 slow)
+        base_multiplier = 2.0
         theoretical_max = max(1, int((available_memory * 0.75) / (base_memory_per_slice * base_multiplier)))
         
-        # Apply empirically-derived non-linear fit to find optimal chunk size
-        # Based on speed data: optimal performance at 90-150 slices, degrades outside this range
-        # Formula: Target the sweet spot (90-150) even if memory allows more
-        
         if theoretical_max <= 60:
-            # Very limited memory: use what we can get (will be slow but functional)
             chunk_size = theoretical_max
             total_per_slice = base_memory_per_slice * base_multiplier
         elif theoretical_max <= 150:
-            # Within optimal range: use theoretical max
             chunk_size = theoretical_max
             total_per_slice = base_memory_per_slice * base_multiplier
         else:
-            # Memory allows large chunks, but empirically 90-150 is fastest
-            # Cap at 150 for optimal speed (data shows 150→62-105s vs 200→105s vs 250→111s)
             chunk_size = 150
-            # Calculate actual memory per slice for logging accuracy
             total_per_slice = (available_memory * 0.75) / chunk_size
         
-        # Hard safety limits based on empirical data: 30 min, 150 max
         chunk_size = max(30, min(chunk_size, 150))
         
         # Log memory information
