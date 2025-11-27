@@ -1248,26 +1248,27 @@ def estimate_chunk_size(
         # Bytes per value based on precision
         bytes_per_value = 2 if use_fp16 else 4
         
-        # Calculate memory per slice for in-memory chunking (simplified)
+        # Calculate memory per slice for in-memory chunking (empirically tuned)
+        # Based on real-world observations: 150 slices of 510×413×90 uses ~3.91 GB = 26 MB/slice
+        
         # 1. Input memory per slice
         input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
         
-        # 2. Output memory per slice (discrete labels after argmax, not 90-channel probabilities)
-        # During inference we still have the full output, but it's immediately converted
-        # So we need to account for both temporarily
+        # 2. Output memory per slice (full 90-channel output before argmax)
         output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
         
-        # 3. Calculate UNet activation memory across all encoder/decoder levels
-        activation_size = 0
+        # 3. UNet peak activation memory (empirically ~20% of naive calculation)
+        # PyTorch's efficient memory management means we don't store all activations simultaneously
+        # The sliding window inferer processes patches sequentially, reusing memory
+        activation_size_naive = 0
         for i, ch in enumerate(channels):
-            # Spatial dimensions reduce by 2^i at each level
             spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
-            # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
-            activation_size += spatial_size * ch * bytes_per_value * 3
+            activation_size_naive += spatial_size * ch * bytes_per_value
         
-        activation_size_per_slice = activation_size
+        # Empirical multiplier: only ~20% of naive estimate actually used
+        activation_size_per_slice = activation_size_naive * 0.20
         
-        # 4. Account for sliding window overlap
+        # 4. Account for sliding window overlap (minimal impact in practice)
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
         
         # Total inference memory per slice
@@ -1281,15 +1282,16 @@ def estimate_chunk_size(
         # No Invertd overhead during chunking (applied after accumulation)
         total_per_slice = inference_memory_per_slice * 1.05
         
-        # Calculate chunk size using 90% of available memory
-        chunk_size = max(1, int((available_memory * 0.90) / total_per_slice))
+        # Calculate chunk size using 85% of available memory (leave room for fragmentation)
+        chunk_size = max(1, int((available_memory * 0.85) / total_per_slice))
         
         # Apply safety limits: 20 to 500 slices for in-memory
         chunk_size = max(20, min(chunk_size, 500))
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
-        logging.info(f"In-memory chunking: {inference_memory_per_slice / 1024**3:.4f} GB per slice (1.05x overhead)")
+        logging.info(f"In-memory chunking estimate: {total_per_slice / 1024**3:.4f} GB per slice")
+        logging.info(f"  Input: {input_size_per_slice / 1024**3:.4f} GB, Output: {output_size_per_slice / 1024**3:.4f} GB, Activations: {activation_size_per_slice / 1024**3:.4f} GB")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
         return chunk_size
