@@ -810,7 +810,8 @@ def run_inference_in_memory_chunking(
     D = img_shape[-1]  # Depth (number of slices)
     
     logging.info(f"Image shape: {img_shape}, Depth: {D} slices")
-    logging.info(f"Stored metadata - affine shape: {stored_affine.shape}, meta_dict keys: {list(stored_meta_dict.keys())}")
+    if verbose:
+        logging.info(f"Stored {len(stored_applied_operations)} preprocessing transforms")
     
     # Clean up full tensor to save memory
     del original_image_tensor, data
@@ -1288,50 +1289,51 @@ def estimate_chunk_size(
         # Bytes per value based on precision
         bytes_per_value = 2 if use_fp16 else 4
         
-        # Calculate memory per slice for in-memory chunking (empirically tuned)
-        # Based on real-world observations: 150 slices of 510×413×90 uses ~3.91 GB = 26 MB/slice
+        # Calculate memory per slice for in-memory chunking
+        # CRITICAL: MONAI's sliding window inferer allocates the FULL output buffer
+        # (all 90 channels) at once, even though we apply argmax immediately after.
+        # This is the primary memory bottleneck that causes OOM errors.
         
         # 1. Input memory per slice
         input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
         
-        # 2. Output memory per slice (full 90-channel output before argmax)
-        output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
+        # 2. FULL output memory per slice (all channels before argmax)
+        # This is what causes "Tried to allocate 33.28 GiB" errors
+        full_output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
         
-        # 3. UNet peak activation memory (empirically ~20% of naive calculation)
-        # PyTorch's efficient memory management means we don't store all activations simultaneously
-        # The sliding window inferer processes patches sequentially, reusing memory
+        # 3. UNet activation memory (empirically ~20% of theoretical peak)
+        # PyTorch's efficient memory management reuses buffers during forward pass
         activation_size_naive = 0
         for i, ch in enumerate(channels):
             spatial_size = (roi_size[0] // (2**i)) * (roi_size[1] // (2**i))
             activation_size_naive += spatial_size * ch * bytes_per_value
         
-        # Empirical multiplier: only ~20% of naive estimate actually used
         activation_size_per_slice = activation_size_naive * 0.20
         
-        # 4. Account for sliding window overlap (minimal impact in practice)
+        # 4. Sliding window overlap creates redundant computation but minimal extra memory
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
         
-        # Total inference memory per slice
-        inference_memory_per_slice = (
+        # Total memory per slice: input + full output buffer + activations
+        base_memory_per_slice = (
             input_size_per_slice + 
-            activation_size_per_slice + 
-            output_size_per_slice
+            full_output_size_per_slice +
+            activation_size_per_slice
         ) * spatial_window_batch_size * overlap_multiplier
         
-        # In-memory chunking: minimal overhead (5% for intermediate buffers)
-        # No Invertd overhead during chunking (applied after accumulation)
-        total_per_slice = inference_memory_per_slice * 1.05
+        # MONAI overhead for sliding window: patch accumulation and blending buffers
+        # Use 1.5x multiplier to account for intermediate buffers
+        total_per_slice = base_memory_per_slice * 1.5
         
-        # Calculate chunk size using 85% of available memory (leave room for fragmentation)
-        chunk_size = max(1, int((available_memory * 0.85) / total_per_slice))
+        # Calculate chunk size using 80% of available memory
+        chunk_size = max(1, int((available_memory * 0.80) / total_per_slice))
         
         # Apply safety limits: 20 to 500 slices for in-memory
         chunk_size = max(20, min(chunk_size, 500))
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
-        logging.info(f"In-memory chunking estimate: {total_per_slice / 1024**3:.4f} GB per slice")
-        logging.info(f"  Input: {input_size_per_slice / 1024**3:.4f} GB, Output: {output_size_per_slice / 1024**3:.4f} GB, Activations: {activation_size_per_slice / 1024**3:.4f} GB")
+        logging.info(f"In-memory chunking estimate: {total_per_slice / 1024**3:.4f} GB per slice (1.5x MONAI overhead)")
+        logging.info(f"  Input: {input_size_per_slice / 1024**3:.4f} GB, Full {out_channels}-ch output: {full_output_size_per_slice / 1024**3:.4f} GB, Activations: {activation_size_per_slice / 1024**3:.4f} GB")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
         return chunk_size
