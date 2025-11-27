@@ -1335,9 +1335,10 @@ def estimate_chunk_size(
             # Memory scales more like chunk^1.3 rather than linearly
             excess = initial_chunk - 150
             penalty_factor = 1.0 + (excess / 150) * 0.5  # Grows to 1.5x at 300 slices
-            adjusted_total_per_slice = base_memory_per_slice * base_multiplier * penalty_factor
-            chunk_size = max(1, int((available_memory * 0.80) / adjusted_total_per_slice))
+            total_per_slice = base_memory_per_slice * base_multiplier * penalty_factor
+            chunk_size = max(1, int((available_memory * 0.80) / total_per_slice))
         else:
+            total_per_slice = base_memory_per_slice * base_multiplier
             chunk_size = initial_chunk
         
         # Apply safety limits: 20 to 200 slices (reduced max for efficiency)
@@ -1345,7 +1346,7 @@ def estimate_chunk_size(
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
-        logging.info(f"In-memory chunking estimate: {total_per_slice / 1024**3:.4f} GB per slice (1.5x MONAI overhead)")
+        logging.info(f"In-memory chunking estimate: {total_per_slice / 1024**3:.4f} GB per slice (base 1.5x MONAI overhead)")
         logging.info(f"  Input: {input_size_per_slice / 1024**3:.4f} GB, Full {out_channels}-ch output: {full_output_size_per_slice / 1024**3:.4f} GB, Activations: {activation_size_per_slice / 1024**3:.4f} GB")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
