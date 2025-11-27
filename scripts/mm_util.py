@@ -1108,8 +1108,10 @@ def run_inference_in_memory_chunking(
     elif test_tensor.ndim == 4:
         test_tensor = test_tensor.unsqueeze(0)
     
-    with torch.no_grad():
-        test_pred = inferer(test_tensor.to(device), model)
+    # Move to device and use amp_context for proper dtype handling
+    test_tensor = test_tensor.to(device)
+    with amp_context, torch.inference_mode():
+        test_pred = inferer(test_tensor, model)
         output_channels = test_pred.shape[1]  # Number of segmentation classes
     
     del test_chunk, test_tensor, test_pred
