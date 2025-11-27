@@ -863,8 +863,8 @@ def estimate_chunk_size(
             # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
             activation_size += spatial_size * ch * bytes_per_value * 3
         
-        # Add buffer for intermediate convolutions, batch norm, etc (20% overhead)
-        activation_size_per_slice = activation_size * 1.2
+        # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
+        activation_size_per_slice = activation_size * 1.3
         
         # 4. Account for sliding window overlap
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
@@ -881,8 +881,8 @@ def estimate_chunk_size(
         # account for pre+post transform overhead and PyTorch memory fragmentation
         total_per_slice = inference_memory_per_slice * 3.5
         
-        # Calculate chunk size using 90% of available memory
-        chunk_size = max(1, int((available_memory * 0.9) / total_per_slice))
+        # Calculate chunk size using 95% of available memory
+        chunk_size = max(1, int((available_memory * 0.95) / total_per_slice))
         
         # Apply safety limits: 5 to 250 slices
         chunk_size = max(5, min(chunk_size, 250))
