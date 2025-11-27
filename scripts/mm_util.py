@@ -1124,6 +1124,12 @@ def run_inference_in_memory_chunking(
     with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
         for start in range(0, D, chunk_size):
             try:
+                # Reset peak memory stats at the start of each chunk
+                if verbose and metrics_data is not None:
+                    if torch.cuda.is_available():
+                        torch.cuda.reset_peak_memory_stats()
+                    peak_cpu_before = psutil.Process().memory_info().rss
+                
                 end = min(start + chunk_size, D)
                 
                 # Extract chunk from RAM (not disk!)
@@ -1145,6 +1151,30 @@ def run_inference_in_memory_chunking(
                 pred_np = pred.squeeze(0).cpu().numpy()  # Shape: (classes, H, W, chunk_depth)
                 full_pred[..., start:end] = pred_np.cpu().numpy()  # No transpose needed
                 
+                # Collect peak metrics if verbose (BEFORE cleanup)
+                if verbose and metrics_data is not None:
+                    cpu_peak = psutil.Process().memory_info().rss / 1024**3
+                    cpu_total = psutil.virtual_memory().total / 1024**3
+                    
+                    if torch.cuda.is_available():
+                        gpu_peak = torch.cuda.max_memory_allocated() / 1024**3
+                        gpu_reserved_peak = torch.cuda.max_memory_reserved() / 1024**3
+                        gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                    else:
+                        gpu_peak = 0
+                        gpu_reserved_peak = 0
+                        gpu_total = 0
+                    
+                    metrics_data.append({
+                        'stage': 'Inference',
+                        'label': f'Chunk {start}-{end}',
+                        'cpu_used': cpu_peak,
+                        'cpu_total': cpu_total,
+                        'gpu_used': gpu_peak,
+                        'gpu_reserved': gpu_reserved_peak,
+                        'gpu_total': gpu_total
+                    })
+                
                 # Cleanup GPU memory
                 del tensor, pred, pred_np, chunk_array
                 gc.collect()
@@ -1153,19 +1183,6 @@ def run_inference_in_memory_chunking(
                 
                 # Update progress
                 pbar.update(end - start)
-                
-                # Collect metrics if verbose
-                if verbose and metrics_data is not None:
-                    cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
-                    metrics_data.append({
-                        'stage': 'Inference',
-                        'label': f'Chunk {start}-{end}',
-                        'cpu_used': cpu_used,
-                        'cpu_total': cpu_total,
-                        'gpu_used': gpu_used,
-                        'gpu_reserved': gpu_reserved,
-                        'gpu_total': gpu_total
-                    })
                 
             except RuntimeError as e:
                 if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
@@ -1477,7 +1494,7 @@ def _get_memory_usage():
     return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
 
 def _plot_performance_metrics(metrics_data, output_path):
-    """Create a line plot of CPU and GPU usage across chunks"""
+    """Create a line plot of peak CPU and GPU usage across chunks"""
     if not metrics_data:
         return
     
@@ -1501,13 +1518,13 @@ def _plot_performance_metrics(metrics_data, output_path):
     ax1.set_xlabel('Chunk', fontsize=12, fontweight='bold')
     ax1.set_ylabel('VRAM (GB)', color=color_vram_reserved, fontsize=12, fontweight='bold')
     
-    # Plot VRAM reserved
-    ax1.plot(x_positions, gpu_reserved, color=color_vram_reserved, linewidth=2, 
-             marker='^', markersize=4, label='VRAM Reserved')
+    # Plot VRAM reserved (peak)
+    ax1.plot(x_positions, gpu_reserved, color=color_vram_reserved, linewidth=1.0, 
+             marker='^', markersize=3, label='VRAM Peak Reserved')
     
     # Plot VRAM free
-    ax1.plot(x_positions, gpu_free, color=color_vram_free, linewidth=2, 
-             marker='o', markersize=4, linestyle='--', label='VRAM Free')
+    ax1.plot(x_positions, gpu_free, color=color_vram_free, linewidth=1.0, 
+             marker='o', markersize=3, linestyle='--', label='VRAM Free')
     
     ax1.tick_params(axis='y', labelcolor=color_vram_reserved)
     ax1.grid(True, alpha=0.3, linestyle='--')
@@ -1518,13 +1535,13 @@ def _plot_performance_metrics(metrics_data, output_path):
     color_ram_free = '#f59e0b'  # Orange
     ax2.set_ylabel('RAM (GB)', color=color_ram_used, fontsize=12, fontweight='bold')
     
-    # Plot RAM used
-    ax2.plot(x_positions, cpu_used, color=color_ram_used, linewidth=2,
-             marker='s', markersize=4, label='RAM Used')
+    # Plot RAM used (peak)
+    ax2.plot(x_positions, cpu_used, color=color_ram_used, linewidth=1.0,
+             marker='s', markersize=3, label='RAM Peak Used')
     
     # Plot RAM free
-    ax2.plot(x_positions, ram_free, color=color_ram_free, linewidth=2,
-             marker='D', markersize=4, linestyle='--', label='RAM Free')
+    ax2.plot(x_positions, ram_free, color=color_ram_free, linewidth=1.0,
+             marker='D', markersize=3, linestyle='--', label='RAM Free')
     
     ax2.tick_params(axis='y', labelcolor=color_ram_used)
     
@@ -1542,7 +1559,7 @@ def _plot_performance_metrics(metrics_data, output_path):
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
     
-    plt.title('Memory Usage by Chunk', 
+    plt.title('Peak Memory Usage by Chunk', 
              fontsize=14, fontweight='bold', pad=20)
     plt.tight_layout()
     
