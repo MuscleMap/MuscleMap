@@ -1214,7 +1214,7 @@ def run_inference_in_memory_chunking(
         _plot_performance_metrics(metrics_data, plot_path)
     
     # Final cleanup
-    del img_array, full_pred, full_pred_tensor, post_in, post_out, seg_np, full_seg
+    del img_array, full_pred, full_seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
