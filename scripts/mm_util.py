@@ -749,10 +749,6 @@ def _make_out_path(image_path, output_dir, tag="_dseg"):
     return os.path.join(output_dir, f"{base}{tag}.nii.gz")
 
 
-# ============================================================================
-# IN-MEMORY CHUNKING WITH METADATA PRESERVATION
-# ============================================================================
-
 class CustomInvertd(MapTransform):
     """
     Custom Invertd transform that handles ndarray inputs with preserved metadata.
@@ -944,9 +940,6 @@ def run_inference_in_memory_chunking(
     mem_monitor = MemoryMonitor(device.type, verbose)
     metrics_data = [] if verbose else None
     
-    # ========================================================================
-    # STAGE 1: Load and preprocess full image to extract metadata
-    # ========================================================================
     mem_monitor.start_stage("Preprocessing - Extract Metadata")
     
     logging.info("Loading image and extracting metadata...")
@@ -989,10 +982,6 @@ def run_inference_in_memory_chunking(
             'gpu_reserved': gpu_reserved,
             'gpu_total': gpu_total
         })
-    
-    # ========================================================================
-    # STAGE 2: Process image (full volume or chunked)
-    # ========================================================================
     
     if D <= chunk_size:
         # Small image - process as single chunk
@@ -1107,9 +1096,6 @@ def run_inference_in_memory_chunking(
             else:
                 raise
     
-    # ========================================================================
-    # STAGE 3: Large image - process with in-memory chunking
-    # ========================================================================
     logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
     mem_monitor.start_stage("Inference - Chunked")
     
@@ -1132,7 +1118,7 @@ def run_inference_in_memory_chunking(
         torch.cuda.empty_cache()
     
     # Initialize output array for accumulating predictions
-    full_pred = np.zeros((*img_shape[:2], output_channels, D), dtype=np.float32)
+    full_pred = np.zeros((output_channels, *img_shape[:2], D), dtype=np.float32)
     
     # Process chunks
     with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
@@ -1157,7 +1143,7 @@ def run_inference_in_memory_chunking(
                 
                 # Store prediction back to RAM
                 pred_np = pred.squeeze(0).cpu().numpy()  # Shape: (classes, H, W, chunk_depth)
-                full_pred[..., start:end] = pred_np.transpose(1, 2, 0, 3)  # Rearrange to (H, W, classes, chunk_depth)
+                full_pred[..., start:end] = pred_np.cpu().numpy()  # No transpose needed
                 
                 # Cleanup GPU memory
                 del tensor, pred, pred_np, chunk_array
@@ -1201,10 +1187,7 @@ def run_inference_in_memory_chunking(
                     raise
     
     mem_monitor.end_stage()
-    
-    # ========================================================================
-    # STAGE 4: Post-processing with stored metadata
-    # ========================================================================
+
     mem_monitor.start_stage("Post-processing")
     
     logging.info("Applying post-processing with preserved metadata...")
@@ -1685,9 +1668,8 @@ def run_inference(
                 plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
                 _plot_performance_metrics(metrics_data, plot_path)
             
-            del seg_np  
-            # cleanup
-            del tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg
+            # Cleanup
+            del tensor, pred, single_pred, post_in, post_out, seg_np, full_seg, img_array
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()

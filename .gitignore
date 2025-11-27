@@ -1,1 +1,7 @@
 .DS_Store
+scripts.egg-info/dependency_links.txt
+scripts.egg-info/entry_points.txt
+scripts.egg-info/PKG-INFO
+scripts.egg-info/requires.txt
+scripts.egg-info/SOURCES.txt
+scripts.egg-info/top_level.txt
