@@ -1321,14 +1321,27 @@ def estimate_chunk_size(
         ) * spatial_window_batch_size * overlap_multiplier
         
         # MONAI overhead for sliding window: patch accumulation and blending buffers
-        # Use 1.5x multiplier to account for intermediate buffers
-        total_per_slice = base_memory_per_slice * 1.5
+        # Base multiplier of 1.5x, but increases non-linearly with chunk size
+        base_multiplier = 1.5
         
-        # Calculate chunk size using 80% of available memory
-        chunk_size = max(1, int((available_memory * 0.80) / total_per_slice))
+        # Calculate initial chunk size with base multiplier
+        initial_chunk = max(1, int((available_memory * 0.80) / (base_memory_per_slice * base_multiplier)))
         
-        # Apply safety limits: 20 to 500 slices for in-memory
-        chunk_size = max(20, min(chunk_size, 500))
+        # Apply non-linear penalty for large chunks (quadratic relationship)
+        # Sweet spot is typically 50-150 slices. Larger chunks have diminishing returns
+        # and increased memory fragmentation/inefficiency.
+        if initial_chunk > 150:
+            # For chunks > 150, apply quadratic penalty
+            # Memory scales more like chunk^1.3 rather than linearly
+            excess = initial_chunk - 150
+            penalty_factor = 1.0 + (excess / 150) * 0.5  # Grows to 1.5x at 300 slices
+            adjusted_total_per_slice = base_memory_per_slice * base_multiplier * penalty_factor
+            chunk_size = max(1, int((available_memory * 0.80) / adjusted_total_per_slice))
+        else:
+            chunk_size = initial_chunk
+        
+        # Apply safety limits: 20 to 200 slices (reduced max for efficiency)
+        chunk_size = max(20, min(chunk_size, 200))
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
