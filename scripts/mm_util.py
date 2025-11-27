@@ -1155,18 +1155,21 @@ def estimate_chunk_size(
     image_shape: tuple = None,
 ) -> int:
     """
-    Robustly estimate optimal chunk size with self-tuning based on OOM history.
+    Estimate optimal chunk size for in-memory chunking (RAM-based, not disk-based).
+    
+    Since in-memory chunking has minimal MONAI overhead (no disk I/O, no full-volume
+    preprocessing), we can use much larger chunks and simpler estimates.
     
     Args:
         device: torch device (cuda, mps, or cpu)
         roi_size: (H, W) size of ROI for sliding window
         in_channels: number of input channels
-        out_channels: number of output channels
+        out_channels: number of output channels (only 1 channel stored after argmax)
         channels: list of channel counts at each UNet level [64, 128, 256, 512, 1024]
         spatial_window_batch_size: batch size for sliding window inference
         overlap: spatial overlap ratio (0.5 = 50% overlap)
         use_fp16: whether FP16 is enabled (CUDA only)
-        image_shape: optional image shape for OOM history lookup
+        image_shape: optional image shape (unused in this simplified version)
     
     Returns:
         Estimated chunk size (number of slices)
@@ -1192,34 +1195,36 @@ def estimate_chunk_size(
             # Validate memory values
             if available_ram <= 0 or total_ram <= 0:
                 logging.warning(f"Invalid memory values: available={available_ram}, total={total_ram}. Using conservative default.")
-                return 15
+                return 50
             
-            # Calculate memory needed per slice
+            # Calculate memory needed per slice (in-memory: minimal overhead)
             bytes_per_value = 4  # float32 for CPU/MPS
             input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
-            output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
             
-            # Aggressive estimate with reduced overhead for maximal speed
-            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 3.0
+            # Output is discrete labels (int16, 2 bytes) after argmax, not probabilities
+            output_size_per_slice = roi_size[0] * roi_size[1] * 2  # int16
             
-            # Use 60% of available RAM for maximal speed
-            memory_utilization = 0.60
+            # Minimal overhead for in-memory chunking: just 5% for intermediate buffers
+            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 1.05
+            
+            # Use 70% of available RAM for aggressive speed
+            memory_utilization = 0.70
             chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
             
-            # Expanded bounds for maximal speed: 20-150 slices
-            chunk_size = max(20, min(chunk_size, 150))
+            # Expanded bounds: 50-500 slices for in-memory
+            chunk_size = max(50, min(chunk_size, 500))
             
             device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
             logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
-            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
+            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (1.05x overhead)")
             logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
             return chunk_size
             
         except Exception as e:
-            logging.warning(f"Failed to estimate CPU/MPS chunk size: {e}. Using safe default of 15 slices.")
-            return 15
+            logging.warning(f"Failed to estimate CPU/MPS chunk size: {e}. Using safe default of 50 slices.")
+            return 50
     
-    # GPU (CUDA) estimation
+    # GPU (CUDA) estimation for in-memory chunking
     try:
         if not torch.cuda.is_available():
             raise RuntimeError("CUDA not available")
@@ -1238,16 +1243,18 @@ def estimate_chunk_size(
         
         if available_memory <= 0:
             logging.warning(f"Insufficient GPU memory available. Reserved={reserved_memory/1024**3:.2f}GB")
-            return 5  # Minimum safe chunk
+            return 20  # Minimum safe chunk
         
         # Bytes per value based on precision
         bytes_per_value = 2 if use_fp16 else 4
         
-        # Calculate memory per slice (SIMPLE - from working version)
+        # Calculate memory per slice for in-memory chunking (simplified)
         # 1. Input memory per slice
         input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
         
-        # 2. Output memory per slice (before argmax)
+        # 2. Output memory per slice (discrete labels after argmax, not 90-channel probabilities)
+        # During inference we still have the full output, but it's immediately converted
+        # So we need to account for both temporarily
         output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
         
         # 3. Calculate UNet activation memory across all encoder/decoder levels
@@ -1258,39 +1265,38 @@ def estimate_chunk_size(
             # Encoder + Decoder (2x) + skip connections (1x) = 3x per level
             activation_size += spatial_size * ch * bytes_per_value * 3
         
-        # Add buffer for intermediate convolutions, batch norm, etc (30% overhead)
-        activation_size_per_slice = activation_size * 1.3
+        activation_size_per_slice = activation_size
         
         # 4. Account for sliding window overlap
         overlap_multiplier = 1.0 / (1.0 - overlap) if overlap < 1.0 else 1.0
         
-        # Total memory per slice accounting for all factors
+        # Total inference memory per slice
         inference_memory_per_slice = (
             input_size_per_slice + 
             activation_size_per_slice + 
             output_size_per_slice
         ) * spatial_window_batch_size * overlap_multiplier
         
-        # CRITICAL: Invertd post-processing tries to allocate massive GPU memory (20+ GB)
-        # for resampling back to original space. Use aggressive 3.5x multiplier to
-        # account for pre+post transform overhead and PyTorch memory fragmentation
-        total_per_slice = inference_memory_per_slice * 3.5
+        # In-memory chunking: minimal overhead (5% for intermediate buffers)
+        # No Invertd overhead during chunking (applied after accumulation)
+        total_per_slice = inference_memory_per_slice * 1.05
         
         # Calculate chunk size using 90% of available memory
         chunk_size = max(1, int((available_memory * 0.90) / total_per_slice))
         
-        # Apply safety limits: 5 to 250 slices
-        chunk_size = max(5, min(chunk_size, 250))
+        # Apply safety limits: 20 to 500 slices for in-memory
+        chunk_size = max(20, min(chunk_size, 500))
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
+        logging.info(f"In-memory chunking: {inference_memory_per_slice / 1024**3:.4f} GB per slice (1.05x overhead)")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
         return chunk_size
         
     except Exception as e:
-        logging.warning(f"Failed to estimate GPU chunk size: {e}. Using safe default of 20 slices.")
-        return 20
+        logging.warning(f"Failed to estimate GPU chunk size: {e}. Using safe default of 50 slices.")
+        return 50
 
 def log_memory_usage(stage, verbose=True, device_type='cuda'):
     """Log CPU and GPU memory usage"""
