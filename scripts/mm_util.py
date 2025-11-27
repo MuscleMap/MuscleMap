@@ -967,14 +967,37 @@ def run_inference_in_memory_chunking(
     
     # Move to device and use amp_context for proper dtype handling
     test_tensor = test_tensor.to(device)
-    with amp_context, torch.inference_mode():
-        test_pred = inferer(test_tensor, model)
-        output_channels = test_pred.shape[1]  # Number of segmentation classes
     
-    del test_chunk, test_tensor, test_pred
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    try:
+        with amp_context, torch.inference_mode():
+            test_pred = inferer(test_tensor, model)
+            output_channels = test_pred.shape[1]  # Number of segmentation classes
+        
+        del test_chunk, test_tensor, test_pred
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
+    except RuntimeError as e:
+        # MPS often fails with "Invalid buffer size" errors on large allocations
+        if device.type == 'mps' and ("buffer size" in str(e).lower() or "out of memory" in str(e).lower()):
+            if fallback_device is not None:
+                logging.warning(f"MPS allocation failed ({e}), falling back to CPU")
+                del test_chunk, test_tensor
+                gc.collect()
+                
+                device = fallback_device
+                model = model.to(device).float()
+                amp_context = torch.autocast('cpu', enabled=False)
+                
+                return run_inference_in_memory_chunking(
+                    image_path, output_dir, pre_transforms, post_transforms,
+                    amp_context, chunk_size, device, inferer, model, verbose, None
+                )
+            else:
+                raise RuntimeError(f"MPS allocation failed and no fallback device available: {e}")
+        else:
+            raise
     
     # Initialize output array for accumulating DISCRETE predictions (not probabilities)
     # This saves massive memory: int16 (2 bytes) vs 90-channel float32 (360 bytes per voxel)
@@ -1048,9 +1071,15 @@ def run_inference_in_memory_chunking(
                 pbar.update(end - start)
                 
             except RuntimeError as e:
-                if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                    logging.warning(f"{device.type.upper()} OOM on chunk {start}-{end}, falling back to CPU: {e}")
-                    torch.cuda.empty_cache()
+                error_str = str(e).lower()
+                is_memory_error = ("out of memory" in error_str or 
+                                  "buffer size" in error_str or 
+                                  "invalid buffer" in error_str)
+                
+                if is_memory_error and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                    logging.warning(f"{device.type.upper()} memory error on chunk {start}-{end}, falling back to CPU: {e}")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                     gc.collect()
                     device = fallback_device
                     model = model.to(device).float()
@@ -1201,22 +1230,33 @@ def estimate_chunk_size(
             bytes_per_value = 4  # float32 for CPU/MPS
             input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
             
-            # Output is discrete labels (int16, 2 bytes) after argmax, not probabilities
-            output_size_per_slice = roi_size[0] * roi_size[1] * 2  # int16
+            # CRITICAL for MPS: MONAI's sliding window inferer allocates the FULL output buffer
+            # (all 90 channels) BEFORE we can apply argmax. This is the source of "Invalid buffer size" errors.
+            # We must account for the full probability map, not just the final discrete labels.
+            full_output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
             
-            # Minimal overhead for in-memory chunking: just 5% for intermediate buffers
-            memory_per_slice = (input_size_per_slice + output_size_per_slice) * 1.05
+            # For MPS: Account for MONAI sliding window overhead
+            # The inferer creates intermediate buffers for patch accumulation and blending
+            if device.type == 'mps':
+                # MPS needs to account for sliding window accumulation buffers
+                # Use empirical 2.5x multiplier for MONAI's patch blending and accumulation
+                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 2.5
+                memory_utilization = 0.80  # Aggressive - use 80% of available RAM
+                max_chunk = 500  # Allow large chunks if RAM permits
+            else:
+                # CPU can use virtual memory more flexibly
+                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 1.1
+                memory_utilization = 0.80  # Aggressive for CPU too
+                max_chunk = 500
             
-            # Use 70% of available RAM for aggressive speed
-            memory_utilization = 0.70
             chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
             
-            # Expanded bounds: 50-500 slices for in-memory
-            chunk_size = max(50, min(chunk_size, 500))
+            # Apply device-specific bounds
+            chunk_size = max(20, min(chunk_size, max_chunk))
             
             device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
             logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
-            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (1.05x overhead)")
+            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (includes full {out_channels}-channel output)")
             logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
             return chunk_size
             
