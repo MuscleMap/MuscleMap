@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti, estimate_chunk_size
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_in_memory_chunking, is_nifti, estimate_chunk_size
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti, estimate_chunk_size
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_in_memory_chunking, is_nifti, estimate_chunk_size
 import torch
 
 #naming not functional
@@ -71,6 +71,9 @@ def get_parser():
     
     optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 'auto'")
+    
+    optional.add_argument("--chunking_mode", required=False, default='memory', type=str, choices=['memory', 'disk'],
+                    help="Chunking strategy: 'memory' for in-memory RAM-based chunking (faster, larger chunks), 'disk' for disk-based chunking (legacy). Default is 'memory'.")
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
@@ -111,9 +114,17 @@ def main():
         torch.backends.cudnn.benchmark = True
     elif device.type == 'mps':
         logging.info("Using Apple Silicon GPU (MPS)")
-        logging.info("Note: MPS may have different performance characteristics than CUDA")
+        # MPS-specific optimizations
+        os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.0'  # Aggressive memory management
+        logging.info("MPS memory optimizations enabled")
     else:
-        logging.info("Processing on CPU will slow down inference speed")
+        # Optimize CPU inference with threading and oneDNN
+        num_threads = os.cpu_count()
+        torch.set_num_threads(num_threads)
+        torch.set_num_interop_threads(num_threads)
+        if hasattr(torch.backends, 'mkldnn'):
+            torch.backends.mkldnn.enabled = True
+        logging.info(f"Processing on CPU with {num_threads} threads and oneDNN optimizations enabled")
 
     if args.output_dir is None:
         output_dir = os.getcwd()
@@ -225,6 +236,16 @@ def main():
     # Convert model to FP16 which CUDA tensor cores are optimized for
     if device.type == 'cuda':
         model = model.half()
+    
+    # Compile model for CPU optimization (PyTorch 2.0+)
+    # Note: torch.compile only supports CPU and CUDA, not MPS
+    if device.type == 'cpu':
+        try:
+            logging.info("Compiling model with torch.compile for CPU optimization...")
+            model = torch.compile(model, mode='max-autotune')
+            logging.info("Model compilation successful")
+        except Exception as e:
+            logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     overlap_inference = args.overlap / 100
     
@@ -232,7 +253,8 @@ def main():
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     
     chunk_size_arg = args.chunk_size # args.chunk_size may be an integer string or the literal 'auto'
-
+    
+    errors_occurred = False
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
@@ -264,27 +286,48 @@ def main():
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
             
-            run_inference(
-                test["image"], 
-                output_dir, 
-                pre_transforms, 
-                post_transforms, 
-                amp_context, 
-                chunk_size, 
-                device, 
-                inferer, 
-                model, 
-                verbose=args.verbose,
-                fallback_device=fallback_device
-            )
+            # Select chunking mode
+            if args.chunking_mode == 'memory':
+                # Use new in-memory chunking (RAM-based, not VRAM)
+                run_inference_in_memory_chunking(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
+                method = "in-memory chunking (RAM)" if chunk_size else "full volume"
+            else:
+                # Use legacy disk-based chunking
+                run_inference(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
+                method = "disk-based chunking" if chunk_size else "full volume"
             
-            method = "disk-based chunking" if chunk_size else "full volume"
             logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
+            errors_occurred = True
             continue
     
-    logging.info("Inference completed. All outputs saved.")
+    if not errors_occurred:
+        logging.info("Inference completed. All outputs saved.")
 
 #%%
 if __name__ == "__main__":
