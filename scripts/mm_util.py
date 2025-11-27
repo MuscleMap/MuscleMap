@@ -1015,42 +1015,13 @@ def run_inference_in_memory_chunking(
                     'gpu_total': gpu_total
                 })
             
-            # Post-process with stored metadata
+            # Post-process: apply argmax to convert probabilities to discrete labels
             mem_monitor.start_stage("Post-processing")
-            single_pred = pred.squeeze(0).squeeze(0)
-            if device.type == "mps":
-                single_pred = single_pred.cpu()
+            # pred shape: (1, classes, H, W, D)
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
             
-            # Create custom post_transforms with stored metadata
-            from monai.transforms import AsDiscreted, Compose
-            custom_invertd = CustomInvertd(
-                keys="pred",
-                transform=pre_transforms,
-                orig_keys="image",
-                meta_keys="pred_meta_dict",
-                orig_meta_keys="image_meta_dict",
-                meta_key_postfix="meta_dict",
-                nearest_interp=False,
-                to_tensor=False,
-                device="cpu",
-                stored_affine=stored_affine,
-                stored_meta_dict=stored_meta_dict,
-            )
-            
-            # Build custom post-processing pipeline
-            custom_post_transforms = [t for t in post_transforms.transforms if not isinstance(t, Invertd)]
-            custom_post_transforms.insert(0, custom_invertd)
-            custom_post_pipeline = Compose(custom_post_transforms)
-            
-            post_in = {
-                "pred": single_pred,
-                "image": torch.from_numpy(img_array),
-                "image_meta_dict": stored_meta_dict,
-            }
-            
-            post_out = custom_post_pipeline(post_in)
-            seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
-            full_seg = connected_chunks(seg_np)
+            # Apply connected components filtering
+            full_seg = connected_chunks(pred_discrete)
             
             # Save with original affine and header
             img_nii = nib.load(image_path)
@@ -1119,8 +1090,9 @@ def run_inference_in_memory_chunking(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
-    # Initialize output array for accumulating predictions
-    full_pred = np.zeros((output_channels, *img_shape[:2], D), dtype=np.float32)
+    # Initialize output array for accumulating DISCRETE predictions (not probabilities)
+    # This saves massive memory: int16 (2 bytes) vs 90-channel float32 (360 bytes per voxel)
+    full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
     
     # Process chunks
     with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
@@ -1149,9 +1121,12 @@ def run_inference_in_memory_chunking(
                 with amp_context, torch.inference_mode():
                     pred = inferer(tensor, model)
                 
-                # Store prediction back to RAM
-                pred_np = pred.squeeze(0).cpu().numpy()  # Shape: (classes, H, W, chunk_depth)
-                full_pred[..., start:end] = pred_np.cpu().numpy()  # No transpose needed
+                # Apply argmax immediately to convert probabilities to discrete labels
+                # This reduces memory from (90, H, W, D) float32 to (H, W, D) int16
+                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
+                
+                # Store discrete prediction back to RAM
+                full_pred[..., start:end] = pred_discrete
                 
                 # Collect peak metrics if verbose (BEFORE cleanup)
                 if verbose and metrics_data is not None:
@@ -1178,7 +1153,7 @@ def run_inference_in_memory_chunking(
                     })
                 
                 # Cleanup GPU memory
-                del tensor, pred, pred_np, chunk_array
+                del tensor, pred, pred_discrete, chunk_array
                 gc.collect()
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -1209,42 +1184,12 @@ def run_inference_in_memory_chunking(
 
     mem_monitor.start_stage("Post-processing")
     
-    logging.info("Applying post-processing with preserved metadata...")
+    logging.info("Applying post-processing (connected components filtering)...")
     
-    # Convert predictions to tensor
-    # full_pred shape: (H, W, classes, D)
-    full_pred_tensor = torch.from_numpy(full_pred).permute(2, 0, 1, 3)  # Shape: (classes, H, W, D)
-    
-    # Create custom post_transforms with stored metadata
-    from monai.transforms import AsDiscreted, Compose
-    custom_invertd = CustomInvertd(
-        keys="pred",
-        transform=pre_transforms,
-        orig_keys="image",
-        meta_keys="pred_meta_dict",
-        orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict",
-        nearest_interp=False,
-        to_tensor=False,
-        device="cpu",
-        stored_affine=stored_affine,
-        stored_meta_dict=stored_meta_dict,
-    )
-    
-    # Build custom post-processing pipeline
-    custom_post_transforms = [t for t in post_transforms.transforms if not isinstance(t, Invertd)]
-    custom_post_transforms.insert(0, custom_invertd)
-    custom_post_pipeline = Compose(custom_post_transforms)
-    
-    post_in = {
-        "pred": full_pred_tensor,
-        "image": torch.from_numpy(img_array),
-        "image_meta_dict": stored_meta_dict,
-    }
-    
-    post_out = custom_post_pipeline(post_in)
-    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
-    full_seg = connected_chunks(seg_np)
+    # full_pred is already discrete labels in original image space
+    # No need for Invertd since we applied argmax before accumulation
+    # Just apply connected components filtering
+    full_seg = connected_chunks(full_pred)
     
     # Save with original affine and header
     img_nii = nib.load(image_path)
