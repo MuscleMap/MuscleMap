@@ -748,157 +748,6 @@ def _make_out_path(image_path, output_dir, tag="_dseg"):
         base = fname[:-4]
     return os.path.join(output_dir, f"{base}{tag}.nii.gz")
 
-
-class CustomInvertd(MapTransform):
-    """
-    Custom Invertd transform that handles ndarray inputs with preserved metadata.
-    
-    This class works around Invertd's limitations when dealing with ndarray chunks
-    by explicitly preserving and restoring the original image metadata and affine.
-    
-    Usage:
-        - Capture original metadata using pre_transforms on full image
-        - Store metadata before chunking
-        - Use this class to invert with the stored metadata
-    """
-    
-    def __init__(
-        self,
-        keys,
-        transform,
-        orig_keys=None,
-        meta_keys=None,
-        orig_meta_keys=None,
-        meta_key_postfix="meta_dict",
-        nearest_interp=True,
-        to_tensor=True,
-        device=None,
-        post_func=None,
-        allow_missing_keys=False,
-        # Custom parameters for metadata preservation
-        stored_affine=None,
-        stored_meta_dict=None,
-    ):
-        """
-        Args:
-            Same as Invertd, plus:
-            stored_affine: The original affine matrix to restore
-            stored_meta_dict: The original metadata dictionary to restore
-        """
-        super().__init__(keys, allow_missing_keys)
-        from monai.transforms import InvertibleTransform, ToTensor
-        from monai.utils import ensure_tuple_rep, ensure_tuple
-        
-        if not isinstance(transform, InvertibleTransform):
-            raise ValueError("transform is not invertible")
-        
-        self.transform = transform
-        self.orig_keys = ensure_tuple_rep(orig_keys, len(self.keys)) if orig_keys is not None else self.keys
-        self.meta_keys = ensure_tuple_rep(None, len(self.keys)) if meta_keys is None else ensure_tuple(meta_keys)
-        self.orig_meta_keys = ensure_tuple_rep(orig_meta_keys, len(self.keys))
-        self.meta_key_postfix = ensure_tuple_rep(meta_key_postfix, len(self.keys))
-        self.nearest_interp = ensure_tuple_rep(nearest_interp, len(self.keys))
-        self.to_tensor = ensure_tuple_rep(to_tensor, len(self.keys))
-        self.device = ensure_tuple_rep(device, len(self.keys))
-        self.post_func = ensure_tuple_rep(post_func, len(self.keys))
-        self._totensor = ToTensor()
-        
-        # Store original metadata for restoration
-        self.stored_affine = stored_affine
-        self.stored_meta_dict = stored_meta_dict
-    
-    def __call__(self, data):
-        from copy import deepcopy
-        from monai.data import MetaTensor
-        from monai.transforms import InvertibleTransform, convert_to_tensor
-        from monai.transforms.utils import convert_applied_interp_mode
-        from monai.config import config
-        from monai.utils import PostFix, allow_missing_keys_mode
-        import warnings
-        
-        d = dict(data)
-        for (
-            key,
-            orig_key,
-            meta_key,
-            orig_meta_key,
-            meta_key_postfix,
-            nearest_interp,
-            to_tensor,
-            device,
-            post_func,
-        ) in self.key_iterator(
-            d,
-            self.orig_keys,
-            self.meta_keys,
-            self.orig_meta_keys,
-            self.meta_key_postfix,
-            self.nearest_interp,
-            self.to_tensor,
-            self.device,
-            self.post_func,
-        ):
-            # Use stored metadata if available, otherwise fall back to data dict
-            if self.stored_meta_dict is not None:
-                transform_info = d.get(InvertibleTransform.trace_key(orig_key), 
-                                      self.stored_meta_dict.get('applied_operations', []))
-                meta_info = deepcopy(self.stored_meta_dict)
-            else:
-                orig_meta_key = orig_meta_key or f"{orig_key}_{meta_key_postfix}"
-                if orig_key in d and isinstance(d[orig_key], MetaTensor):
-                    transform_info = d[orig_key].applied_operations
-                    meta_info = d[orig_key].meta
-                else:
-                    transform_info = d.get(InvertibleTransform.trace_key(orig_key), [])
-                    meta_info = d.get(orig_meta_key, {})
-            
-            # Override affine if provided
-            if self.stored_affine is not None:
-                meta_info['affine'] = self.stored_affine
-            
-            if nearest_interp:
-                transform_info = convert_applied_interp_mode(
-                    trans_info=transform_info, mode="nearest", align_corners=None
-                )
-            
-            inputs = d[key]
-            if isinstance(inputs, torch.Tensor):
-                inputs = inputs.detach()
-            
-            if not isinstance(inputs, MetaTensor):
-                inputs = convert_to_tensor(inputs, track_meta=True)
-            inputs.applied_operations = deepcopy(transform_info)
-            inputs.meta = deepcopy(meta_info)
-            
-            # Construct input dict
-            input_dict = {orig_key: inputs}
-            if config.USE_META_DICT:
-                input_dict[InvertibleTransform.trace_key(orig_key)] = transform_info
-                input_dict[PostFix.meta(orig_key)] = meta_info
-            
-            with allow_missing_keys_mode(self.transform):
-                inverted = self.transform.inverse(input_dict)
-            
-            # Save inverted data
-            inverted_data = inverted[orig_key]
-            if to_tensor and not isinstance(inverted_data, MetaTensor):
-                inverted_data = self._totensor(inverted_data)
-            if isinstance(inverted_data, np.ndarray) and device is not None and torch.device(device).type != "cpu":
-                raise ValueError(f"Inverted data with type of 'numpy.ndarray' support device='cpu', got {device}.")
-            if isinstance(inverted_data, torch.Tensor):
-                inverted_data = inverted_data.to(device=device)
-            d[key] = post_func(inverted_data) if callable(post_func) else inverted_data
-            
-            # Save inverted metadata
-            if InvertibleTransform.trace_key(orig_key) in d:
-                d[InvertibleTransform.trace_key(orig_key)] = inverted_data.applied_operations
-            if orig_meta_key in d:
-                meta_key = meta_key or f"{key}_{meta_key_postfix}"
-                d[meta_key] = inverted.get(orig_meta_key)
-        
-        return d
-
-
 def run_inference_in_memory_chunking(
     image_path,
     output_dir,
@@ -1018,14 +867,50 @@ def run_inference_in_memory_chunking(
             # Post-process: apply argmax to convert probabilities to discrete labels
             mem_monitor.start_stage("Post-processing")
             # pred shape: (1, classes, H, W, D)
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu()
+            if device.type == "mps":
+                pred_discrete = pred_discrete.cpu()
             
-            # Apply connected components filtering
-            full_seg = connected_chunks(pred_discrete)
+            # Use Invertd to resample back to original image space
+            from monai.transforms import Invertd, Compose
+            from monai.data import MetaTensor
+            
+            # Convert discrete prediction to MetaTensor with metadata for Invertd
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+            pred_metatensor.applied_operations = stored_applied_operations
+            
+            # Apply Invertd to resample back to original space
+            invertd = Invertd(
+                keys="pred",
+                transform=pre_transforms,
+                orig_keys="image",
+                meta_keys="pred_meta_dict",
+                orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict",
+                nearest_interp=True,  # Use nearest neighbor for label data
+                to_tensor=True,
+                device="cpu",
+            )
+            
+            post_in = {
+                "pred": pred_metatensor,
+                "image": torch.from_numpy(img_array),
+                "image_meta_dict": stored_meta_dict,
+            }
+            
+            post_out = invertd(post_in)
+            seg_tensor = post_out["pred"]
+            
+            # Apply KeepLargestConnectedComponent from post_transforms if present
+            for transform in post_transforms.transforms:
+                if hasattr(transform, '__class__') and 'KeepLargestConnectedComponent' in transform.__class__.__name__:
+                    seg_tensor = transform({"pred": seg_tensor})["pred"]
+            
+            seg_np = seg_tensor.detach().cpu().to(torch.int16).numpy().squeeze()
             
             # Save with original affine and header
             img_nii = nib.load(image_path)
-            nib.save(nib.Nifti1Image(full_seg, stored_affine, img_nii.header), out_path)
+            nib.save(nib.Nifti1Image(seg_np, img_nii.affine, img_nii.header), out_path)
             
             mem_monitor.end_stage()
             
@@ -1044,7 +929,7 @@ def run_inference_in_memory_chunking(
                 _plot_performance_metrics(metrics_data, plot_path)
             
             # Cleanup
-            del tensor, pred, single_pred, post_in, post_out, seg_np, full_seg, img_array
+            del tensor, pred, pred_discrete, pred_metatensor, post_in, post_out, seg_tensor, seg_np, img_array
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1184,16 +1069,50 @@ def run_inference_in_memory_chunking(
 
     mem_monitor.start_stage("Post-processing")
     
-    logging.info("Applying post-processing (connected components filtering)...")
+    logging.info("Applying post-processing and resampling to original space...")
     
-    # full_pred is already discrete labels in original image space
-    # No need for Invertd since we applied argmax before accumulation
-    # Just apply connected components filtering
-    full_seg = connected_chunks(full_pred)
+    # Convert accumulated discrete labels to tensor and apply Invertd
+    from monai.transforms import Invertd, Compose
+    from monai.data import MetaTensor
+    
+    full_pred_tensor = torch.from_numpy(full_pred)
+    
+    # Convert to MetaTensor with metadata for Invertd
+    pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
+    pred_metatensor.applied_operations = stored_applied_operations
+    
+    # Apply Invertd to resample back to original image space
+    invertd = Invertd(
+        keys="pred",
+        transform=pre_transforms,
+        orig_keys="image",
+        meta_keys="pred_meta_dict",
+        orig_meta_keys="image_meta_dict",
+        meta_key_postfix="meta_dict",
+        nearest_interp=True,  # Use nearest neighbor for label data
+        to_tensor=True,
+        device="cpu",
+    )
+    
+    post_in = {
+        "pred": pred_metatensor,
+        "image": torch.from_numpy(img_array),
+        "image_meta_dict": stored_meta_dict,
+    }
+    
+    post_out = invertd(post_in)
+    seg_tensor = post_out["pred"]
+    
+    # Apply KeepLargestConnectedComponent from post_transforms if present
+    for transform in post_transforms.transforms:
+        if hasattr(transform, '__class__') and 'KeepLargestConnectedComponent' in transform.__class__.__name__:
+            seg_tensor = transform({"pred": seg_tensor})["pred"]
+    
+    seg_np = seg_tensor.detach().cpu().to(torch.int16).numpy().squeeze()
     
     # Save with original affine and header
     img_nii = nib.load(image_path)
-    nib.save(nib.Nifti1Image(full_seg, stored_affine, img_nii.header), out_path)
+    nib.save(nib.Nifti1Image(seg_np, img_nii.affine, img_nii.header), out_path)
     
     logging.info(f"Segmentation saved to: {out_path}")
     
@@ -1214,7 +1133,7 @@ def run_inference_in_memory_chunking(
         _plot_performance_metrics(metrics_data, plot_path)
     
     # Final cleanup
-    del img_array, full_pred, full_seg
+    del img_array, full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, seg_tensor, seg_np
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
