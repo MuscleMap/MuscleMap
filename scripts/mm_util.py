@@ -1321,28 +1321,34 @@ def estimate_chunk_size(
         ) * spatial_window_batch_size * overlap_multiplier
         
         # MONAI overhead for sliding window: patch accumulation and blending buffers
-        # Base multiplier of 1.5x, but increases non-linearly with chunk size
-        base_multiplier = 1.5
+        # Empirically tuned based on real-world testing showing optimal range is 90-150 slices
+        # Data shows: chunk 39-50 = slow (overhead), 90-150 = fast (sweet spot), 200+ = OOM/slow
         
-        # Calculate initial chunk size with base multiplier
-        initial_chunk = max(1, int((available_memory * 0.80) / (base_memory_per_slice * base_multiplier)))
+        # Calculate theoretical maximum with conservative base multiplier
+        base_multiplier = 2.0  # Conservative to avoid OOM (empirically: chunk 402 OOM, 250 slow)
+        theoretical_max = max(1, int((available_memory * 0.75) / (base_memory_per_slice * base_multiplier)))
         
-        # Apply non-linear penalty for large chunks (quadratic relationship)
-        # Sweet spot is typically 50-150 slices. Larger chunks have diminishing returns
-        # and increased memory fragmentation/inefficiency.
-        if initial_chunk > 150:
-            # For chunks > 150, apply quadratic penalty
-            # Memory scales more like chunk^1.3 rather than linearly
-            excess = initial_chunk - 150
-            penalty_factor = 1.0 + (excess / 150) * 0.5  # Grows to 1.5x at 300 slices
-            total_per_slice = base_memory_per_slice * base_multiplier * penalty_factor
-            chunk_size = max(1, int((available_memory * 0.80) / total_per_slice))
-        else:
+        # Apply empirically-derived non-linear fit to find optimal chunk size
+        # Based on speed data: optimal performance at 90-150 slices, degrades outside this range
+        # Formula: Target the sweet spot (90-150) even if memory allows more
+        
+        if theoretical_max <= 60:
+            # Very limited memory: use what we can get (will be slow but functional)
+            chunk_size = theoretical_max
             total_per_slice = base_memory_per_slice * base_multiplier
-            chunk_size = initial_chunk
+        elif theoretical_max <= 150:
+            # Within optimal range: use theoretical max
+            chunk_size = theoretical_max
+            total_per_slice = base_memory_per_slice * base_multiplier
+        else:
+            # Memory allows large chunks, but empirically 90-150 is fastest
+            # Cap at 150 for optimal speed (data shows 150→62-105s vs 200→105s vs 250→111s)
+            chunk_size = 150
+            # Calculate actual memory per slice for logging accuracy
+            total_per_slice = (available_memory * 0.75) / chunk_size
         
-        # Apply safety limits: 20 to 200 slices (reduced max for efficiency)
-        chunk_size = max(20, min(chunk_size, 200))
+        # Hard safety limits based on empirical data: 30 min, 150 max
+        chunk_size = max(30, min(chunk_size, 150))
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
