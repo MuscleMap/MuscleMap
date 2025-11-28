@@ -101,6 +101,29 @@ def main():
     
     logging.info(f"Processing using device: {device}")
     
+    # Initialize wandb if verbose mode is enabled
+    if args.verbose:
+        try:
+            import wandb
+            # Auto-initialize wandb for experiment tracking
+            wandb.init(
+                project="musclemap",
+                name=f"{args.region}_{os.path.basename(args.input_image.split(',')[0])}",
+                config={
+                    'region': args.region,
+                    'device': str(device),
+                    'overlap': args.overlap,
+                    'chunking_mode': args.chunking_mode,
+                },
+                # Use offline mode by default to avoid requiring login
+                mode=os.environ.get('WANDB_MODE', 'offline')
+            )
+            logging.info(f"wandb experiment tracking enabled (run: {wandb.run.name})")
+        except ImportError:
+            logging.info("wandb not installed - using console logging only (install with: pip install wandb)")
+        except Exception as e:
+            logging.warning(f"wandb initialization failed: {e} - continuing without wandb")
+    
     # Set up mixed precision context
     if device.type == 'cuda':
         amp_context = torch.amp.autocast('cuda', dtype=torch.float16)
@@ -321,6 +344,20 @@ def main():
                 method = "disk-based chunking" if chunk_size else "full volume"
             
             logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
+            
+            # Log completion to wandb
+            if args.verbose:
+                try:
+                    import wandb
+                    if wandb.run:
+                        wandb.log({
+                            'inference/duration_sec': perf_counter()-t0,
+                            'inference/method': method,
+                            'inference/image': os.path.basename(test['image'])
+                        })
+                except:
+                    pass
+                    
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
             errors_occurred = True
@@ -328,6 +365,15 @@ def main():
     
     if not errors_occurred:
         logging.info("Inference completed. All outputs saved.")
+    
+    # Finish wandb run
+    if args.verbose:
+        try:
+            import wandb
+            if wandb.run:
+                wandb.finish()
+        except:
+            pass
 
 #%%
 if __name__ == "__main__":

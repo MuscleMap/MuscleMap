@@ -24,40 +24,117 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
 class MemoryMonitor:
-    """Context manager to track peak memory usage during operations"""
+    """Unified memory monitoring with optional wandb integration
+    
+    Automatically uses wandb when verbose=True if wandb is available and initialized.
+    """
     def __init__(self, device_type='cuda', verbose=True):
         self.device_type = device_type
         self.verbose = verbose
-        self.stage_peak_gpu = 0
-        self.stage_peak_ram = 0
-        self.stage_start_gpu = 0
-        self.stage_start_ram = 0
+        self.metrics_history = []
+        self.current_stage = None
+        self.wandb = None
+        
+        # Auto-detect wandb if verbose mode is on
+        if self.verbose:
+            try:
+                import wandb
+                if wandb.run:
+                    self.wandb = wandb
+                    logging.info("wandb tracking enabled for verbose mode")
+            except ImportError:
+                pass  # wandb not installed, just use console logging
+    
+    def get_memory_snapshot(self):
+        """Get current memory usage snapshot
+        
+        Returns:
+            dict: Memory metrics in GB
+        """
+        process = psutil.Process()
+        cpu_used = process.memory_info().rss / 1024**3
+        cpu_total = psutil.virtual_memory().total / 1024**3
+        
+        snapshot = {
+            'cpu_used': round(cpu_used, 3),
+            'cpu_total': round(cpu_total, 3),
+            'cpu_percent': round((cpu_used / cpu_total * 100), 2) if cpu_total > 0 else 0,
+        }
+        
+        if self.device_type == 'cuda' and torch.cuda.is_available():
+            gpu_used = torch.cuda.memory_allocated() / 1024**3
+            gpu_reserved = torch.cuda.memory_reserved() / 1024**3
+            gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            
+            snapshot.update({
+                'gpu_used': round(gpu_used, 3),
+                'gpu_reserved': round(gpu_reserved, 3),
+                'gpu_total': round(gpu_total, 3),
+                'gpu_percent': round((gpu_used / gpu_total * 100), 2) if gpu_total > 0 else 0,
+            })
+        
+        return snapshot
     
     def start_stage(self, stage_name):
         """Begin monitoring a new stage"""
         self.current_stage = stage_name
         if self.device_type == 'cuda' and torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
-            self.stage_start_gpu = torch.cuda.memory_allocated() / 1024**3
-        
-        process = psutil.Process()
-        self.stage_start_ram = process.memory_info().rss / 1024**3
     
-    def end_stage(self):
+    def end_stage(self, extra_metrics=None):
         """End monitoring and log the stage summary"""
-        if not self.verbose:
+        if not self.verbose and not self.wandb:
             return
         
-        if self.device_type == 'cuda' and torch.cuda.is_available():
-            self.stage_peak_gpu = torch.cuda.max_memory_allocated() / 1024**3
-            logging.info(f"[{self.current_stage}] Peak GPU VRAM: {self.stage_peak_gpu:.2f} GB")
-        elif self.device_type == 'mps' and torch.backends.mps.is_available():
-            # MPS doesn't have direct memory tracking like CUDA
-            logging.info(f"[{self.current_stage}] MPS device (memory tracking not available)")
+        snapshot = self.get_memory_snapshot()
         
-        process = psutil.Process()
-        self.stage_peak_ram = process.memory_info().rss / 1024**3
-        logging.info(f"[{self.current_stage}] RAM usage: {self.stage_peak_ram:.2f} GB")
+        # Get peak GPU if CUDA
+        if self.device_type == 'cuda' and torch.cuda.is_available():
+            gpu_peak = torch.cuda.max_memory_allocated() / 1024**3
+            snapshot['gpu_peak'] = round(gpu_peak, 3)
+        
+        # Store metrics
+        metrics = {
+            'stage': self.current_stage,
+            **snapshot,
+            **(extra_metrics or {})
+        }
+        self.metrics_history.append(metrics)
+        
+        # Console logging
+        if self.verbose:
+            if self.device_type == 'cuda' and 'gpu_peak' in snapshot:
+                logging.info(f"[{self.current_stage}] Peak GPU: {snapshot['gpu_peak']:.2f} GB, RAM: {snapshot['cpu_used']:.2f} GB")
+            elif self.device_type == 'mps':
+                logging.info(f"[{self.current_stage}] RAM: {snapshot['cpu_used']:.2f} GB (MPS tracking unavailable)")
+            else:
+                logging.info(f"[{self.current_stage}] RAM: {snapshot['cpu_used']:.2f} GB")
+        
+        # wandb logging
+        if self.wandb:
+            wandb_metrics = {f"memory/{k}": v for k, v in metrics.items() if k != 'stage'}
+            wandb_metrics["memory/stage"] = self.current_stage
+            self.wandb.log(wandb_metrics)
+    
+    def log_chunk_metrics(self, chunk_id, start_slice, end_slice):
+        """Log chunk-specific metrics"""
+        snapshot = self.get_memory_snapshot()
+        
+        if self.device_type == 'cuda' and torch.cuda.is_available():
+            snapshot['gpu_peak'] = round(torch.cuda.max_memory_allocated() / 1024**3, 3)
+        
+        metrics = {
+            'stage': 'Inference',
+            'chunk_id': chunk_id,
+            'slices': f'{start_slice}-{end_slice}',
+            **snapshot
+        }
+        self.metrics_history.append(metrics)
+        
+        if self.wandb:
+            wandb_metrics = {f"memory/{k}": v for k, v in metrics.items() if k != 'stage'}
+            wandb_metrics["memory/chunk_id"] = chunk_id
+            self.wandb.log(wandb_metrics)
     
     def __enter__(self):
         return self
@@ -822,15 +899,11 @@ def run_inference_in_memory_chunking(
     mem_monitor.end_stage()
     
     if verbose and metrics_data is not None:
-        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        snapshot = mem_monitor.get_memory_snapshot()
         metrics_data.append({
             'stage': 'Preprocessing',
             'label': 'Extract Metadata',
-            'cpu_used': cpu_used,
-            'cpu_total': cpu_total,
-            'gpu_used': gpu_used,
-            'gpu_reserved': gpu_reserved,
-            'gpu_total': gpu_total
+            **snapshot
         })
     
     if D <= chunk_size:
@@ -1349,74 +1422,7 @@ def estimate_chunk_size(
         logging.warning(f"Failed to estimate GPU chunk size: {e}. Using safe default of 50 slices.")
         return 50
 
-def log_memory_usage(stage, verbose=True, device_type='cuda'):
-    """Log CPU and GPU memory usage"""
-    if not verbose:
-        return
-    
-    import psutil
-    
-    # CPU Memory
-    process = psutil.Process()
-    cpu_mem_gb = process.memory_info().rss / 1024**3
-    total_cpu_gb = psutil.virtual_memory().total / 1024**3
-    cpu_usage = process.cpu_percent(interval=0.1)
-    
-    log_msg = f"[{stage}] CPU: {cpu_usage:.1f}% usage, {cpu_mem_gb:.2f}/{total_cpu_gb:.2f} GB RAM"
-    
-    # GPU Memory (only if running on GPU)
-    if device_type == 'cuda' and torch.cuda.is_available():
-        gpu_mem_allocated = torch.cuda.memory_allocated() / 1024**3
-        gpu_mem_reserved = torch.cuda.memory_reserved() / 1024**3
-        gpu_mem_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
-        log_msg += f" | GPU: {gpu_mem_allocated:.2f}/{gpu_mem_total:.2f} GB allocated, {gpu_mem_reserved:.2f} GB reserved"
-    
-    logging.info(log_msg)
-
-def get_peak_memory(reset=False):
-    """Get peak memory usage (CPU RAM and GPU VRAM)
-    
-    Args:
-        reset: If True, reset GPU peak stats to start tracking from this point
-    
-    Returns:
-        Tuple of (peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb)
-    """
-    import psutil
-    
-    if reset and torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats()
-    
-    process = psutil.Process()
-    peak_cpu_gb = process.memory_info().rss / 1024**3
-    
-    peak_gpu_allocated_gb = 0
-    peak_gpu_reserved_gb = 0
-    if torch.cuda.is_available():
-        peak_gpu_allocated_gb = torch.cuda.max_memory_allocated() / 1024**3
-        peak_gpu_reserved_gb = torch.cuda.max_memory_reserved() / 1024**3
-    
-    return peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb
-
-def _get_memory_usage():
-    """Get current CPU and GPU memory usage in GB"""
-    import psutil
-    
-    # CPU memory - process usage and total system RAM
-    process = psutil.Process()
-    cpu_used = process.memory_info().rss / 1024**3
-    cpu_total = psutil.virtual_memory().total / 1024**3
-    
-    # GPU memory - allocated, reserved, and total
-    gpu_used = 0
-    gpu_reserved = 0
-    gpu_total = 0
-    if torch.cuda.is_available():
-        gpu_used = torch.cuda.memory_allocated() / 1024**3
-        gpu_reserved = torch.cuda.memory_reserved() / 1024**3
-        gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
-    
-    return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
+# Legacy functions removed - use MemoryMonitor class instead
 
 def _plot_performance_metrics(metrics_data, output_path):
     """Create a line plot of peak CPU and GPU usage across chunks"""
