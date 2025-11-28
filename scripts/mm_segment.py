@@ -108,6 +108,15 @@ def main():
     if args.verbose:
         try:
             import wandb
+            # Read version from version.txt
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            version_path = os.path.join(os.path.dirname(script_dir), 'version.txt')
+            try:
+                with open(version_path, 'r') as f:
+                    model_version = f.read().strip()
+            except:
+                model_version = "unknown"
+            
             # Auto-initialize wandb for experiment tracking
             wandb.init(
                 project="musclemap",
@@ -117,6 +126,9 @@ def main():
                     'device': str(device),
                     'overlap': args.overlap,
                     'chunking_mode': args.chunking_mode,
+                    'chunk_size_arg': args.chunk_size,
+                    'model_version': model_version,
+                    'precision': args.precision,
                 },
                 # Use offline mode by default to avoid requiring login
                 mode=os.environ.get('WANDB_MODE', 'offline')
@@ -308,7 +320,24 @@ def main():
                 image_shape=img_shape
             )
         else:
+            # Load image shape even if chunk_size is manual
+            import nibabel as nib
+            img_nii = nib.load(test['image'])
+            img_shape = img_nii.header.get_data_shape()
+            del img_nii
             chunk_size = int(chunk_size_arg)
+        
+        # Log image metadata to wandb
+        if args.verbose:
+            try:
+                import wandb
+                if wandb.run:
+                    wandb.config.update({
+                        'input_image_shape': img_shape,
+                        'chunk_size': chunk_size,
+                    }, allow_val_change=True)
+            except:
+                pass
 
         try:
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
