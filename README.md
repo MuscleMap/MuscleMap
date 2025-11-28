@@ -160,7 +160,7 @@ Open a Python console and run:
 import torch
 print("Torch CUDA version:", torch.version.cuda)
 print("Is CUDA available?:", torch.cuda.is_available())
-
+```
 ### **Step 2 — Check your system CUDA version (terminal)**
 
 If PyTorch shows that CUDA is not available, verify whether your system has a compatible NVIDIA driver installed.
