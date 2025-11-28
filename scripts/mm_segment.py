@@ -77,6 +77,9 @@ def get_parser():
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
+    
+    optional.add_argument("-p", '--precision', required=False, default='float16', type=str, choices=['float16', 'float32'],
+                    help="Precision for CUDA inference: 'float16' for faster FP16, 'float32' for full precision. Default is 'float16'.")
 
     return parser
 
@@ -124,15 +127,17 @@ def main():
         except Exception as e:
             logging.warning(f"wandb initialization failed: {e} - continuing without wandb")
     
-    # Set up mixed precision context
+    # Set up mixed precision context based on precision argument
     if device.type == 'cuda':
-        amp_context = torch.amp.autocast('cuda', dtype=torch.float16)
+        dtype = torch.float16 if args.precision == 'float16' else torch.float32
+        amp_context = torch.amp.autocast('cuda', dtype=dtype)
+        logging.info(f"Using {args.precision.upper()} precision for CUDA inference")
     else:
         amp_context = nullcontext()
+        dtype = torch.float32  # CPU/MPS use float32
     
     if device.type == 'cuda':
         logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
-        logging.info("FP16 mixed precision enabled for faster inference")
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     elif device.type == 'mps':
@@ -256,8 +261,8 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
     
-    # Convert model to FP16 which CUDA tensor cores are optimized for
-    if device.type == 'cuda':
+    # Convert model precision for CUDA
+    if device.type == 'cuda' and args.precision == 'float16':
         model = model.half()
     
     # Compile model for CPU optimization (PyTorch 2.0+)
@@ -290,7 +295,7 @@ def main():
             img_shape = img_nii.header.get_data_shape()
             del img_nii  # Free memory
             
-            use_fp16 = (device.type == 'cuda' and amp_context.fast_dtype == torch.float16)
+            use_fp16 = (device.type == 'cuda' and args.precision == 'float16')
             chunk_size = estimate_chunk_size(
                 device=device,
                 roi_size=roi_size,
