@@ -141,11 +141,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    cd ./MuscleMap
    ~~~
 
-6. Install PyTorch with the correct CUDA Version for GPU support.
-  
-    MuscleMap requires PyTorch with GPU support.
-    To avoid accidentally installing a CPU-only version of PyTorch, please install PyTorch before installing the rest of the dependencies.
+6. Install python packages:
+    
+   ~~~
+   pip install -e .
+   ~~~
 
+7.  Install PyTorch with the correct CUDA Version for GPU support.
+  
+    MuscleMap works with CPU or GPU, but performs best with a GPU-enabled PyTorch installation.
+    
     **To use a GPU**, you need either:
     - an NVIDIA GPU with a compatible **CUDA** runtime, or  
     - an AMD GPU with **ROCm** support.
@@ -165,12 +170,6 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     rocm-smi #for AMD/ROCm
     ```
     You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
-
-7. Install python packages:
-    
-   ~~~
-   pip install .
-   ~~~
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
