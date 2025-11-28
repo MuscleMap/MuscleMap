@@ -151,6 +151,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     - an AMD GPU with **ROCm** support.
 
     1. **Step 1** — Open a Python console and run:
+    
         ```python
         import torch
         print("Is CUDA available?:", torch.cuda.is_available())
