@@ -185,9 +185,7 @@ def main():
         RemapLabels(keys=["pred"], id_map=inv_id_map)])
     
     post_transforms = Compose(post_transforms)
-
     state = torch.load(model_path, map_location="cpu", weights_only=True)
-
     model = UNet(
     spatial_dims=spatial_dims,
     in_channels=in_channels,
@@ -219,9 +217,5 @@ def main():
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
-
     main()
-
-
-
 
