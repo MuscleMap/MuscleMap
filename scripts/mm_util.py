@@ -1226,17 +1226,42 @@ def estimate_chunk_size(
             input_size_per_slice = roi_size[0] * roi_size[1] * in_channels * bytes_per_value
             full_output_size_per_slice = roi_size[0] * roi_size[1] * out_channels * bytes_per_value
             
+            # Device-specific multipliers and utilization rates
             if device.type == 'mps':
-                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 2.75
-                memory_utilization = 0.72
-                max_chunk = 500
-            else:
-                memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * 1.1
-                memory_utilization = 0.80
-                max_chunk = 500
+                memory_overhead = 2.75
+                # More conservative for MPS due to strict buffer size limits
+                base_utilization = 0.65
+                # Further reduce utilization for high overlap (more buffer pressure)
+                memory_utilization = base_utilization * (1.0 - 0.15 * min(overlap / 0.85, 1.0))
+            else:  # CPU
+                memory_overhead = 1.1
+                base_utilization = 0.80
+                memory_utilization = base_utilization * (1.0 - 0.10 * min(overlap / 0.85, 1.0))
             
-            chunk_size = max(1, int((available_ram * memory_utilization) / memory_per_slice))
-            chunk_size = max(20, min(chunk_size, max_chunk))
+            memory_per_slice = (input_size_per_slice + full_output_size_per_slice) * memory_overhead
+            
+            # Calculate theoretical maximum from available memory
+            theoretical_max = max(1, int((available_ram * memory_utilization) / memory_per_slice))
+            
+            # Overlap-dependent optimal target (plateau center)
+            if overlap >= 0.85:
+                optimal_target = 50
+                plateau_steepness = 0.08
+            elif overlap >= 0.70:
+                optimal_target = 100
+                plateau_steepness = 0.05
+            else:
+                optimal_target = 150
+                plateau_steepness = 0.03
+            
+            # Sigmoid plateau: naturally converges to optimal_target as theoretical_max increases
+            # Formula: optimal * (1 + tanh(steepness * (theoretical - optimal))) / 2 + theoretical * (1 - tanh(steepness * (theoretical - optimal))) / 2
+            import math
+            x = plateau_steepness * (theoretical_max - optimal_target)
+            tanh_x = math.tanh(x)
+            chunk_size = int(optimal_target * (1 + tanh_x) / 2 + theoretical_max * (1 - tanh_x) / 2)
+            
+            chunk_size = max(20, chunk_size)
             
             device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
             logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
@@ -1285,20 +1310,32 @@ def estimate_chunk_size(
             activation_size_per_slice
         ) * spatial_window_batch_size * overlap_multiplier
         
+        # Memory utilization decreases with higher overlap to reduce fragmentation
+        base_utilization = 0.75
+        memory_utilization = base_utilization * (1.0 - 0.20 * min(overlap / 0.85, 1.0))
+        
         base_multiplier = 2.0
-        theoretical_max = max(1, int((available_memory * 0.75) / (base_memory_per_slice * base_multiplier)))
+        theoretical_max = max(1, int((available_memory * memory_utilization) / (base_memory_per_slice * base_multiplier)))
         
-        if theoretical_max <= 60:
-            chunk_size = theoretical_max
-            total_per_slice = base_memory_per_slice * base_multiplier
-        elif theoretical_max <= 150:
-            chunk_size = theoretical_max
-            total_per_slice = base_memory_per_slice * base_multiplier
+        # Overlap-dependent optimal targets based on empirical data
+        if overlap >= 0.85:
+            optimal_target = 40  # Center of 25-56 range
+            plateau_steepness = 0.06
+        elif overlap >= 0.70:
+            optimal_target = 75  # Center of 50-100 range
+            plateau_steepness = 0.04
         else:
-            chunk_size = 150
-            total_per_slice = (available_memory * 0.75) / chunk_size
+            optimal_target = 200  # Upper range of 150-250
+            plateau_steepness = 0.02
         
-        chunk_size = max(30, min(chunk_size, 150))
+        # Sigmoid plateau function for smooth convergence
+        import math
+        x = plateau_steepness * (theoretical_max - optimal_target)
+        tanh_x = math.tanh(x)
+        chunk_size = int(optimal_target * (1 + tanh_x) / 2 + theoretical_max * (1 - tanh_x) / 2)
+        
+        total_per_slice = base_memory_per_slice * base_multiplier
+        chunk_size = max(25, chunk_size)
         
         # Log memory information
         logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
