@@ -150,8 +150,6 @@ To avoid accidentally installing a CPU-only version of PyTorch, please install P
 - an NVIDIA GPU with a compatible **CUDA** runtime, or  
 - an AMD GPU with **ROCm** support.
 
----
-
 **Step 1 — Check your current PyTorch CUDA status (inside Python)**
 
 Open a Python console and run:
