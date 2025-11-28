@@ -80,6 +80,13 @@ class MemoryMonitor:
         self.current_stage = stage_name
         if self.device_type == 'cuda' and torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
+        
+        # Log stage start to wandb
+        if self.wandb and self.verbose:
+            snapshot = self.get_memory_snapshot()
+            wandb_metrics = {f"memory/{k}": v for k, v in snapshot.items()}
+            wandb_metrics["memory/stage"] = f"{stage_name} - Start"
+            self.wandb.log(wandb_metrics)
     
     def end_stage(self, extra_metrics=None):
         """End monitoring and log the stage summary"""
@@ -1126,6 +1133,20 @@ def run_inference_in_memory_chunking(
                         'gpu_reserved': gpu_reserved_peak,
                         'gpu_total': gpu_total
                     })
+                    
+                    # Log to wandb immediately during inference
+                    if mem_monitor.wandb:
+                        wandb_metrics = {
+                            "memory/cpu_used": cpu_peak,
+                            "memory/cpu_total": cpu_total,
+                            "memory/gpu_peak": gpu_peak,
+                            "memory/gpu_reserved_peak": gpu_reserved_peak,
+                            "memory/gpu_total": gpu_total,
+                            "memory/stage": "Inference",
+                            "memory/chunk_label": f"{start}-{end}",
+                            "memory/slices_processed": end
+                        }
+                        mem_monitor.wandb.log(wandb_metrics)
                 
                 # Cleanup GPU memory
                 del tensor, pred, pred_discrete, chunk_array
@@ -1676,11 +1697,23 @@ def run_inference(
                 # Collect metrics after each chunk if verbose
                 if verbose and metrics_data is not None:
                     snapshot = mem_monitor.get_memory_snapshot()
+                    
+                    # Add peak GPU during this chunk
+                    if device.type == 'cuda' and torch.cuda.is_available():
+                        snapshot['gpu_peak_chunk'] = round(torch.cuda.max_memory_allocated() / 1024**3, 3)
+                    
                     metrics_data.append({
                         'stage': 'Inference',
                         'label': f'Chunk {i+1}/{len(chunk_files)}',
                         **snapshot
                     })
+                    
+                    # Log to wandb immediately during inference
+                    if mem_monitor.wandb:
+                        wandb_metrics = {f"memory/{k}": v for k, v in snapshot.items()}
+                        wandb_metrics["memory/stage"] = "Inference"
+                        wandb_metrics["memory/chunk_id"] = i+1
+                        mem_monitor.wandb.log(wandb_metrics)
                 
                 pbar.update(1)
             except RuntimeError as e:
