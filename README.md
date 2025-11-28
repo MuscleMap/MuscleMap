@@ -150,22 +150,20 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     - an NVIDIA GPU with a compatible **CUDA** runtime, or  
     - an AMD GPU with **ROCm** support.
 
-    1. **Step 1** — Check your current PyTorch CUDA status (inside Python)**
-        Open a Python console and run:
-
+    1. **Step 1** — Open a Python console and run:
         ```python
         import torch
-        print("Torch CUDA version:", torch.version.cuda)
         print("Is CUDA available?:", torch.cuda.is_available())
         ```
-   2. **Step 2** — Check your system CUDA version (terminal)**
+   2. **Step 2** — Check your system CUDA version (terminal)
 
     If PyTorch shows that CUDA is not available, verify whether your system has a compatible NVIDIA driver installed.
 
-    Open a terminal and run:
+    Next, open a terminal and run:
 
     ```bash
-    nvidia-smi
+    nvidia-smi #NVIDIA/CUDA
+    rocm-smi #AMD/ROCm
     ```
 
     You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
