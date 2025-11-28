@@ -141,14 +141,40 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
    cd ./MuscleMap
    ~~~
 
-6. Install python packages:
+6. Install PyTorch with the correct CUDA Version for GPU support.
+  
+MuscleMap requires PyTorch with GPU support.
+To avoid accidentally installing a CPU-only version of PyTorch, please install PyTorch before installing the rest of the dependencies.
+
+**To use a GPU**, you need either:
+- an NVIDIA GPU with a compatible **CUDA** runtime, or  
+- an AMD GPU with **ROCm** support.
+
+---
+
+### **Step 1 — Check your current PyTorch CUDA status (inside Python)**
+
+Open a Python console and run:
+
+```python
+import torch
+print("Torch CUDA version:", torch.version.cuda)
+print("Is CUDA available?:", torch.cuda.is_available())
+
+### **Step 2 — Check your system CUDA version (terminal)**
+
+If PyTorch shows that CUDA is not available, verify whether your system has a compatible NVIDIA driver installed.
+
+Open a terminal and run:
+
+```bash
+nvidia-smi
+
+You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
+
+
+7. Install python packages:
     
-   ~~~
-   pip install .
-   ~~~
-
-7. **To use a GPU,** you need a compatible NVIDIA GPU with [CUDA](https://developer.nvidia.com/cuda-toolkit) installed or a compatible AMD GPU with [ROCM](https://www.amd.com/en/products/software/rocm.html) installed. You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip. After installing the correct GPU-compatible version of PyTorch, rerun:
-
    ~~~
    pip install .
    ~~~
