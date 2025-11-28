@@ -152,7 +152,7 @@ To avoid accidentally installing a CPU-only version of PyTorch, please install P
 
 ---
 
-### **Step 1 — Check your current PyTorch CUDA status (inside Python)**
+**Step 1 — Check your current PyTorch CUDA status (inside Python)**
 
 Open a Python console and run:
 
@@ -169,6 +169,7 @@ Open a terminal and run:
 
 ```bash
 nvidia-smi
+```
 
 You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
