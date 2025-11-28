@@ -927,15 +927,11 @@ def run_inference_in_memory_chunking(
             mem_monitor.end_stage()
             
             if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                snapshot = mem_monitor.get_memory_snapshot()
                 metrics_data.append({
                     'stage': 'Inference',
                     'label': 'Single volume',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
+                    **snapshot
                 })
             
             # Post-process: apply argmax to convert probabilities to discrete labels
@@ -990,15 +986,11 @@ def run_inference_in_memory_chunking(
             mem_monitor.end_stage()
             
             if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                snapshot = mem_monitor.get_memory_snapshot()
                 metrics_data.append({
                     'stage': 'Post-processing',
                     'label': 'Save result',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
+                    **snapshot
                 })
                 plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
                 _plot_performance_metrics(metrics_data, plot_path)
@@ -1224,15 +1216,11 @@ def run_inference_in_memory_chunking(
     mem_monitor.end_stage()
     
     if verbose and metrics_data is not None:
-        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        snapshot = mem_monitor.get_memory_snapshot()
         metrics_data.append({
             'stage': 'Post-processing',
             'label': 'Final assembly',
-            'cpu_used': cpu_used,
-            'cpu_total': cpu_total,
-            'gpu_used': gpu_used,
-            'gpu_reserved': gpu_reserved,
-            'gpu_total': gpu_total
+            **snapshot
         })
         plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
         _plot_performance_metrics(metrics_data, plot_path)
@@ -1538,15 +1526,11 @@ def run_inference(
     
     # Collect metrics after preprocessing if verbose
     if verbose and metrics_data is not None:
-        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        snapshot = mem_monitor.get_memory_snapshot()
         metrics_data.append({
             'stage': 'Preprocessing',
             'label': 'Load Image',
-            'cpu_used': cpu_used,
-            'cpu_total': cpu_total,
-            'gpu_used': gpu_used,
-            'gpu_reserved': gpu_reserved,
-            'gpu_total': gpu_total
+            **snapshot
         })
     
     if D <= chunk_size:
@@ -1568,15 +1552,11 @@ def run_inference(
             
             # Collect metrics after inference if verbose
             if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                snapshot = mem_monitor.get_memory_snapshot()
                 metrics_data.append({
                     'stage': 'Inference',
                     'label': 'Single chunk',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
+                    **snapshot
                 })
 
             # Stage: Post-processing
@@ -1601,15 +1581,11 @@ def run_inference(
             
             # Collect metrics after post-processing if verbose
             if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                snapshot = mem_monitor.get_memory_snapshot()
                 metrics_data.append({
                     'stage': 'Post-processing',
                     'label': 'Save result',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
+                    **snapshot
                 })
                 
                 # Generate performance plot
@@ -1699,15 +1675,11 @@ def run_inference(
                 
                 # Collect metrics after each chunk if verbose
                 if verbose and metrics_data is not None:
-                    cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+                    snapshot = mem_monitor.get_memory_snapshot()
                     metrics_data.append({
                         'stage': 'Inference',
                         'label': f'Chunk {i+1}/{len(chunk_files)}',
-                        'cpu_used': cpu_used,
-                        'cpu_total': cpu_total,
-                        'gpu_used': gpu_used,
-                        'gpu_reserved': gpu_reserved,
-                        'gpu_total': gpu_total
+                        **snapshot
                     })
                 
                 pbar.update(1)
@@ -1752,15 +1724,11 @@ def run_inference(
     
     # Collect metrics after final post-processing if verbose
     if verbose and metrics_data is not None:
-        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
+        snapshot = mem_monitor.get_memory_snapshot()
         metrics_data.append({
             'stage': 'Post-processing',
             'label': 'Final assembly',
-            'cpu_used': cpu_used,
-            'cpu_total': cpu_total,
-            'gpu_used': gpu_used,
-            'gpu_reserved': gpu_reserved,
-            'gpu_total': gpu_total
+            **snapshot
         })
         
         # Generate performance plot
