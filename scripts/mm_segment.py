@@ -32,6 +32,7 @@ from monai.networks.layers import Norm
 from time import perf_counter
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
+
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
@@ -186,6 +187,7 @@ def main():
     
     post_transforms = Compose(post_transforms)
     state = torch.load(model_path, map_location="cpu", weights_only=True)
+
     model = UNet(
     spatial_dims=spatial_dims,
     in_channels=in_channels,
