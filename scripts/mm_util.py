@@ -1107,18 +1107,16 @@ def run_inference(
 
             # Stage: Post-processing
             mem_monitor.start_stage("Post-processing")
-            # Apply argmax FIRST to convert multi-channel probabilities to discrete labels
-            # This drastically reduces memory and speeds up Invertd resampling
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0, keepdim=True)
+            single_pred = pred.squeeze(0).squeeze(0)
             # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
             if device.type == "mps":
-                pred_discrete = pred_discrete.cpu()
+                single_pred = single_pred.cpu()
             post_in = {
-                "pred": pred_discrete,
+                "pred": single_pred,
                 "image": data["image"],
                 "image_meta_dict": data["image_meta_dict"],
             }
-            del data, pred
+            del data
             
             post_out = post_transforms(post_in)
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
@@ -1129,7 +1127,7 @@ def run_inference(
             
             del seg_np  
             # cleanup
-            del tensor, pred_discrete, post_in, post_out, seg_tensor, full_seg
+            del tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1183,18 +1181,16 @@ def run_inference(
                 with amp_context, torch.inference_mode():
                     pred = inferer(tensor, model)
 
-                # Apply argmax FIRST to convert multi-channel probabilities to discrete labels
-                # This drastically reduces memory and speeds up Invertd resampling
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0, keepdim=True)
+                single_pred = pred.squeeze(0).squeeze(0)
                 # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
                 if device.type == "mps":
-                    pred_discrete = pred_discrete.cpu()
+                    single_pred = single_pred.cpu()
                 post_in = {
-                    "pred": pred_discrete,
+                    "pred": single_pred,
                     "image": data["image"],
                     "image_meta_dict": data["image_meta_dict"],
                 }
-                del data, pred
+                del data  
                 post_out = post_transforms(post_in)
                 seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
                 seg_np = seg_tensor.numpy()
@@ -1206,7 +1202,7 @@ def run_inference(
                 entry["seg"] = seg_path
                 del seg_np  
 
-                del tensor, pred_discrete, post_in, post_out, seg_tensor
+                del tensor, pred, single_pred, post_in, post_out, seg_tensor
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 gc.collect()
@@ -1318,16 +1314,21 @@ def run_inference_fast(
             with amp_context, torch.inference_mode():
                 pred = inferer(tensor, model)
 
-            # Apply argmax FIRST to convert multi-channel probabilities to discrete labels
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0, keepdim=True)
+            # Fast mode: Apply AsDiscreted BEFORE Invertd to reduce memory and speed up resampling
+            from monai.transforms import AsDiscreted, Compose
+            discretize = AsDiscreted(keys="pred", argmax=True)
+            single_pred = pred.squeeze(0).squeeze(0)
             if device.type == "mps":
-                pred_discrete = pred_discrete.cpu()
+                single_pred = single_pred.cpu()
+            
+            # Discretize early for fast mode (converts multi-channel probs to single-channel labels)
+            discrete_dict = discretize({"pred": single_pred})
             post_in = {
-                "pred": pred_discrete,
+                "pred": discrete_dict["pred"],
                 "image": data["image"],
                 "image_meta_dict": data["image_meta_dict"],
             }
-            del data, pred
+            del data, pred, single_pred
             
             post_out = post_transforms(post_in)
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
@@ -1335,7 +1336,7 @@ def run_inference_fast(
             full_seg = connected_chunks(seg_np)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
             
-            del tensor, pred_discrete, post_in, post_out, seg_tensor, full_seg, seg_np
+            del tensor, discrete_dict, post_in, post_out, seg_tensor, full_seg, seg_np
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1388,16 +1389,21 @@ def run_inference_fast(
                 with amp_context, torch.inference_mode():
                     pred = inferer(tensor, model)
 
-                # Apply argmax FIRST to convert multi-channel probabilities to discrete labels
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0, keepdim=True)
+                # Fast mode: Apply AsDiscreted BEFORE Invertd to reduce memory and speed up resampling
+                from monai.transforms import AsDiscreted
+                discretize = AsDiscreted(keys="pred", argmax=True)
+                single_pred = pred.squeeze(0).squeeze(0)
                 if device.type == "mps":
-                    pred_discrete = pred_discrete.cpu()
+                    single_pred = single_pred.cpu()
+                
+                # Discretize early for fast mode (converts multi-channel probs to single-channel labels)
+                discrete_dict = discretize({"pred": single_pred})
                 post_in = {
-                    "pred": pred_discrete,
+                    "pred": discrete_dict["pred"],
                     "image": data["image"],
                     "image_meta_dict": data["image_meta_dict"],
                 }
-                del data, pred
+                del data, pred, single_pred
                 post_out = post_transforms(post_in)
                 seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
                 seg_np = seg_tensor.numpy()
@@ -1406,7 +1412,7 @@ def run_inference_fast(
                 entry["seg"] = seg_path
                 del seg_np  
 
-                del tensor, pred_discrete, post_in, post_out, seg_tensor
+                del tensor, discrete_dict, post_in, post_out, seg_tensor
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 gc.collect()
