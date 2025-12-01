@@ -19,9 +19,6 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import psutil
 import hashlib
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
 
 class MemoryMonitor:
     """Simple monitor to print GPU and RAM info when verbose"""
@@ -959,80 +956,102 @@ def _get_memory_usage():
     return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
 
 
-def _plot_performance_metrics(metrics_data, output_path):
-    """Create a line plot of CPU and GPU usage across chunks"""
-    if not metrics_data:
-        return
-    
-    # Create figure with dual y-axes
-    fig, ax1 = plt.subplots(figsize=(14, 7))
-    
-    # Extract data
-    x_positions = list(range(len(metrics_data)))
-    gpu_reserved = [m['gpu_reserved'] for m in metrics_data]
-    gpu_total = [m['gpu_total'] for m in metrics_data]
-    cpu_used = [m['cpu_used'] for m in metrics_data]
-    cpu_total = [m['cpu_total'] for m in metrics_data]
-    
-    # Calculate free memory
-    gpu_free = [total - reserved for total, reserved in zip(gpu_total, gpu_reserved)]
-    ram_free = [total - used for total, used in zip(cpu_total, cpu_used)]
-    
-    # Plot VRAM on left y-axis
-    color_vram_reserved = '#7c3aed'  # Purple
-    color_vram_free = '#06b6d4'  # Cyan
-    ax1.set_xlabel('Chunk', fontsize=12, fontweight='bold')
-    ax1.set_ylabel('VRAM (GB)', color=color_vram_reserved, fontsize=12, fontweight='bold')
-    
-    # Plot VRAM reserved
-    ax1.plot(x_positions, gpu_reserved, color=color_vram_reserved, linewidth=2, 
-             marker='^', markersize=4, label='VRAM Reserved')
-    
-    # Plot VRAM free
-    ax1.plot(x_positions, gpu_free, color=color_vram_free, linewidth=2, 
-             marker='o', markersize=4, linestyle='--', label='VRAM Free')
-    
-    ax1.tick_params(axis='y', labelcolor=color_vram_reserved)
-    ax1.grid(True, alpha=0.3, linestyle='--')
-    
-    # Create right y-axis for RAM
-    ax2 = ax1.twinx()
-    color_ram_used = '#dc2626'  # Red
-    color_ram_free = '#f59e0b'  # Orange
-    ax2.set_ylabel('RAM (GB)', color=color_ram_used, fontsize=12, fontweight='bold')
-    
-    # Plot RAM used
-    ax2.plot(x_positions, cpu_used, color=color_ram_used, linewidth=2,
-             marker='s', markersize=4, label='RAM Used')
-    
-    # Plot RAM free
-    ax2.plot(x_positions, ram_free, color=color_ram_free, linewidth=2,
-             marker='D', markersize=4, linestyle='--', label='RAM Free')
-    
-    ax2.tick_params(axis='y', labelcolor=color_ram_used)
-    
-    # Set x-axis ticks and labels
-    ax1.set_xticks(x_positions)
-    x_labels = [str(i) for i in x_positions]
-    ax1.set_xticklabels(x_labels, rotation=0, ha='center', fontsize=9)
-    
-    # Add legend
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', fontsize=9)
-    
-    # Minimal theme adjustments
-    ax1.spines['top'].set_visible(False)
-    ax2.spines['top'].set_visible(False)
-    
-    plt.title('Memory Usage by Chunk', 
-             fontsize=14, fontweight='bold', pad=20)
-    plt.tight_layout()
-    
-    # Save plot
-    plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    plt.close()
-    logging.info(f"Performance plot saved to: {output_path}")
+def _get_device_specs(device):
+    """Get detailed device specifications"""
+    if device.type == 'cuda' and torch.cuda.is_available():
+        return torch.cuda.get_device_name(0)
+    elif device.type == 'mps':
+        # Get Mac model info
+        try:
+            import subprocess
+            result = subprocess.run(['sysctl', '-n', 'machdep.cpu.brand_string'], 
+                                  capture_output=True, text=True)
+            return result.stdout.strip()
+        except:
+            return "Apple Silicon"
+    else:
+        # Get CPU info
+        try:
+            import subprocess
+            result = subprocess.run(['sysctl', '-n', 'machdep.cpu.brand_string'], 
+                                  capture_output=True, text=True)
+            return result.stdout.strip()
+        except:
+            return "CPU"
+
+def _init_wandb(image_path, device, chunk_size, overlap, precision, region):
+    """Initialize wandb with API key and project settings"""
+    try:
+        import wandb
+        import os
+        from datetime import datetime
+        import subprocess
+        
+        # Set API key
+        os.environ['WANDB_API_KEY'] = 'f00360b8f32d58a44e1260e404ec89c501fa1fae'
+        
+        # Get current date and time
+        now = datetime.now()
+        test_date = now.strftime('%Y-%m-%d')
+        test_time = now.strftime('%H:%M:%S')
+        
+        # Get branch name
+        try:
+            result = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+                                  capture_output=True, text=True, cwd=os.path.dirname(os.path.abspath(__file__)))
+            branch_name = result.stdout.strip() if result.returncode == 0 else 'unknown'
+        except:
+            branch_name = 'unknown'
+        
+        # Get device specs
+        device_specs = _get_device_specs(device)
+        
+        # Get available memory
+        if device.type == 'cuda' and torch.cuda.is_available():
+            available_vram = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        else:
+            available_vram = 0
+        
+        available_ram = psutil.virtual_memory().total / 1024**3
+        
+        # Get image shape
+        img_nii = nib.load(image_path)
+        image_shape = img_nii.header.get_data_shape()
+        del img_nii
+        
+        # Read version
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        version_path = os.path.join(os.path.dirname(script_dir), 'version.txt')
+        try:
+            with open(version_path, 'r') as f:
+                model_version = f.read().strip()
+        except:
+            model_version = "unknown"
+        
+        # Initialize wandb
+        wandb.init(
+            project="MuscleMap",
+            name=f"{region}_{test_date}_{test_time.replace(':', '-')}",
+            config={
+                'date': test_date,
+                'time': test_time,
+                'branch_name': branch_name,
+                'image_matrix': f"{image_shape[0]}x{image_shape[1]}x{image_shape[2]}",
+                'model_version': model_version,
+                'device': device.type.upper(),
+                'device_specs': device_specs,
+                'available_vram_gb': round(available_vram, 2),
+                'available_ram_gb': round(available_ram, 2),
+                'chunk_size': chunk_size,
+                'spatial_overlap': overlap,
+                'float_precision': precision,
+                'region': region,
+            }
+        )
+        return wandb
+    except Exception as e:
+        logging.warning(f"Failed to initialize wandb: {e}")
+        return None
 
 def run_inference(
     image_path,
@@ -1040,7 +1059,7 @@ def run_inference(
     pre_transforms,
     post_transforms,
     amp_context=None,
-    chunk_size=50,
+    chunk_size=25,
     device=None,
     inferer=None,
     model=None,
@@ -1058,9 +1077,6 @@ def run_inference(
     # Initialize memory monitor
     mem_monitor = MemoryMonitor(device.type, verbose)
     
-    # Initialize metrics collection if verbose
-    metrics_data = [] if verbose else None
-    
     mem_monitor.start_stage("Preprocessing")
     img_nii  = nib.load(image_path)
     affine   = img_nii.affine.copy()
@@ -1070,19 +1086,6 @@ def run_inference(
     D        = img_data.shape[-1]
     
     mem_monitor.end_stage()
-    
-    # Collect metrics after preprocessing if verbose
-    if verbose and metrics_data is not None:
-        cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
-        metrics_data.append({
-            'stage': 'Preprocessing',
-            'label': 'Load Image',
-            'cpu_used': cpu_used,
-            'cpu_total': cpu_total,
-            'gpu_used': gpu_used,
-            'gpu_reserved': gpu_reserved,
-            'gpu_total': gpu_total
-        })
     
     if D <= chunk_size:
         try:
@@ -1100,19 +1103,6 @@ def run_inference(
                 pred = inferer(tensor, model)
             
             mem_monitor.end_stage()
-            
-            # Collect metrics after inference if verbose
-            if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
-                metrics_data.append({
-                    'stage': 'Inference',
-                    'label': 'Single chunk',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
-                })
 
             # Stage: Post-processing
             mem_monitor.start_stage("Post-processing")
@@ -1133,23 +1123,6 @@ def run_inference(
             full_seg = connected_chunks(seg_np)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
             mem_monitor.end_stage()
-            
-            # Collect metrics after post-processing if verbose
-            if verbose and metrics_data is not None:
-                cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
-                metrics_data.append({
-                    'stage': 'Post-processing',
-                    'label': 'Save result',
-                    'cpu_used': cpu_used,
-                    'cpu_total': cpu_total,
-                    'gpu_used': gpu_used,
-                    'gpu_reserved': gpu_reserved,
-                    'gpu_total': gpu_total
-                })
-                
-                # Generate performance plot
-                plot_path = out_path.replace('_dseg.nii.gz', '_performance.png')
-                _plot_performance_metrics(metrics_data, plot_path)
             
             del seg_np  
             # cleanup
@@ -1232,19 +1205,6 @@ def run_inference(
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 gc.collect()
-                
-                # Collect metrics after each chunk if verbose
-                if verbose and metrics_data is not None:
-                    cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total = _get_memory_usage()
-                    metrics_data.append({
-                        'stage': 'Inference',
-                        'label': f'Chunk {i+1}/{len(chunk_files)}',
-                        'cpu_used': cpu_used,
-                        'cpu_total': cpu_total,
-                        'gpu_used': gpu_used,
-                        'gpu_reserved': gpu_reserved,
-                        'gpu_total': gpu_total
-                    })
                 
                 pbar.update(1)
             except RuntimeError as e:
