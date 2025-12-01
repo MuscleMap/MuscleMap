@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti, estimate_chunk_size
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti, estimate_chunk_size
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
 import torch
 
 #naming not functional
@@ -66,11 +66,14 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 50, type=float,
-                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 50. If accuracy needs to be improved, the spatial overlap can be increased. To improve performance, we recommend increasing the spatial inference to 90.")
+    optional.add_argument("-s", '--overlap', required=False, default = 75, type=float,
+                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75. If accuracy needs to be improved, the spatial overlap can be increased to 90.")
     
-    optional.add_argument("-c", '--chunk_size', required=False, default = 'auto', type=str,
-                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 'auto'")
+    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=str,
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
+    
+    optional.add_argument("--fast", action='store_true',
+                    help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
@@ -244,7 +247,12 @@ def main():
         except Exception as e:
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
-    overlap_inference = args.overlap / 100
+    # Apply fast mode settings
+    if args.fast:
+        overlap_inference = 0.50  # 50% overlap for fast mode
+        logging.info("Fast mode enabled: using 50% overlap")
+    else:
+        overlap_inference = args.overlap / 100
     
     # Create SliceInferer (2D model)
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
@@ -283,21 +291,37 @@ def main():
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
             
-            run_inference(
-                test["image"], 
-                output_dir, 
-                pre_transforms, 
-                post_transforms, 
-                amp_context, 
-                chunk_size, 
-                device, 
-                inferer, 
-                model, 
-                verbose=args.verbose,
-                fallback_device=fallback_device
-            )
+            # Use fast inference mode if --fast flag is set
+            if args.fast:
+                run_inference_fast(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    fallback_device=fallback_device
+                )
+                method = "fast mode"
+            else:
+                run_inference(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
+                method = "disk-based chunking" if chunk_size else "full volume"
             
-            method = "disk-based chunking" if chunk_size else "full volume"
             logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")

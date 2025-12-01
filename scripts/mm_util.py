@@ -24,40 +24,31 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 
 class MemoryMonitor:
-    """Context manager to track peak memory usage during operations"""
+    """Simple monitor to print GPU and RAM info when verbose"""
     def __init__(self, device_type='cuda', verbose=True):
         self.device_type = device_type
         self.verbose = verbose
-        self.stage_peak_gpu = 0
-        self.stage_peak_ram = 0
-        self.stage_start_gpu = 0
-        self.stage_start_ram = 0
+        self.current_stage = None
     
     def start_stage(self, stage_name):
-        """Begin monitoring a new stage"""
+        """Begin a new stage (no-op, kept for compatibility)"""
         self.current_stage = stage_name
-        if self.device_type == 'cuda' and torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats()
-            self.stage_start_gpu = torch.cuda.memory_allocated() / 1024**3
-        
-        process = psutil.Process()
-        self.stage_start_ram = process.memory_info().rss / 1024**3
     
     def end_stage(self):
-        """End monitoring and log the stage summary"""
+        """Print current GPU and RAM info if verbose"""
         if not self.verbose:
             return
         
         if self.device_type == 'cuda' and torch.cuda.is_available():
-            self.stage_peak_gpu = torch.cuda.max_memory_allocated() / 1024**3
-            logging.info(f"[{self.current_stage}] Peak GPU VRAM: {self.stage_peak_gpu:.2f} GB")
+            gpu_allocated = torch.cuda.memory_allocated() / 1024**3
+            gpu_reserved = torch.cuda.memory_reserved() / 1024**3
+            logging.info(f"[{self.current_stage}] GPU VRAM - Allocated: {gpu_allocated:.2f} GB, Reserved: {gpu_reserved:.2f} GB")
         elif self.device_type == 'mps' and torch.backends.mps.is_available():
-            # MPS doesn't have direct memory tracking like CUDA
             logging.info(f"[{self.current_stage}] MPS device (memory tracking not available)")
         
         process = psutil.Process()
-        self.stage_peak_ram = process.memory_info().rss / 1024**3
-        logging.info(f"[{self.current_stage}] RAM usage: {self.stage_peak_ram:.2f} GB")
+        ram_usage = process.memory_info().rss / 1024**3
+        logging.info(f"[{self.current_stage}] RAM usage: {ram_usage:.2f} GB")
     
     def __enter__(self):
         return self
@@ -1314,6 +1305,176 @@ def run_inference(
 
     # final cleanup
     del full_seg
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    return out_path
+
+
+def run_inference_fast(
+    image_path,
+    output_dir,
+    pre_transforms,
+    post_transforms,
+    amp_context=None,
+    chunk_size=25,
+    device=None,
+    inferer=None,
+    model=None,
+    fallback_device=None,
+):
+    """
+    Fast inference without verbose tracking - optimized for speed.
+    Uses disk-based chunking like run_inference but without memory monitoring overhead.
+    """
+    out_path = _make_out_path(image_path, output_dir, "_dseg")
+    logging.info(f"Loading and preprocessing image: {os.path.basename(image_path)}")
+    
+    # Preprocess once
+    img_nii  = nib.load(image_path)
+    affine   = img_nii.affine.copy()
+    header   = img_nii.header.copy()
+    img_data = img_nii.get_fdata().astype(np.float32)
+    D        = img_data.shape[-1]
+    
+    if D <= chunk_size:
+        # Small image - process as single chunk
+        try:
+            data   = {"image": image_path}
+            data   = pre_transforms(data)
+            tensor = data["image"]
+            if device.type in ["cpu", "mps"]:
+                tensor = tensor.float()
+            if tensor.ndim == 4:
+                tensor = tensor.unsqueeze(0)              
+            tensor = tensor.to(device, non_blocking=True)
+
+            with amp_context, torch.inference_mode():
+                pred = inferer(tensor, model)
+
+            single_pred = pred.squeeze(0).squeeze(0)
+            if device.type == "mps":
+                single_pred = single_pred.cpu()
+            post_in = {
+                "pred": single_pred,
+                "image": data["image"],
+                "image_meta_dict": data["image_meta_dict"],
+            }
+            del data
+            
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy()
+            full_seg = connected_chunks(seg_np)
+            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            
+            del tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, seg_np
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            return out_path
+            
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                logging.warning(f"{device.type.upper()} OOM on small image, falling back to CPU: {e}")
+                torch.cuda.empty_cache()
+                gc.collect()
+                device = fallback_device
+                model = model.to(device).float()
+                amp_context = torch.autocast('cpu', enabled=False)
+                
+                return run_inference_fast(
+                    image_path, output_dir, pre_transforms, post_transforms,
+                    amp_context, chunk_size, device, inferer, model, None
+                )
+            else:
+                raise
+
+    # Multi-chunk processing
+    temp_dir = tempfile.mkdtemp(prefix="mm_fast_")
+    gc.collect()  
+    chunk_files = []
+    
+    for start in range(0, D, chunk_size):
+        end       = min(start + chunk_size, D)
+        vol_chunk = img_data[..., start:end]
+        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+        del vol_chunk  
+        chunk_files.append({"image": chunk_path, "start": start, "end": end})
+
+    del img_data, img_nii
+    gc.collect()
+
+    with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
+        for i, entry in enumerate(chunk_files):
+            try:
+                data   = {"image": entry["image"]}
+                data   = pre_transforms(data)
+                tensor = data["image"]
+                if device.type in ["cpu", "mps"]:
+                    tensor = tensor.float()
+                if tensor.ndim == 4:
+                    tensor = tensor.unsqueeze(0)
+                tensor = tensor.to(device, non_blocking=True)
+
+                with amp_context, torch.inference_mode():
+                    pred = inferer(tensor, model)
+
+                single_pred = pred.squeeze(0).squeeze(0)
+                if device.type == "mps":
+                    single_pred = single_pred.cpu()
+                post_in = {
+                    "pred": single_pred,
+                    "image": data["image"],
+                    "image_meta_dict": data["image_meta_dict"],
+                }
+                del data  
+                post_out = post_transforms(post_in)
+                seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+                seg_np = seg_tensor.numpy()
+                seg_path = os.path.join(temp_dir, f"seg_{entry['start']}_{entry['end']}.nii.gz")
+                nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
+                entry["seg"] = seg_path
+                del seg_np  
+
+                del tensor, pred, single_pred, post_in, post_out, seg_tensor
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                
+                pbar.update(1)
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                    logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU for remaining chunks: {e}")
+                    
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    device = fallback_device
+                    model = model.to(device).float()
+                    amp_context = torch.autocast('cpu', enabled=False)
+                    
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    return run_inference_fast(
+                        image_path, output_dir, pre_transforms, post_transforms,
+                        amp_context, chunk_size, device, inferer, model, None
+                    )
+                else:
+                    raise
+
+    # Merge chunks
+    seg_files = [entry["seg"] for entry in chunk_files if "seg" in entry]
+    seg_list = []
+    for seg_file in seg_files:
+        seg_nii = nib.load(seg_file)
+        seg_list.append(seg_nii.get_fdata())
+    
+    full_seg = np.concatenate(seg_list, axis=-1).astype(np.int16)
+    full_seg = connected_chunks(full_seg)
+    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+    
+    del full_seg, seg_list
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
