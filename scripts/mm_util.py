@@ -1289,65 +1289,63 @@ def run_inference_fast(
     Fast inference using IN-MEMORY chunking with early discretization.
     
     Key optimizations:
-    - Chunks in RAM (not disk) for speed
-    - Early discretization with AsDiscreted before Invertd
-    - No verbose tracking overhead
-    - Accumulates discrete predictions (int16) instead of probabilities (float32)
+    - Saves chunks to RAM (not disk) for speed
+    - Early discretization with AsDiscreted before Invertd to reduce memory
+    - Applies Invertd per-chunk (like disk-based) to ensure correct spatial alignment
+    - Accumulates discrete predictions in original space (int16)
     """
     out_path = _make_out_path(image_path, output_dir, "_dseg")
-    logging.info(f"Loading and preprocessing image: {os.path.basename(image_path)}")
+    logging.info(f"Loading image header for chunk creation: {os.path.basename(image_path)}")
     
-    # Preprocess and extract metadata
-    data = {"image": image_path}
-    data = pre_transforms(data)
+    # Load image header and data for chunking
+    img_nii = nib.load(image_path)
+    affine = img_nii.affine.copy()
+    header = img_nii.header.copy()
+    img_data = img_nii.get_fdata().astype(np.float32)
+    D = img_data.shape[-1]
     
-    # Extract metadata BEFORE converting to ndarray
-    original_image_tensor = data["image"]
-    stored_meta_dict = dict(original_image_tensor.meta) if hasattr(original_image_tensor, 'meta') else data.get("image_meta_dict", {})
-    stored_applied_operations = list(original_image_tensor.applied_operations) if hasattr(original_image_tensor, 'applied_operations') else []
-    
-    # Convert to ndarray for in-memory chunking
-    img_array = original_image_tensor.cpu().numpy()
-    if img_array.ndim == 4 and img_array.shape[0] == 1:
-        img_array = img_array[0]  # Remove channel dimension
-    
-    img_shape = img_array.shape
-    D = img_shape[-1]
-    
-    # Clean up
-    del original_image_tensor, data
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    # Determine output dimensions from header (original space)
+    dims = header.get_data_shape()
     
     if D <= chunk_size:
-        # Small image - process as single volume
+        # Small image - process as single chunk using disk-based approach
         logging.info(f"Image is small ({D} slices), processing as single volume...")
         try:
-            tensor = torch.from_numpy(img_array).float()
-            if tensor.ndim == 3:
-                tensor = tensor.unsqueeze(0).unsqueeze(0)
-            elif tensor.ndim == 4:
+            data = {"image": image_path}
+            data = pre_transforms(data)
+            tensor = data["image"]
+            if device.type in ["cpu", "mps"]:
+                tensor = tensor.float()
+            if tensor.ndim == 4:
                 tensor = tensor.unsqueeze(0)
             tensor = tensor.to(device, non_blocking=True)
             
             with amp_context, torch.inference_mode():
                 pred = inferer(tensor, model)
             
-            # Early discretization for fast mode
+            # Fast mode: Apply AsDiscreted BEFORE Invertd to reduce memory
             from monai.transforms import AsDiscreted
             discretize = AsDiscreted(keys="pred", argmax=True)
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            single_pred = pred.squeeze(0).squeeze(0)
+            if device.type == "mps":
+                single_pred = single_pred.cpu()
             
-            # Apply connected components
-            pred_np = pred_discrete.numpy()
-            full_seg = connected_chunks(pred_np)
+            # Early discretization (converts multi-channel probs to single-channel labels)
+            discrete_dict = discretize({"pred": single_pred})
+            post_in = {
+                "pred": discrete_dict["pred"],
+                "image": data["image"],
+                "image_meta_dict": data["image_meta_dict"],
+            }
+            del pred, single_pred
             
-            # Save result
-            img_nii = nib.load(image_path)
-            nib.save(nib.Nifti1Image(full_seg, img_nii.affine, img_nii.header), out_path)
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy()
+            full_seg = connected_chunks(seg_np)
+            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
             
-            del tensor, pred, pred_discrete, pred_np, full_seg, img_array
+            del data, tensor, discrete_dict, post_in, post_out, seg_tensor, full_seg, seg_np
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1370,49 +1368,84 @@ def run_inference_fast(
                 raise
 
     # Multi-chunk processing with IN-MEMORY chunking
+    # Store chunks in RAM as nibabel images instead of writing to disk
     logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
     
-    # Initialize output array for DISCRETE predictions (int16, not float32 probabilities)
-    full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
+    # Create chunk list in RAM (like disk-based but without file I/O)
+    chunk_data_list = []
+    for start in range(0, D, chunk_size):
+        end = min(start + chunk_size, D)
+        vol_chunk = img_data[..., start:end]
+        # Store as nibabel image in RAM (not saved to disk)
+        chunk_img = nib.Nifti1Image(vol_chunk, affine, header)
+        chunk_data_list.append({
+            "image_obj": chunk_img,
+            "start": start,
+            "end": end
+        })
+        del vol_chunk
     
-    # Process chunks in RAM
-    with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
-        for start in range(0, D, chunk_size):
+    del img_data, img_nii
+    gc.collect()
+    
+    # Initialize output array in original space
+    full_seg = np.zeros(dims, dtype=np.int16)
+    
+    # Process chunks
+    with tqdm(total=len(chunk_data_list), desc="Processing chunks", unit="chunk") as pbar:
+        for i, entry in enumerate(chunk_data_list):
             try:
-                end = min(start + chunk_size, D)
+                # Create temporary file-like object for pre_transforms
+                # Use a memory-mapped temp file that gets cleaned up automatically
+                with tempfile.NamedTemporaryFile(suffix=".nii.gz", delete=True) as tmp:
+                    nib.save(entry["image_obj"], tmp.name)
+                    
+                    data = {"image": tmp.name}
+                    data = pre_transforms(data)
+                    tensor = data["image"]
+                    if device.type in ["cpu", "mps"]:
+                        tensor = tensor.float()
+                    if tensor.ndim == 4:
+                        tensor = tensor.unsqueeze(0)
+                    tensor = tensor.to(device, non_blocking=True)
+                    
+                    with amp_context, torch.inference_mode():
+                        pred = inferer(tensor, model)
+                    
+                    # Fast mode: Apply AsDiscreted BEFORE Invertd to reduce memory
+                    from monai.transforms import AsDiscreted
+                    discretize = AsDiscreted(keys="pred", argmax=True)
+                    single_pred = pred.squeeze(0).squeeze(0)
+                    if device.type == "mps":
+                        single_pred = single_pred.cpu()
+                    
+                    # Early discretization
+                    discrete_dict = discretize({"pred": single_pred})
+                    post_in = {
+                        "pred": discrete_dict["pred"],
+                        "image": data["image"],
+                        "image_meta_dict": data["image_meta_dict"],
+                    }
+                    del pred, single_pred
+                    
+                    post_out = post_transforms(post_in)
+                    seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+                    seg_np = seg_tensor.numpy()
+                    
+                    # Accumulate in original space
+                    s, e = entry["start"], entry["end"]
+                    full_seg[..., s:e] = seg_np
+                    
+                    del data, tensor, discrete_dict, post_in, post_out, seg_tensor, seg_np
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                 
-                # Extract chunk from RAM (not disk!)
-                chunk_array = img_array[..., start:end]
-                
-                # Convert to tensor and move to device
-                tensor = torch.from_numpy(chunk_array).float()
-                if tensor.ndim == 3:
-                    tensor = tensor.unsqueeze(0).unsqueeze(0)
-                elif tensor.ndim == 4:
-                    tensor = tensor.unsqueeze(0)
-                tensor = tensor.to(device, non_blocking=True)
-                
-                # Run inference
-                with amp_context, torch.inference_mode():
-                    pred = inferer(tensor, model)
-                
-                # Apply argmax immediately (early discretization)
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
-                
-                # Store discrete prediction in RAM
-                full_pred[..., start:end] = pred_discrete
-                
-                # Cleanup
-                del tensor, pred, pred_discrete, chunk_array
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                
-                pbar.update(end - start)
+                pbar.update(1)
                 
             except RuntimeError as e:
                 if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                    logging.warning(f"{device.type.upper()} memory error on chunk {start}-{end}, falling back to CPU: {e}")
+                    logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU: {e}")
                     torch.cuda.empty_cache()
                     gc.collect()
                     device = fallback_device
@@ -1420,7 +1453,7 @@ def run_inference_fast(
                     amp_context = torch.autocast('cpu', enabled=False)
                     
                     # Restart with CPU
-                    del full_pred, img_array
+                    del chunk_data_list, full_seg
                     gc.collect()
                     return run_inference_fast(
                         image_path, output_dir, pre_transforms, post_transforms,
@@ -1431,15 +1464,14 @@ def run_inference_fast(
     
     # Apply connected components to final result
     logging.info("Applying connected component filtering...")
-    full_seg = connected_chunks(full_pred)
+    full_seg = connected_chunks(full_seg)
     
     # Save result
-    img_nii = nib.load(image_path)
-    nib.save(nib.Nifti1Image(full_seg, img_nii.affine, img_nii.header), out_path)
+    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
     logging.info(f"Segmentation saved to: {out_path}")
     
     # Cleanup
-    del img_array, full_pred, full_seg
+    del chunk_data_list, full_seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
