@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
 import torch
 
 #naming not functional
@@ -77,6 +77,9 @@ def get_parser():
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
+    
+    optional.add_argument("--wandb", action='store_true',
+                    help="Enable Weights & Biases experiment tracking. Default is off.")
 
     return parser
 
@@ -286,6 +289,19 @@ def main():
             )
         else:
             chunk_size = int(chunk_size_arg)
+        
+        # Initialize wandb if --wandb flag is set
+        wandb_run = None
+        if args.wandb:
+            precision = 'float16' if (device.type == 'cuda' and amp_context.fast_dtype == torch.float16) else 'float32'
+            wandb_run = _init_wandb(
+                test["image"],
+                device,
+                chunk_size,
+                overlap_inference,
+                precision,
+                args.region
+            )
 
         try:
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
@@ -322,10 +338,21 @@ def main():
                 )
                 method = "disk-based chunking" if chunk_size else "full volume"
             
-            logging.info(f"Inference of {test['image']} finished in {perf_counter()-t0:.2f}s ({method})")
+            inference_time = perf_counter()-t0
+            logging.info(f"Inference of {test['image']} finished in {inference_time:.2f}s ({method})")
+            
+            # Log to wandb if initialized
+            if wandb_run:
+                wandb_run.log({
+                    'inference_time_s': round(inference_time, 2),
+                    'method': method
+                })
+                wandb_run.finish()
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
             errors_occurred = True
+            if wandb_run:
+                wandb_run.finish()
             continue
     
     if not errors_occurred:
