@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import psutil
 import hashlib
+import tempfile
 
 class MemoryMonitor:
     """Simple monitor to print GPU and RAM info when verbose"""
