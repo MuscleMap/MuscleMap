@@ -783,7 +783,7 @@ def run_inference(
         s, e = entry["start"], entry["end"]
         full_seg[..., s:e] = seg_np
         del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor 
-
+    
     full_seg = connected_chunks(full_seg)
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
