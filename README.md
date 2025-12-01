@@ -162,16 +162,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         print("Is CUDA available?:", torch.cuda.is_available())
         ```
 
-   2. **Step 2** — Check your system CUDA version (terminal)
+    2. **Step 2** — Check your system CUDA version (terminal)
 
-    If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible NVIDIA driver installed by opening a terminal and running the following command:
+        If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible NVIDIA driver installed by opening a terminal and running the following command:
 
-    ```bash
-    nvidia-smi #for NVIDIA/CUDA
-    rocm-smi #for AMD/ROCm
-    ```
+        ```bash
+        nvidia-smi #for NVIDIA/CUDA
+        rocm-smi #for AMD/ROCm
+        ```
     
-    You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
+        You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
