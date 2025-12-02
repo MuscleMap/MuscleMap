@@ -251,7 +251,7 @@ def main():
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     # Apply fast mode settings
-    if args.fast and args.overlap != 75:
+    if args.fast and args.overlap != 50:
         # User specified both --fast and custom --overlap, use custom value
         overlap_inference = args.overlap / 100
         logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
