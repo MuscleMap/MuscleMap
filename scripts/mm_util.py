@@ -935,7 +935,6 @@ def get_peak_memory(reset=False):
     
     return peak_cpu_gb, peak_gpu_allocated_gb, peak_gpu_reserved_gb
 
-
 def _get_memory_usage():
     """Get current CPU and GPU memory usage in GB"""
     import psutil
@@ -955,7 +954,6 @@ def _get_memory_usage():
         gpu_total = torch.cuda.get_device_properties(0).total_memory / 1024**3
     
     return cpu_used, cpu_total, gpu_used, gpu_reserved, gpu_total
-
 
 def _get_device_specs(device):
     """Get detailed device specifications"""
@@ -1338,7 +1336,7 @@ def run_inference_fast(
                 pred = inferer(tensor, model)
             
             # Early discretization: argmax BEFORE Invertd (reduces memory 90x)
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16) # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
             
             # Apply Invertd to resample back to original space
             from monai.transforms import Invertd
@@ -1426,7 +1424,7 @@ def run_inference_fast(
                     pred = inferer(tensor, model)
                 
                 # Apply argmax immediately (early discretization)
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
+                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy() # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
                 
                 # Store discrete prediction in RAM
                 full_pred[..., start:end] = pred_discrete

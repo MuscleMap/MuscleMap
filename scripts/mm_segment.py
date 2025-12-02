@@ -254,6 +254,10 @@ def main():
     if args.fast:
         overlap_inference = 0.50  # 50% overlap for fast mode
         logging.info("Fast mode enabled: using 50% overlap")
+    elif args.fast & (args.overlap != 75):
+        logging.warning("Both --fast and --overlap specified. Overwriting fast mode's 50%% overlap to the -s-overlap parameter provided.")
+        overlap_inference = args.overlap / 100
+        
     else:
         overlap_inference = args.overlap / 100
     
