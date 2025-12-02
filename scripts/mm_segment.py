@@ -251,14 +251,16 @@ def main():
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     # Apply fast mode settings
-    if args.fast:
-        overlap_inference = 0.50  # 50% overlap for fast mode
-        logging.info("Fast mode enabled: using 50% overlap")
-    elif args.fast & (args.overlap != 75):
-        logging.warning("Both --fast and --overlap specified. Overwriting fast mode's 50%% overlap to the -s-overlap parameter provided.")
+    if args.fast and args.overlap != 75:
+        # User specified both --fast and custom --overlap, use custom value
         overlap_inference = args.overlap / 100
-        
+        logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
+    elif args.fast:
+        # Fast mode with default overlap, use 50%
+        overlap_inference = 0.50
+        logging.info("Fast mode enabled: using 50% overlap")
     else:
+        # Normal mode, use specified overlap
         overlap_inference = args.overlap / 100
     
     # Create SliceInferer (2D model)
