@@ -3,10 +3,11 @@
 
 # For usage, type: python mm_segment.py -h
 
-# Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
-# IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
-
+import warnings
+import argparse
+warnings.filterwarnings("ignore")
 import argparse
 import logging
 import os
@@ -30,9 +31,6 @@ from monai.transforms import (
 )
 from monai.networks.layers import Norm
 from time import perf_counter
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
-
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
