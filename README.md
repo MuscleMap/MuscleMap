@@ -149,22 +149,24 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 7.  Install PyTorch with the correct CUDA Version for GPU support.
   
-    MuscleMap works with CPU or GPU, but performs best with a GPU-enabled PyTorch installation.
-    
-    **To use a GPU**, you need either:
+    MuscleMap works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use MuscleMap with CPU only, you can skip step 7.
+
+    **To use a GPU** you need either:
     - an NVIDIA GPU with a compatible **CUDA** runtime, or  
     - an AMD GPU with **ROCm** support.
-
+    
     1. **Step 1** — Open a Python console and run:
 
         ```python
         import torch
         print("Is CUDA available?:", torch.cuda.is_available())
         ```
-
+        
+    If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (Step 2). 
+     
     2. **Step 2** — Check your system CUDA version (terminal)
 
-        If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed by opening a terminal and running the following command:
+       Open a terminal and run the following command:
 
         ```bash
         nvidia-smi #for NVIDIA/CUDA
@@ -173,7 +175,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
         You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
-8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+9. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
 ### Usage
 
