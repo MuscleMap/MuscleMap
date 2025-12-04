@@ -164,7 +164,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
     2. **Step 2** — Check your system CUDA version (terminal)
 
-        If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible NVIDIA driver installed by opening a terminal and running the following command:
+        If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed by opening a terminal and running the following command:
 
         ```bash
         nvidia-smi #for NVIDIA/CUDA
