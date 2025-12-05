@@ -602,7 +602,7 @@ class SqueezeTransform(MapTransform):
 def connected_chunks(
     seg: np.ndarray,
     labels: Optional[np.ndarray] = None,
-    connectivity: int = 3,  # 3=26-connectivity
+    connectivity: int = 1,  # 3=26-connectivity
 ) -> np.ndarray:
     
     """
@@ -664,7 +664,6 @@ def connected_chunks(
 
     # Write back the processed 3D volume into output array
     seg_ch[0] = vol
-
     # Cleanup
     del mask3d, lab3d
 
@@ -692,12 +691,11 @@ def run_inference(
     pre_transforms,
     post_transforms,
     amp_context=None,
-    chunk_size=50,
+    chunk_size=25,
     device=None,
     inferer=None,
     model=None,
 ):
-    # 1) Load header + data
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
     affine   = img_nii.affine.copy()
@@ -705,6 +703,7 @@ def run_inference(
     img_data = img_nii.get_fdata().astype(np.float32)
     D        = img_data.shape[-1]
     
+    # ----- KLEINE VOLUME-TAK -----
     if D <= chunk_size:
         data   = {"image": image_path}
         data   = pre_transforms(data)
@@ -728,31 +727,35 @@ def run_inference(
         post_out    = post_transforms(post_in)
         seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
         seg_np      = seg_tensor.numpy()
-        full_seg = connected_chunks(seg_np)
+        full_seg    = connected_chunks(seg_np)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-        del seg_np  
-        # cleanup
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
+
+        # opruimen
+        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         return out_path
 
+    # ----- CHUNK-TAK -----
     temp_dir = os.path.join(output_dir, "temp_chunks")
     os.makedirs(temp_dir, exist_ok=True)
-    gc.collect()  
+
+    dims     = header.get_data_shape()  
+    full_seg = np.zeros(dims, dtype=np.int16)
     chunk_files = []
     for start in range(0, D, chunk_size):
         end       = min(start + chunk_size, D)
         vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii")
         nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
         del vol_chunk  
         chunk_files.append({"image": chunk_path, "start": start, "end": end})
-
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
     del img_data, img_nii
-    gc.collect()
-
+    
     for entry in chunk_files:
         data   = {"image": entry["image"]}
         data   = pre_transforms(data)
@@ -773,32 +776,14 @@ def run_inference(
             "image_meta_dict": data["image_meta_dict"],
         }
         del data  
-        post_out = post_transforms(post_in)
+        post_out   = post_transforms(post_in)
         seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np = seg_tensor.numpy()
-        seg_path = os.path.join(
-            temp_dir,
-            f"seg_{entry['start']}_{entry['end']}.nii.gz"
-        )
-        nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
-        entry["seg"] = seg_path
-        del seg_np  
+        seg_np     = seg_tensor.numpy()
 
-        del tensor, pred, single_pred, post_in, post_out, seg_tensor
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        gc.collect()  
-
-    dims     = header.get_data_shape()  
-    full_seg = np.zeros(dims, dtype=np.int16)
-    for entry in chunk_files:
-        s, e, sp = entry["start"], entry["end"], entry["seg"]
-        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
-        full_seg[..., s:e] = vol_seg
-        gc.collect()
-        del vol_seg 
-
-    gc.collect()  
+        s, e = entry["start"], entry["end"]
+        full_seg[..., s:e] = seg_np
+        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor 
+    
     full_seg = connected_chunks(full_seg)
     nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
