@@ -1,16 +1,18 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
+MuscleMap aims to create an open-source toolbox for analyzing whole-body muscle morphometry and composition using heterogeneous whole-body MRI.
+
 <p align="center">
    <img width="100%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 </p>
 
 ## Planned MuscleMap Phases
 
-1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+1. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
 
-2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
+2. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
-3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
+3. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
 ## Standardized Acquisition Protocol
 
@@ -456,3 +458,5 @@ When using the MuscleMap Toolbox, please cite the following publications:
 ### 2017
 
 * Smith AC, Weber KA, Parrish TB, Hornby TG, Tysseling VM, McPherson JG, Wasielewski M, Elliott JM. Ambulatory function in motor incomplete spinal cord injury: a magnetic resonance imaging study of spinal cord edema and lower extremity muscle morphometry. Spinal Cord. 2017;55(7):672-678. <https://doi.org/10.1038/sc.2017.18>
+
+**Keywords:** MRI, CT, muscle, segmentation, AI, computer vision, muscle, quantitative MRI, whole-body MRI, acquisition protocol, open-source dataset, intramuscular fat, muscle quantification, medical imaging, musculoskeletal imaging.
