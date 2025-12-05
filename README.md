@@ -5,7 +5,7 @@
 </p>
 
 ## MuscleMap Toolbox
-A free and open-source software toolbox for analyzing whole-body muscle morphometry and composition from MRI and CT.
+A free and open-source software toolbox for whole-body muscle segmentation and analysis.
 
 ### Dependencies
 
