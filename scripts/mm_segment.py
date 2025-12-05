@@ -3,10 +3,11 @@
 
 # For usage, type: python mm_segment.py -h
 
-# Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
-# IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
-
+import warnings
+import argparse
+warnings.filterwarnings("ignore")
 import argparse
 import logging
 import os
@@ -29,10 +30,7 @@ from monai.transforms import (
     CropForegroundd,
 )
 from monai.networks.layers import Norm
-from monai.utils import set_determinism
 from time import perf_counter
-import warnings
-warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
@@ -69,7 +67,7 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
 
-    optional.add_argument("-c", '--chunk_size', required=False, default = 50, type=int,
+    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
 
     return parser
@@ -91,7 +89,7 @@ def main():
     
     amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
     
-    if device =='cuda':
+    if device.type =='cuda':
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     else:
@@ -106,7 +104,6 @@ def main():
 
     elif os.path.exists(args.output_dir):
        output_dir=args.output_dir
-
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
@@ -115,7 +112,6 @@ def main():
 
     image_paths = [image.strip() for image in args.input_image.split(',')]
     for image_path in image_paths:
-        # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
         if not is_nifti(image_path):
@@ -161,8 +157,6 @@ def main():
         logging.error(f"Unknown normalization type: {import_norm_str}")
         sys.exit(1) 
 
-    set_determinism(seed=0)  
-
     pre_transforms = Compose([
         LoadImaged(keys=["image"], image_only=False),
         EnsureChannelFirstd(keys=["image"]),
@@ -178,30 +172,34 @@ def main():
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=False, device=device
+        to_tensor=True, device=device
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
 
     test_files = [{"image": image} for image in image_paths]
-    model = UNet(
-        spatial_dims=spatial_dims,
-        in_channels=in_channels,
-        out_channels=out_channels,
-        channels=channels,
-        act=act,
-        strides=strides,
-        num_res_units=num_res_units,
-        norm=import_norm,
-    ).to(device)
 
     if args.region == 'wholebody':
         post_transforms.extend([
         RemapLabels(keys=["pred"], id_map=inv_id_map)])
     
     post_transforms = Compose(post_transforms)
-  
-    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+    state = torch.load(model_path, map_location="cpu", weights_only=True)
+
+    model = UNet(
+    spatial_dims=spatial_dims,
+    in_channels=in_channels,
+    out_channels=out_channels,
+    channels=channels,
+    act=act,
+    strides=strides,
+    num_res_units=num_res_units,
+    norm=import_norm)
+
+    model.load_state_dict(state)
+    del state
+    gc.collect()
+    model = model.to(device)
     model.eval()
 
     overlap_inference = args.overlap / 100
@@ -219,9 +217,5 @@ def main():
 # %%
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
-
     main()
-
-
-
 
