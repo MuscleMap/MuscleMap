@@ -1,112 +1,18 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
-MuscleMap aims to create an open-source toolbox for analyzing whole-body muscle morphometry and composition using heterogeneous whole-body MRI.
-
 <p align="center">
    <img width="100%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
 </p>
 
-## Planned MuscleMap Phases
-
-1. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
-
-2. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
-
-3. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
-
-## Standardized Acquisition Protocol
-
-We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
-
-## Data Curation
-We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
-
-### Convert DICOM to BIDS
-
-1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
-    * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz).
-    * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters.
-
-2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
-
-   <details>
-    <summary>Click to see an example BIDS directory structure.</summary>
-   
-       ```
-       dataset
-       ├── derivatives
-       │   └── labels
-       │      └── sub-example01
-       │      └── sub-example02
-       │           ├── ses-abdomen
-       │           │   └── anat
-       │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
-       │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
-       │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
-       │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
-       │           └── ses-neck
-       │               └── anat
-       │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
-       │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
-       └── sourcedata
-           └── participants.tsv
-           └── sub-example01
-           └── sub-example02
-               ├── ses-abdomen
-               │   ├── anat
-               │   │   ├── sub-example02_ses-abdomen_fatfrac.json
-               │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_fat.json
-               │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_inphase.json
-               │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_outphase.json
-               │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_R2star.json
-               │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_T1w.json
-               │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_T2w.json
-               │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
-               │   │   ├── sub-example02_ses-abdomen_water.json
-               │   │   └── sub-example02_ses-abdomen_water.nii.gz
-               │   └── dwi
-               │       ├── sub-example02_ses-abdomen_dwi.bval
-               │       ├── sub-example02_ses-abdomen_dwi.bvec
-               │       ├── sub-example02_ses-abdomen_dwi.json
-               │       └── sub-example02_ses-abdomen_dwi.nii.gz
-               └── ses-neck
-                   └── anat
-                       ├── sub-example02_ses-neck_fat.json
-                       ├── sub-example02_ses-neck_fat.nii.gz
-                       ├── sub-example02_ses-neck_fatfrac.json
-                       ├── sub-example02_ses-neck_fatfrac.nii.gz
-                       ├── sub-example02_ses-neck_inphase.json
-                       ├── sub-example02_ses-neck_inphase.nii.gz
-                       ├── sub-example02_ses-neck_outphase.json
-                       ├── sub-example02_ses-neck_outphase.nii.gz
-                       ├── sub-example02_ses-neck_R2star.json
-                       ├── sub-example02_ses-neck_R2star.nii.gz
-                       ├── sub-example02_ses-neck_T2w.json
-                       ├── sub-example02_ses-neck_T2w.nii.gz
-                       ├── sub-example02_ses-neck_water.json
-                       └── sub-example02_ses-neck_water.nii.gz
-       ```
-   
-   * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
-   * derivatives = contains segmentation images and any other derivatives
-   * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
-   </details>
-
 ## MuscleMap Toolbox
-
-We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
+A free and open-source software toolbox for analyzing whole-body muscle morphometry and composition from whole-body MRI and CT.
 
 ### Dependencies
 
 * Python 3.9.23
 
 ### Installation
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
@@ -151,13 +57,13 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
 7.  Install PyTorch with the correct CUDA Version for GPU support.
   
-    MuscleMap works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use MuscleMap with CPU only, you can skip step 7.
+    The MuscleMap Toolbox works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use the MuscleMap Toolbox with CPU only, skip Step 7.
 
     **To use a GPU** you need either:
-    - an NVIDIA GPU with a compatible **CUDA** runtime, or  
-    - an AMD GPU with **ROCm** support.
+    - An NVIDIA GPU with a compatible **CUDA** runtime, or  
+    - An AMD GPU with **ROCm** support.
     
-    1. **Step 1** — Open a Python console and run:
+    1. Step 1 — Open a Python console and run:
 
         ```python
         import torch
@@ -166,13 +72,18 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         
     If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (Step 2). 
      
-    2. **Step 2** — Check your system CUDA version (terminal)
+    2. Step 2 — Check your system CUDA version (terminal)
 
-       Open a terminal and run the following command:
+       Open a terminal and run one of the following commands:
 
-        ```bash
-        nvidia-smi #for NVIDIA/CUDA
-        rocm-smi #for AMD/ROCm
+        For an **NVIDIA GPU** with **CUDA** runtime:
+        ```
+        nvidia-smi
+        ```
+
+       For an **AMD GPU** with **ROCm support**:
+       ```
+        rocm-smi
         ```
     
         You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
@@ -346,6 +257,98 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
     
     *Regions in development: neck, shoulder, arm, forearm, thorax, pelvis, thigh, leg, and foot*
+
+## Data Curation
+We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https://bids.neuroimaging.io/) specification for organizing your dataset. 
+
+### Convert DICOM to BIDS
+
+1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
+    * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz).
+    * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters.
+
+2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
+
+   <details>
+    <summary>Click to see an example BIDS directory structure.</summary>
+   
+       ```
+       dataset
+       ├── derivatives
+       │   └── labels
+       │      └── sub-example01
+       │      └── sub-example02
+       │           ├── ses-abdomen
+       │           │   └── anat
+       │           │       ├── sub-example02_ses-abdomen_T2w_label-muscle_dseg.json
+       │           │       └── sub-example02_ses-adomen_T2w_label-muscle_dseg.nii.gz
+       │           │       ├── sub-example02_ses-abdomen_water_label-muscle_dseg.json
+       │           │       └── sub-example02_ses-adomen_water_label-muscle_dseg.nii.gz
+       │           └── ses-neck
+       │               └── anat
+       │                   ├── sub-example02_ses-neck_water_label-muscle_dseg.json
+       │                   └── sub-example02_ses-neck_water_label-muscle_dseg.nii.gz
+       └── sourcedata
+           └── participants.tsv
+           └── sub-example01
+           └── sub-example02
+               ├── ses-abdomen
+               │   ├── anat
+               │   │   ├── sub-example02_ses-abdomen_fatfrac.json
+               │   │   ├── sub-example02_ses-abdomen_fatfrac.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_fat.json
+               │   │   ├── sub-example02_ses-abdomen_fat.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_inphase.json
+               │   │   ├── sub-example02_ses-abdomen_inphase.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_outphase.json
+               │   │   ├── sub-example02_ses-abdomen_outphase.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_R2star.json
+               │   │   ├── sub-example02_ses-abdomen_R2star.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_T1w.json
+               │   │   ├── sub-example02_ses-abdomen_T1w.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_T2w.json
+               │   │   ├── sub-example02_ses-abdomen_T2w.nii.gz
+               │   │   ├── sub-example02_ses-abdomen_water.json
+               │   │   └── sub-example02_ses-abdomen_water.nii.gz
+               │   └── dwi
+               │       ├── sub-example02_ses-abdomen_dwi.bval
+               │       ├── sub-example02_ses-abdomen_dwi.bvec
+               │       ├── sub-example02_ses-abdomen_dwi.json
+               │       └── sub-example02_ses-abdomen_dwi.nii.gz
+               └── ses-neck
+                   └── anat
+                       ├── sub-example02_ses-neck_fat.json
+                       ├── sub-example02_ses-neck_fat.nii.gz
+                       ├── sub-example02_ses-neck_fatfrac.json
+                       ├── sub-example02_ses-neck_fatfrac.nii.gz
+                       ├── sub-example02_ses-neck_inphase.json
+                       ├── sub-example02_ses-neck_inphase.nii.gz
+                       ├── sub-example02_ses-neck_outphase.json
+                       ├── sub-example02_ses-neck_outphase.nii.gz
+                       ├── sub-example02_ses-neck_R2star.json
+                       ├── sub-example02_ses-neck_R2star.nii.gz
+                       ├── sub-example02_ses-neck_T2w.json
+                       ├── sub-example02_ses-neck_T2w.nii.gz
+                       ├── sub-example02_ses-neck_water.json
+                       └── sub-example02_ses-neck_water.nii.gz
+       ```
+   
+   * sourcedata = contains participants.tsv, raw images, json sidecar files, and no other files
+   * derivatives = contains segmentation images and any other derivatives
+   * If you have a large dataset to convert, the [DICOM](https://www.dicomstandard.org/) to [BIDS](https://bids.neuroimaging.io/) conversion can be automated. If needed, feel free to reach out to [us](mailto:neuromuscularinsightlab@stanford.edu) for help automating the conversion.
+   </details>
+
+## Planned MuscleMap Phases
+
+1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+
+2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
+
+3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
+
+## Standardized Acquisition Protocol
+
+We are currently developing the standardized acquisition protocol for whole-body quantitative MRI of muscle. You can access the Google doc [here](https://docs.google.com/document/d/1q7AAnPEr7Rj5gb9d_mLrRnAiav1f32J-RPswvOPk5xE/edit?usp=sharing). To collaborate on the standardized acquisition protocol, please contact [us](mailto:neuromuscularinsightlab@stanford.edu).
 
 ## Citing MuscleMap
 
