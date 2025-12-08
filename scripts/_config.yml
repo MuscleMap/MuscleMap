@@ -1,0 +1,11 @@
+title: MuscleMap Toolbox
+description: >
+  MuscleMap: An open-source toolbox for whole-body muscle segmentation and analysis.
+theme: just-the-docs
+
+# Voor project pages:
+url: "https://musclemap.github.io"
+baseurl: "/MuscleMap"
+
+# Optioneel, maar handig
+logo: "/logo.png"
