@@ -3,6 +3,10 @@ title: MuscleMap Toolbox
 nav_order: 1
 ---
 
+<p align="center">
+  <img src="logo.png" alt="MuscleMap Logo" width="220" />
+</p>
+
 # MuscleMap Toolbox
 
 MuscleMap is an open-source toolbox for whole-body muscle segmentation and analysis in large-scale imaging datasets.
