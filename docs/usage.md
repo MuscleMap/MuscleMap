@@ -10,14 +10,14 @@ MuscleMap provides three command-line tools: `mm_segment` for generating whole-b
 
 A video demonstration is provided below.
 
-<div style="margin: 1.5rem 0;">
-  <iframe width="100%" height="400"
+<div class="mm-video-container">
+  <iframe
     src="https://www.youtube.com/embed/utlUVdvy6WI"
     title="MuscleMap Demonstration"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen>
-  </iframe>
+    allowfullscreen
+  ></iframe>
 </div>
 
 
