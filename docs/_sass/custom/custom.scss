@@ -14,7 +14,7 @@
 .mm-hero {
   margin: -1.5rem -1.5rem 2rem;
   padding: 2.5rem 1.5rem;
-  background: radial-gradient(circle at top left, #4f46e5, #0f172a);
+  background: radial-gradient(circle at top left, #000000, #0f172a);
   color: #f9fafb;
 }
 
@@ -32,7 +32,7 @@
 .mm-hero-logo img {
   width: 440px;
   height: auto;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.35));
 }
 
 .mm-hero-text h1 {
@@ -144,7 +144,7 @@
 }
 
 .mm-link-card:hover {
-  border-color: #000000;
+  border-color: #5208dd;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
 }
