@@ -4,7 +4,7 @@ nav_order: 1
 ---
 
 <p align="center">
-  <img src="logo.png" alt="MuscleMap Logo" width="220" />
+  <img src="logo.png" alt="MuscleMap Logo" width="440" />
 </p>
 
 # MuscleMap Toolbox
