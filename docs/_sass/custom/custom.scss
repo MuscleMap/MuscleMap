@@ -186,3 +186,43 @@
   width: 100%;
   height: 100%;
 }
+
+.mm-card-with-media {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;        /* ruimte tussen tekst en GIF */
+}
+
+/* tekst mag gewoon de beschikbare ruimte innemen */
+.mm-card-with-media .mm-card-text {
+  flex: 1 1 0;
+}
+
+/* rechterkolom voor de GIF */
+.mm-card-with-media .mm-card-media {
+  flex: 0 0 220px;    /* breedte van de GIF-kolom, pas aan naar smaak */
+}
+
+.mm-card-with-media .mm-card-media img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.5rem; /* optioneel, voor afgeronde hoeken */
+}
+
+/* op kleine schermen onder elkaar stapelen */
+@media (max-width: 768px) {
+  .mm-card-with-media {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mm-card-with-media .mm-card-media {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .mm-card-with-media .mm-card-media img {
+    width: 100%;
+  }
+}

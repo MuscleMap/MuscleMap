@@ -28,13 +28,18 @@ nav_order: 1
 
 <div class="mm-section">
   <h2>Why MuscleMap?</h2>
-  <div class="mm-grid">
-    <div class="mm-card">
-      <h3>Whole-body focus</h3>
-      <p>
-        Designed for whole-body imaging with consistent labelling across muscles and bones,
-        enabling large-scale, multi-region analyses.
-      </p>
+  <div class="mm-grid">  
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
+        <h3>Whole-body focus</h3>
+        <p>
+          Designed for whole-body imaging with consistent labelling across muscles and bones,
+          enabling large-scale, multi-region analyses.
+        </p>
+      </div>
+      <div class="mm-card-media">
+        <img src="musclemap_scroll.gif" alt="MuscleMap whole-body GIF">
+      </div>
     </div>
     <div class="mm-card">
       <h3>Quantitative metrics</h3>
