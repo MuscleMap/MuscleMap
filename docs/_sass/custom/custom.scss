@@ -1,0 +1,12 @@
+/* Custom sidebar styles */
+
+.nav-overview {
+  color: #f97316 !important;  /* oranje */
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  /* niet klikbaar */
+  pointer-events: none;
+  cursor: default;
+}
