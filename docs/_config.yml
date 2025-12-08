@@ -1,12 +1,10 @@
-title: MuscleMap Toolbox
+title: MuscleMap
 description: MuscleMap documentation
 
-# Use Just the Docs
 remote_theme: just-the-docs/just-the-docs
 
-# Project site settings
+# Site URL (project page)
 url: "https://musclemap.github.io"
 baseurl: "/MuscleMap"
 
-# Just the Docs options
 search_enabled: true
