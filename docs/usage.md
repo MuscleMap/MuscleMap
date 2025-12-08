@@ -3,9 +3,23 @@ title: Usage
 nav_order: 4
 ---
 
+
 # Usage
 
 MuscleMap provides three command-line tools: `mm_segment` for generating whole-body muscle and bone segmentations, `mm_extract_metrics` for computing region-wise quantitative metrics, and `mm_gui` for visual inspection and quality control. Below is a complete, continuous explanation of all three tools in one block.
+
+A video demonstration is provided below.
+
+<div style="margin: 1.5rem 0;">
+  <iframe width="100%" height="400"
+    src="https://www.youtube.com/embed/utlUVdvy6WI"
+    title="MuscleMap Demonstration"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
+</div>
+
 
 `mm_segment` is used to generate full-body anatomical segmentations from whole-body MRI scans. You run it by supplying an input image (`-i`) and an output file path (`-o`). A minimal example is:
 
