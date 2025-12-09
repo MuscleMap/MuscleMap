@@ -103,6 +103,12 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     mm_segment -i image.nii.gz
     ~~~
 
+    To prioritise speed:
+
+    ~~~
+    mm_segment -i image.nii.gz --fast
+    ~~~
+
     * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 89 muscles and bones.
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
@@ -199,7 +205,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Fibula 8162
           ```
        </details>
-    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
+    * The default spatial overlap during sliding window inference is 75%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
        ~~~
        mm_segment -i image.nii.gz -s 50
        ~~~
