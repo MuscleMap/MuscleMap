@@ -24,7 +24,6 @@ nav_order: 1
     </div>
   </div>
 </div>
-
 <div class="mm-section">
   <h2>Features</h2>
   <div class="mm-grid">  
@@ -51,12 +50,17 @@ nav_order: 1
         <img src="thresholding_scroll.gif" alt="MuscleMap thresholding GIF">
       </div>
     </div>
-    <div class="mm-card">
-      <h3>Integrates in pipelines</h3>
-      <p>
-        Github GUI and Slicer extension so you can easily run MuscleMap and/or inspect
-        individual cases for quality control.
-      </p>
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
+        <h3>Integrates in pipelines</h3>
+        <p>
+          GitHub GUI and Slicer extension so you can easily run MuscleMap and/or inspect
+          individual cases for quality control.
+        </p>
+      </div>
+      <div class="mm-card-media">
+        <img src="MuscleMap_Slicer3D.png" alt="MuscleMap Slicer 3D view">
+      </div>
     </div>
   </div>
 </div>
