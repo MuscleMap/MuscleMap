@@ -3,10 +3,10 @@ title: MuscleMap
 nav_order: 1
 ---
 
-<div class="mm-hero">
 <div class="mm-hero-banner">
   <img src="logo.png" alt="MuscleMap Logo">
     </div>
+<div class="mm-hero">
   <div class="mm-hero-inner">
     <div class="mm-hero-text">
       <p class="mm-eyebrow">Open-source toolbox</p>
@@ -30,7 +30,7 @@ nav_order: 1
   <div class="mm-grid">  
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Whole-body focus</h3>
+        <h3>Whole-body muscle segmentation</h3>
         <p>
           Designed for whole-body imaging with consistent labelling across muscles and bones,
           enabling large-scale, multi-region analyses.
@@ -44,8 +44,7 @@ nav_order: 1
       <div class="mm-card-text">
         <h3>Quantitative metrics</h3>
         <p>
-          Extract region-wise metrics such as volumes and fat-related measures, ready to link with
-          clinical, biomechanical, or epidemiological data.
+          Extract muscle-specific metrics such as volumes and fat-related measures across multiple contrasts. 
         </p>
       </div>
       <div class="mm-card-media">
@@ -55,7 +54,7 @@ nav_order: 1
     <div class="mm-card">
       <h3>Integrates in pipelines</h3>
       <p>
-        Command line tools and a GUI so you can both batch-process large cohorts and inspect
+        Github GUI and Slicer extension so you can easily run MuscleMap and/or inspect
         individual cases for quality control.
       </p>
     </div>
