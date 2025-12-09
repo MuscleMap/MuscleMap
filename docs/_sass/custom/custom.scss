@@ -32,7 +32,7 @@
 }
 
 .mm-hero-logo img {
-  width: 440px;
+  width: 240px;
   height: auto;
   filter: none;
 }
@@ -239,12 +239,11 @@
   width: 100%;
   height: auto;
   display: block;
-  max-height: 100px;
+  max-height: 200px;
   object-fit: cover;
   border-radius: 0;
   box-shadow: none; 
 }
-
 /* Brightness boost for the quantitative metrics GIF */
 .mm-card-with-media .mm-card-media img[src*="thresholding_scroll.gif"] {
   filter: brightness(1.4);   /* 1.0 = normaal, 1.4 = 40% helderder */
