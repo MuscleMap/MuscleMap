@@ -247,3 +247,24 @@
 .mm-card-with-media .mm-card-media img[src*="thresholding_scroll.gif"] {
   filter: brightness(1.4);   /* 1.0 = normaal, 1.4 = 40% helderder */
 }
+
+/* === Sidebar: MuscleMap orange === */
+
+/* normale links */
+.nav-list .nav-list-item .nav-list-link {
+  color: #f97316 !important;         /* MuscleMap orange */
+  font-weight: 500;
+}
+
+/* hover */
+.nav-list .nav-list-item .nav-list-link:hover {
+  color: #fb923c !important;          /* lighter orange */
+  text-decoration: none;
+}
+
+/* active page (highlight) */
+.nav-list .nav-list-item .nav-list-link.active {
+  color: #f97316 !important;
+  font-weight: 700;
+  border-right: 2px solid #f97316;     /* subtle highlight */
+}
