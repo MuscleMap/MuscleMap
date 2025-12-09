@@ -72,6 +72,9 @@ def get_parser():
     
     optional.add_argument("--fast", action='store_true',
                     help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
+    
+    optional.add_argument("--verbose", action='store_true',
+                    help="Enable verbose output during inference (only applicable in non-fast mode).")
 
     return parser
 
@@ -86,15 +89,23 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
          
-    device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
+    # Device selection: CUDA > MPS (Apple Silicon) > CPU
+    if torch.cuda.is_available() and args.use_GPU == 'Y':
+        device = torch.device("cuda")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() and args.use_GPU == 'Y':
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     
-    logging.info(f"Processing using cuda or cpu: {device}")
+    logging.info(f"Processing using: {device}")
     
-    amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
+    amp_context = torch.amp.autocast('cuda') if device.type == 'cuda' else nullcontext()
     
-    if device.type =='cuda':
+    if device.type == 'cuda':
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
+    elif device.type == 'mps':
+        logging.info("MPS (Apple Silicon GPU) detected")
     else:
         logging.info(f"Processing on a CPU will slow down inference speed")
 
@@ -182,11 +193,22 @@ def main():
 
     test_files = [{"image": image} for image in image_paths]
 
-   if args.region == 'wholebody':
+    if args.region == 'wholebody':
         post_transforms.extend([
-        RemapLabels(keys=["pred"], id_map=inv_id_map)])
+            RemapLabels(keys=["pred"], id_map=inv_id_map)])
     
     post_transforms = Compose(post_transforms)
+
+    model = UNet(
+        spatial_dims=spatial_dims,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        channels=channels,
+        strides=strides,
+        num_res_units=num_res_units,
+        norm=import_norm,
+        act=act
+    ).to(device)
   
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
@@ -201,12 +223,11 @@ def main():
         try:
             logging.info("Compiling model with torch.compile for CPU optimization...")
             model = torch.compile(model, mode='max-autotune')
-            logging.info("Model compilation successful")
         except Exception as e:
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     # Apply fast mode settings
-    if args.fast and args.overlap != 50:
+    if args.fast and args.overlap != 75:
         # User specified both --fast and custom --overlap, use custom value
         overlap_inference = args.overlap / 100
         logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
@@ -236,7 +257,7 @@ def main():
             img_shape = img_nii.header.get_data_shape()
             del img_nii  # Free memory
             
-            use_fp16 = (device.type == 'cuda' and amp_context.fast_dtype == torch.float16)
+            use_fp16 = (device.type == 'cuda' and hasattr(amp_context, 'fast_dtype') and amp_context.fast_dtype == torch.float16)
             chunk_size = estimate_chunk_size(
                 device=device,
                 roi_size=roi_size,
@@ -246,10 +267,12 @@ def main():
                 spatial_window_batch_size=spatial_window_batch_size,
                 overlap=overlap_inference,
                 use_fp16=use_fp16,
-                image_shape=img_shape
+                image_shape=img_shape,
+                verbose=args.verbose
             )
         else:
             chunk_size = int(chunk_size_arg)
+        
         try:
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
@@ -288,9 +311,9 @@ def main():
             inference_time = perf_counter()-t0
             logging.info(f"Inference of {test['image']} finished in {inference_time:.2f}s ({method})")
 
-            except Exception as e:
-                logging.exception(f"Error processing {test['image']}: {e}")
-                errors_occurred = True
+        except Exception as e:
+            logging.exception(f"Error processing {test['image']}: {e}")
+            errors_occurred = True
             
     if not errors_occurred:
         logging.info("Inference completed. All outputs saved.")        

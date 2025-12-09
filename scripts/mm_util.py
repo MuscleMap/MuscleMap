@@ -14,6 +14,7 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -695,6 +696,7 @@ def estimate_chunk_size(
     overlap: float,
     use_fp16: bool = True,
     image_shape: tuple = None,
+    verbose: bool = False,
 ) -> int:
     """
     Robustly estimate optimal chunk size with self-tuning based on OOM history.
@@ -709,6 +711,7 @@ def estimate_chunk_size(
         overlap: spatial overlap ratio (0.5 = 50% overlap)
         use_fp16: whether FP16 is enabled (CUDA only)
         image_shape: optional image shape for OOM history lookup
+        verbose: if True, log detailed memory information
     
     Returns:
         Estimated chunk size (number of slices)
@@ -751,10 +754,13 @@ def estimate_chunk_size(
             # Expanded bounds for maximal speed: 20-150 slices
             chunk_size = max(20, min(chunk_size, 150))
             
-            device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
-            logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
-            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
-            logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
+            if verbose:
+                device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
+                logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
+                logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
+                logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
+            else:
+                logging.info(f"Estimated chunk size: {chunk_size} slices")
             return chunk_size
             
         except Exception as e:
@@ -825,7 +831,6 @@ def estimate_chunk_size(
         chunk_size = max(5, min(chunk_size, 250))
         
         # Log memory information
-        logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
         return chunk_size
@@ -1206,39 +1211,42 @@ def run_inference_fast(
                     raise
     
     # Apply Invertd once to accumulated discrete result
-    logging.info("Applying inverse transforms to resample back to original space...")
     from monai.transforms import Invertd
     from monai.data import MetaTensor
     
-    full_pred_tensor = torch.from_numpy(full_pred)
-    pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
-    pred_metatensor.applied_operations = stored_applied_operations
-    
-    invertd = Invertd(
-        keys="pred",
-        transform=pre_transforms,
-        orig_keys="image",
-        meta_keys="pred_meta_dict",
-        orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict",
-        nearest_interp=True,
-        to_tensor=True,
-        device="cpu",
-    )
-    
-    post_in = {
-        "pred": pred_metatensor,
-        "image": torch.from_numpy(img_array),
-        "image_meta_dict": stored_meta_dict,
-        "image_transforms": stored_applied_operations,
-    }
-    
-    post_out = invertd(post_in)
-    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-    
-    # Apply connected components
-    logging.info("Connecting chunks...")
-    full_seg = connected_chunks(seg_np)
+    with tqdm(total=2, desc="Post-processing", unit="step") as pbar:
+        pbar.set_description("Applying inverse transforms")
+        full_pred_tensor = torch.from_numpy(full_pred)
+        pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
+        pred_metatensor.applied_operations = stored_applied_operations
+        
+        invertd = Invertd(
+            keys="pred",
+            transform=pre_transforms,
+            orig_keys="image",
+            meta_keys="pred_meta_dict",
+            orig_meta_keys="image_meta_dict",
+            meta_key_postfix="meta_dict",
+            nearest_interp=True,
+            to_tensor=True,
+            device="cpu",
+        )
+        
+        post_in = {
+            "pred": pred_metatensor,
+            "image": torch.from_numpy(img_array),
+            "image_meta_dict": stored_meta_dict,
+            "image_transforms": stored_applied_operations,
+        }
+        
+        post_out = invertd(post_in)
+        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
+        pbar.update(1)
+        
+        # Apply connected components
+        pbar.set_description("Filtering connected components")
+        full_seg = connected_chunks(seg_np)
+        pbar.update(1)
     
     # Save with original affine/header
     img_nii = nib.load(image_path)
