@@ -33,10 +33,10 @@ from monai.networks.layers import Norm
 from time import perf_counter
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
 import torch
 
 #naming not functional
@@ -64,11 +64,17 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
-
-    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+    optional.add_argument("-s", '--overlap', required=False, default = 75, type=float,
+                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
+    
+    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=str,
+                    help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
+    
+    optional.add_argument("--fast", action='store_true',
+                    help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
+    
+    optional.add_argument("--verbose", action='store_true',
+                    help="Enable verbose output during inference (only applicable in non-fast mode).")
 
     return parser
 
@@ -83,15 +89,23 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
          
-    device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
+    # Device selection: CUDA > MPS (Apple Silicon) > CPU
+    if torch.cuda.is_available() and args.use_GPU == 'Y':
+        device = torch.device("cuda")
+    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() and args.use_GPU == 'Y':
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     
-    logging.info(f"Processing using cuda or cpu: {device}")
+    logging.info(f"Processing using: {device}")
     
-    amp_context = torch.amp.autocast('cuda') if torch.cuda.is_available() and args.use_GPU == 'Y' else nullcontext()
+    amp_context = torch.amp.autocast('cuda') if device.type == 'cuda' else nullcontext()
     
-    if device.type =='cuda':
+    if device.type == 'cuda':
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
+    elif device.type == 'mps':
+        logging.info("MPS (Apple Silicon GPU) detected")
     else:
         logging.info(f"Processing on a CPU will slow down inference speed")
 
@@ -181,41 +195,130 @@ def main():
 
     if args.region == 'wholebody':
         post_transforms.extend([
-        RemapLabels(keys=["pred"], id_map=inv_id_map)])
+            RemapLabels(keys=["pred"], id_map=inv_id_map)])
     
     post_transforms = Compose(post_transforms)
-    state = torch.load(model_path, map_location="cpu", weights_only=True)
 
     model = UNet(
-    spatial_dims=spatial_dims,
-    in_channels=in_channels,
-    out_channels=out_channels,
-    channels=channels,
-    act=act,
-    strides=strides,
-    num_res_units=num_res_units,
-    norm=import_norm)
-
-    model.load_state_dict(state)
-    del state
-    gc.collect()
-    model = model.to(device)
+        spatial_dims=spatial_dims,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        channels=channels,
+        strides=strides,
+        num_res_units=num_res_units,
+        norm=import_norm,
+        act=act
+    ).to(device)
+  
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
+    
+    # Convert model to FP16 which CUDA tensor cores are optimized for
+    if device.type == 'cuda':
+        model = model.half()
+    
+    # Compile model for CPU optimization (PyTorch 2.0+)
+    # Note: torch.compile only supports CPU and CUDA, not MPS
+    if device.type == 'cpu':
+        try:
+            logging.info("Compiling model with torch.compile for CPU optimization...")
+            model = torch.compile(model, mode='max-autotune')
+        except Exception as e:
+            logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
-    overlap_inference = args.overlap / 100
+    # Apply fast mode settings
+    if args.fast and args.overlap != 75:
+        # User specified both --fast and custom --overlap, use custom value
+        overlap_inference = args.overlap / 100
+        logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
+    elif args.fast:
+        # Fast mode with default overlap, use 50%
+        overlap_inference = 0.50
+        logging.info("Fast mode enabled: using 50% overlap")
+    else:
+        # Normal mode, use specified overlap
+        overlap_inference = args.overlap / 100
+    
+    # Create SliceInferer (2D model)
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
-    chunk_size = args.chunk_size
+    
+    chunk_size_arg = args.chunk_size # args.chunk_size may be an integer string or the literal 'auto'
+    
+    errors_occurred = False
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
+        
+        # Use optimized disk-based chunking with auto chunk size
+        if isinstance(chunk_size_arg, str) and chunk_size_arg.lower() == 'auto':
+            # Load image header to get shape for OOM history lookup
+            import nibabel as nib
+            img_nii = nib.load(test['image'])
+            img_shape = img_nii.header.get_data_shape()
+            del img_nii  # Free memory
+            
+            use_fp16 = (device.type == 'cuda' and hasattr(amp_context, 'fast_dtype') and amp_context.fast_dtype == torch.float16)
+            chunk_size = estimate_chunk_size(
+                device=device,
+                roi_size=roi_size,
+                in_channels=in_channels,
+                out_channels=out_channels,
+                channels=channels,
+                spatial_window_batch_size=spatial_window_batch_size,
+                overlap=overlap_inference,
+                use_fp16=use_fp16,
+                image_shape=img_shape,
+                verbose=args.verbose
+            )
+        else:
+            chunk_size = int(chunk_size_arg)
+        
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
-            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
+            # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
+            fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
+            
+            # Use fast inference mode if --fast flag is set
+            if args.fast:
+                run_inference_fast(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    fallback_device=fallback_device
+                )
+                method = "fast mode"
+            else:
+                run_inference(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
+                method = "disk-based chunking" if chunk_size else "full volume"
+            
+            inference_time = perf_counter()-t0
+            logging.info(f"Inference of {test['image']} finished in {inference_time:.2f}s ({method})")
+
         except Exception as e:
-            logging.exception(f"Error processing {test['image']}: {e}"),
-            continue
-# %%
-    logging.info("Inference completed. All outputs saved.")
+            logging.exception(f"Error processing {test['image']}: {e}")
+            errors_occurred = True
+            
+    if not errors_occurred:
+        logging.info("Inference completed. All outputs saved.")        
+
+#%%
 if __name__ == "__main__":
     main()
 
