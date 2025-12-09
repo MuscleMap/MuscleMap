@@ -12,10 +12,12 @@
 /* ===== MuscleMap hero ===== */
 
 .mm-hero {
-  margin: -1.5rem -1.5rem 2rem;
+  margin: 0 0 2rem;
   padding: 2.5rem 1.5rem;
-  background: radial-gradient(circle at top left, #ffffff, #ffffff);
-  color: #f9fafb;
+  background: #ffffff;           /* wit binnenvlak */
+  color: #111827;                /* donkere tekst */
+  border: 1px solid #000000;     /* zwarte lijn zoals de kaders */
+  border-radius: 0.75rem;        /* ronde hoeken zoals kaarten */
 }
 
 .mm-hero-inner {
@@ -94,12 +96,12 @@
 
 .mm-btn-ghost {
   background: transparent;
-  color: #e5e7eb;
-  border-color: rgb(252, 252, 252);
+  color: #111827;        /* beter leesbaar op witte hero */
+  border-color: #d1d5db; /* subtiele grijze rand */
 }
 
 .mm-btn-ghost:hover {
-  border-color: #e5e7eb;
+  border-color: #9ca3af;
 }
 
 /* Sections & cards */
@@ -164,7 +166,7 @@
 
 @media (max-width: 768px) {
   .mm-hero {
-    margin: -1rem -1rem 1.5rem;
+    margin: 0 0 1.5rem;
     padding: 2rem 1rem;
   }
 
