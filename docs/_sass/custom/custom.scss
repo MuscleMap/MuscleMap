@@ -14,7 +14,7 @@
 .mm-hero {
   margin: -1.5rem -1.5rem 2rem;
   padding: 2.5rem 1.5rem;
-  background: radial-gradient(circle at top left, #000000, #0f172a);
+  background: radial-gradient(circle at top left, #ffffff, #ffffff);
   color: #f9fafb;
 }
 
@@ -32,7 +32,7 @@
 .mm-hero-logo img {
   width: 440px;
   height: auto;
-  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.35));
+  filter: drop-shadow(0 4px 8px rgb(253, 253, 253));
 }
 
 .mm-hero-text h1 {
