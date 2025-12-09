@@ -242,3 +242,8 @@
   border-radius: 0;  /* ensure no rounding */
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); /* optional: hero-style glow */
 }
+
+/* Brightness boost for the quantitative metrics GIF */
+.mm-card-with-media .mm-card-media img[src*="thresholding_scroll.gif"] {
+  filter: brightness(1.4);   /* 1.0 = normaal, 1.4 = 40% helderder */
+}
