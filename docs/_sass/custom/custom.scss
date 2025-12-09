@@ -227,3 +227,18 @@
     width: 100%;
   }
 }
+
+.mm-hero-banner {
+  width: 100%;
+  margin: 0 auto 2rem auto;
+}
+
+.mm-hero-banner img {
+  width: 100%;       /* full width */
+  height: auto;      /* keep aspect ratio */
+  display: block;    /* remove inline spacing */
+  max-height: 380px; /* optional: prevent too tall image */
+  object-fit: cover; /* crop edges if necessary */
+  border-radius: 0;  /* ensure no rounding */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); /* optional: hero-style glow */
+}
