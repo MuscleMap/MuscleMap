@@ -41,9 +41,9 @@ nav_order: 1
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Quantitative metrics</h3>
+        <h3>Quantitative muscle metrics</h3>
         <p>
-          Extract muscle-specific metrics such as volumes and fat-related measures across multiple contrasts. 
+          Extract muscle-specific metrics such as volumes, intensity or fat-related measures across multiple MRI contrasts and CT. 
         </p>
       </div>
       <div class="mm-card-media">
