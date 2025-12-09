@@ -41,12 +41,17 @@ nav_order: 1
         <img src="musclemap_scroll.gif" alt="MuscleMap whole-body GIF">
       </div>
     </div>
-    <div class="mm-card">
-      <h3>Quantitative metrics</h3>
-      <p>
-        Extract region-wise metrics such as volumes and fat-related measures, ready to link with
-        clinical, biomechanical, or epidemiological data.
-      </p>
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
+        <h3>Quantitative metrics</h3>
+        <p>
+          Extract region-wise metrics such as volumes and fat-related measures, ready to link with
+          clinical, biomechanical, or epidemiological data.
+        </p>
+      </div>
+      <div class="mm-card-media">
+        <img src="thresholding_scroll.gif" alt="MuscleMap thresholding GIF">
+      </div>
     </div>
     <div class="mm-card">
       <h3>Integrates in pipelines</h3>
