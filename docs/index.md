@@ -3,12 +3,11 @@ title: MuscleMap
 nav_order: 1
 ---
 
-<div class="mm-hero-banner">
-  <img src="logo.png" alt="MuscleMap Logo">
-    </div>
-
 <div class="mm-hero">
   <div class="mm-hero-inner">
+  <div class="mm-hero-banner">
+    <img src="logo.png" alt="MuscleMap Logo">
+      </div>
     <div class="mm-hero-text">
       <p class="mm-eyebrow">Open-source toolbox</p>
       <h1>MuscleMap</h1>
