@@ -52,6 +52,18 @@ nav_order: 1
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
+        <h3>Registration to muscle template and 3D spatial parametric mapping</h3>
+        <p>
+          Visualize and calculate the spatial distribution of intramuscular fat in a standardized muscle template 
+        </p>
+      </div>
+      <div class="mm-card-media">
+        <img src="MuscleMap_Slicer3D.png" alt="MuscleMap Slicer 3D view">
+      </div>
+    </div>
+  </div>
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
         <h3>Integrated in pipelines</h3>
         <p>
           GitHub GUI and Slicer extension so you can easily run MuscleMap and/or inspect
@@ -64,7 +76,6 @@ nav_order: 1
     </div>
   </div>
 </div>
-
 <div class="mm-section">
   <h2>Quick links</h2>
   <div class="mm-grid mm-grid-2">
