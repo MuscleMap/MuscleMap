@@ -7,7 +7,7 @@ nav_order: 5
 {: .no_toc }
 
 ## Table of contents
-{: .no_toc .text-delta .mm-toc-wrapper }
+{: .no_toc .text-delta }
 
 1. Years
 {:toc}
@@ -123,6 +123,7 @@ nav_order: 5
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2017SpinalCordSCI'); return false;" }
 
 <script>
+  // Jekyll zet hier het juiste pad naar je .bib in (inclusief baseurl)
   window.MUSCLEMAP_BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
 </script>
 <script src="{{ '/assets/js/bibtex-download.js' | relative_url }}"></script>

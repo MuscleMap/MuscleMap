@@ -41,7 +41,7 @@ nav_order: 1
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Quantitative muscle metrics</h3>
+        <h3>Automated quantitative muscle metrics</h3>
         <p>
           Extract muscle-specific metrics such as volumes, intensity or fat-related measures across multiple MRI contrasts and CT. 
         </p>
@@ -52,7 +52,7 @@ nav_order: 1
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Integrates in pipelines</h3>
+        <h3>Integrated in pipelines</h3>
         <p>
           GitHub GUI and Slicer extension so you can easily run MuscleMap and/or inspect
           individual cases for quality control.
