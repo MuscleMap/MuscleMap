@@ -27,16 +27,15 @@ async function loadBibFile() {
 }
 
 function extractBibEntry(bibText, key) {
-  // escape speciale regex-tekens in de key
-  const escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
 
+  // LET OP: GEEN "m" MEER ALS TWEEDE ARGUMENT
   const pattern = new RegExp(
-    '@[^{]+\\{\\s*' + escapedKey + '\\s*,[\\s\\S]*?(?=\\n@|$)',
-    'm'
+    "@[^{]+\\{\\s*" + escapedKey + "\\s*,[\\s\\S]*?(?=\\n@|$)"
   );
 
   const match = bibText.match(pattern);
-  return match ? match[0].trim() + '\n' : null;
+  return match ? match[0].trim() + "\n" : null;
 }
 
 window.downloadBibtex = async function (key) {
