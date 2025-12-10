@@ -1,0 +1,35 @@
+name: MuscleMap feedback
+description: Share your experience using MuscleMap
+title: "Feedback: "
+labels: ["feedback"]
+
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: John Doe
+    validations:
+      required: true
+
+  - type: input
+    id: role
+    attributes:
+      label: Role / Function
+      placeholder: Researcher, Clinician, PhD student, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: affiliation
+    attributes:
+      label: Affiliation
+      placeholder: University / Hospital
+
+  - type: textarea
+    id: comment
+    attributes:
+      label: Share your experience with MuscleMap
+      placeholder: Tell us what you like, what could be improved, or how you use it.
+    validations:
+      required: true
