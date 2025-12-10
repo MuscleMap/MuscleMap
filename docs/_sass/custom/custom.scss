@@ -281,3 +281,15 @@
   font-weight: 700;
   border-right: 2px solid #f97316;     /* subtle highlight */
 }
+
+@media (min-width: 1100px) {
+  .mm-toc-wrapper {
+    position: fixed;
+    right: 2rem;
+    top: 6rem;
+    width: 220px;
+    max-height: calc(100vh - 8rem);
+    overflow: auto;
+    font-size: 0.9rem;
+  }
+}
