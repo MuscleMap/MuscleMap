@@ -2,6 +2,7 @@
 title: Studies using MuscleMap
 nav_order: 5
 ---
+<div class="mm-toc-wrapper">
 
 # Publications
 {: .no_toc }
