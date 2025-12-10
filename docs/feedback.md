@@ -8,4 +8,4 @@ parent: Developer section
 
 We love to hear how researchers and clinicians use MuscleMap. Click the button below to submit feedback:
 
-[**Submit your feedback →**](https://github.com/MuscleMap/MuscleMap/issues/new?template=feedback.yml){: .btn .btn-warning }
+[**Submit your feedback →**](https://github.com/MuscleMap/MuscleMap/issues/new?template=feedback.yml){: .btn-orange }
