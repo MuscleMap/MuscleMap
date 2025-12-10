@@ -231,19 +231,20 @@
 }
 
 .mm-hero-banner {
+  display: flex;
+  justify-content: flex-end;  /* beeld rechts uitlijnen */
+  align-items: center;
   width: 100%;
   margin: 0 auto 2rem auto;
 }
 
 .mm-hero-banner img {
-  width: 100%;
+  max-width: 260px;  /* kies grootte → kan bv. 200–320px zijn */
   height: auto;
+  object-fit: contain; /* toont volledige afbeelding zonder crop */
   display: block;
-  max-height: 380px;
-  object-fit: cover;
-  border-radius: 0;
-  box-shadow: none; 
 }
+
 /* Brightness boost for the quantitative metrics GIF */
 .mm-card-with-media .mm-card-media img[src*="thresholding_scroll.gif"] {
   filter: brightness(1.4);   /* 1.0 = normaal, 1.4 = 40% helderder */
