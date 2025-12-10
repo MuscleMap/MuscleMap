@@ -32,48 +32,72 @@ parent: Overview
       <div class="mm-card-text">
         <h3>Whole-body muscle segmentation</h3>
         <p>
-          Designed for whole-body imaging with consistent labelling across muscles and bones,
-          enabling large-scale, multi-region analyses.
+          Designed for whole-body imaging with consistent labelling
+          across muscles and bones, enabling large-scale, multi-region analyses.
         </p>
+        <div class="mm-card-actions">
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="{{ '/mm_segment/' | relative_url }}">
+            View <code>mm_segment</code>
+          </a>
+        </div>
       </div>
       <div class="mm-card-media">
-        <img src="musclemap_scroll.gif" alt="MuscleMap whole-body GIF">
+        <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}" alt="MuscleMap whole-body GIF">
       </div>
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>Automated quantitative muscle metrics</h3>
         <p>
-          Extract muscle-specific metrics such as volumes, intensity or fat-related measures across
-          multiple MRI contrasts and CT.
+          Extract muscle-specific metrics such as volumes, intensity,
+          or fat-related measures across multiple MRI contrasts and CT.
         </p>
+        <div class="mm-card-actions">
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="{{ '/mm_extract_metrics/' | relative_url }}">
+            View <code>mm_extract_metrics</code>
+          </a>
+        </div>
       </div>
       <div class="mm-card-media">
-        <img src="thresholding_scroll.gif" alt="MuscleMap thresholding GIF">
+        <img src="{{ '/assets/images/thresholding_scroll.gif' | relative_url }}" alt="MuscleMap thresholding GIF">
       </div>
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>Registration to muscle template and 3D spatial parametric mapping</h3>
         <p>
-          Visualize and calculate the spatial distribution of intramuscular fat in a standardized
-          muscle template.
+          Visualize and calculate the spatial distribution of intramuscular fat
+          in a standardized muscle template.
         </p>
+        <div class="mm-card-actions">
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="{{ '/mm_register_to_template/' | relative_url }}">
+            View <code>mm_register_to_template</code>
+          </a>
+        </div>
       </div>
       <div class="mm-card-media">
-        <img src="template.png" alt="Template example">
+        <img src="{{ '/assets/images/template.png' | relative_url }}" alt="Template example">
       </div>
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>Integrated in pipelines</h3>
         <p>
-          GitHub GUI and Slicer extension so you can easily run MuscleMap and/or inspect
-          individual cases for quality control.
+          GitHub GUI and Slicer extension so you can easily run MuscleMap and/or
+          inspect individual cases for quality control.
         </p>
+        <div class="mm-card-actions">
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="{{ '/usage/' | relative_url }}">
+            View examples
+          </a>
+        </div>
       </div>
       <div class="mm-card-media">
-        <img src="MuscleMap_Slicer3D.png" alt="MuscleMap Slicer 3D view">
+        <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
       </div>
     </div>
   </div>
