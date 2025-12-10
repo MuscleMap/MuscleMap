@@ -1,3 +1,9 @@
+---
+title: License
+nav_order: 3
+parent: Overview
+---
+
 ~~~bash
 MIT License
 

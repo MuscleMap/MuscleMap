@@ -1,6 +1,7 @@
 ---
 title: MuscleMap
 nav_order: 1
+parent: Overview
 ---
 
 <div class="mm-hero">
