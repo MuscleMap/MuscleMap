@@ -1,5 +1,5 @@
 ---
-title: Commands
+title: MuscleMap Commands
 nav_order: 2
 parent: User section
 ---
