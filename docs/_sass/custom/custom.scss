@@ -1,7 +1,7 @@
 /* ===== Sidebar: Overview heading ===== */
 
 .nav-overview {
-  color: #f97316 !important;
+  color: #000000 !important;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -265,19 +265,19 @@
 
 /* normale links */
 .nav-list .nav-list-item .nav-list-link {
-  color: #f97316 !important;         /* MuscleMap orange */
+  color: #000000 !important;         /* MuscleMap orange */
   font-weight: 500;
 }
 
 /* hover */
 .nav-list .nav-list-item .nav-list-link:hover {
-  color: #fb923c !important;          /* lighter orange */
+  color: #000000 !important;          /* lighter orange */
   text-decoration: none;
 }
 
 /* active page (highlight) */
 .nav-list .nav-list-item .nav-list-link.active {
-  color: #f97316 !important;
+  color: #000000 !important;
   font-weight: 700;
   border-right: 2px solid #f97316;     /* subtle highlight */
 }
