@@ -1,8 +1,9 @@
 ---
-title: MuscleMap Commands
+title: MuscleMap commands
 nav_order: 2
 parent: User section
 has_children: true
+permalink: /commands/
 ---
 
 # Usage

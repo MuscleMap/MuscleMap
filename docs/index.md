@@ -15,7 +15,7 @@ parent: Overview
       <div class="mm-hero-actions">
         <!-- FIXED links -->
         <a class="mm-btn mm-btn-primary" href="{{ '/installation/' | relative_url }}">Get started</a>
-        <a class="mm-btn mm-btn-ghost" href="{{ '/usage/' | relative_url }}">View examples</a>
+        <a class="mm-btn mm-btn-ghost" href="{{ '/commands/'  | relative_url }}">View examples</a>
       </div>
       <p class="mm-hero-footnote">
         Built for researchers, clinicians, and data scientists working with whole-body MRI and CT.
