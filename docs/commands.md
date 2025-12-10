@@ -1,5 +1,5 @@
 ---
-title: Usage
+title: Commands
 nav_order: 2
 parent: User section
 ---
