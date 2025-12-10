@@ -321,3 +321,21 @@
 .site-nav .nav-list .nav-list {
   display: block !important;
 }
+
+.mm-ref-block,
+.mm-ref-sub {
+  padding: 0.7rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.7rem;
+  background: #fafafa;
+}
+
+.mm-ref-block {
+  border-left: 3px solid #f97316; /* MuscleMap accent */
+}
+
+.mm-ref-sub {
+  border-left: 3px solid #c4c4c4;
+}
+
