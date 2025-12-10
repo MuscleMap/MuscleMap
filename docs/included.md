@@ -1,9 +1,14 @@
 ---
-title: Muscles and bones included
+title: Anatomical Labels
 nav_order: 3
 parent: Overview
 permalink: /included/
 ---
+
+MuscleMap provides automated quantfication of 89 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and lower leg.
+
+The table below lists all anatomical structures included in the latest version of MuscleMap, together with their label values and laterality. These labels are consistent across all MuscleMap tools (mm_segment, mm_extract_metrics, mm_gui). 
+
 
 | Region   | Anatomy                               | Side       | Value |
 |----------|----------------------------------------|------------|-------|
