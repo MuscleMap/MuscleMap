@@ -20,7 +20,7 @@ nav_order: 1
       </p>
     </div>
     <div class="mm-hero-banner">
-      <img src="logo_musclemap.white.png" alt="MuscleMap Logo">
+      <img src="logo_musclemap_white.png" alt="MuscleMap Logo">
     </div>
   </div>
 </div>
