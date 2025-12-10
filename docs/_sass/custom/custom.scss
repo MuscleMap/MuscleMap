@@ -299,7 +299,8 @@
 
 /* Oranje header, niet klikbaar */
 .site-nav .nav-list-link[href*="/overview/"],
-.site-nav .nav-list-link[href*="/user-section/"] {
+.site-nav .nav-list-link[href*="/user-section/"]
+.site-nav .nav-list-link[href*="/developer-section/"]{
   color: #f26419 !important;
   font-weight: 700;
   font-size: 0.98rem;   /* of 1rem als je het echt groot wilt */
