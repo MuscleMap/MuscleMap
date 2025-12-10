@@ -96,8 +96,8 @@
 
 .mm-btn-ghost {
   background: transparent;
-  color: #111827;        /* beter leesbaar op witte hero */
-  border-color: #d1d5db; /* subtiele grijze rand */
+  color: #111827;       
+  border-color: #d1d5db; 
 }
 
 .mm-btn-ghost:hover {
@@ -388,4 +388,10 @@
 
 .site-nav .nav-list .nav-list .nav-list-link {
   font-weight: 400 !important;
+}
+
+/* Child links kleiner en minder opvallend */
+.site-nav .nav-list .nav-list .nav-list-link {
+  font-size: 0.92rem !important;
+  font-weight: 400 !important;  /* normaal gewicht */
 }
