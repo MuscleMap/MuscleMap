@@ -21,7 +21,7 @@ parent: Overview
       </p>
     </div>
     <div class="mm-hero-banner">
-      <img src="logo_musclemap_white.png" alt="MuscleMap Logo">
+      <img src="{{ '/assets/images/logo_musclemap_white.png' | relative_url }}" alt="MuscleMap whole-body GIF">
     </div>
   </div>
 </div>
