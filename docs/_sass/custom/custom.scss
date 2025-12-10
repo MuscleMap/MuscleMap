@@ -321,58 +321,12 @@
 .site-nav .nav-list .nav-list {
   display: block !important;
 }
+/* ===== Citing blocks (Citing MuscleMap pagina) ===== */
 
-.mm-ref-block,
-.mm-ref-sub {
-  padding: 0.7rem 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  margin-bottom: 0.7rem;
-  background: #fafafa;
-}
-
-.mm-ref-block {
-  border-left: 3px solid #f97316; /* MuscleMap accent */
-}
-
-.mm-ref-sub {
-  border-left: 3px solid #c4c4c4;
-}
-
-/* Main reference block (blijft zoals het is) */
-.mm-ref-block {
-  border: 1px solid #e5e7eb;
-  border-left: 4px solid #f97316; /* MuscleMap orange */
-  padding: 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  background: #fafafa;
-}
-
-
-
-/* Sub-references: geen box, maar doorlopende oranje lijn */
-.mm-ref-sub {
-  border-left: 4px solid #f97316; /* laat de lijn doorlopen */
-  padding: 0.75rem 1rem 1rem 1rem;
-  margin-left: 0.25rem;           /* perfect uitlijnen met .mm-ref-block */
-  margin-bottom: 1rem;
-}
-
-/* Optioneel: iets subtielere achtergrond wanneer sub-blocks gewild */
-.mm-ref-sub p {
-  margin-bottom: 0.5rem;
-}
-
-/* Kleine spacing fix voor buttons onderaan */
-.mm-ref-sub .btn,
-.mm-ref-block .btn {
-  margin-top: 0.3rem;
-}
-
+/* Main reference (de bovenste citeerbox) */
 .mm-main-cite {
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #f97316;   /* zelfde oranje als elders */
+  border-left: 4px solid #f97316;   /* zelfde oranje accent */
   border-radius: 6px;
   padding: 1rem 1.25rem;
   background: #fafafa;
@@ -382,4 +336,32 @@
 
 .mm-main-cite p {
   margin: 0 0 0.4rem;
+}
+
+/* Één blok per regio in de tabel (Whole-body, Abdomen, Pelvis, …) */
+.mm-ref-block {
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #f97316;   /* oranje lijn links */
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Tekst in de blokken */
+.mm-ref-block p {
+  margin: 0 0 0.4rem;
+}
+
+/* Multi-ref blokken (Abdomen / Pelvis / Leg: twee papers in één vlak) */
+.mm-ref-block-multi .mm-ref-item + .mm-ref-item {
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed #e5e7eb;   /* subtiel lijntje tussen de refs */
+}
+
+/* Kleine spacing voor de BibTeX-knoppen */
+.mm-ref-item a.btn,
+.mm-ref-block > a.btn {
+  margin-top: 0.2rem;
 }
