@@ -25,27 +25,6 @@ parent: Overview
     </div>
   </div>
 </div>
-<div class="mm-hero">
-  <div class="mm-hero-inner">
-    <div class="mm-hero-text">
-      <p class="mm-eyebrow">Open-source toolbox</p>
-      <h1>MuscleMap</h1>
-      <p class="mm-subtitle">
-        Whole-body muscle segmentation and quantitative analysis for large-scale imaging studies.
-      </p>
-      <div class="mm-hero-actions">
-        <a class="mm-btn mm-btn-primary" href="installation.html">Get started</a>
-        <a class="mm-btn mm-btn-ghost" href="usage.html">View examples</a>
-      </div>
-      <p class="mm-hero-footnote">
-        Built for researchers, clinicians, and data scientists working with whole-body MRI and CT.
-      </p>
-    </div>
-    <div class="mm-hero-banner">
-      <img src="logo_musclemap_white.png" alt="MuscleMap Logo">
-    </div>
-  </div>
-</div>
 <div class="mm-section">
   <h2>Features</h2>
   <div class="mm-grid">
