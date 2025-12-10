@@ -1,7 +1,8 @@
 ---
 title: Installation
 nav_order: 1
-parent: user-section
+parent: User section
+
 ---
 
 # Installation
