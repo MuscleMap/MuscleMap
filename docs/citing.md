@@ -10,10 +10,10 @@ parent: User section
 
 When citing **MuscleMap**, please cite the following article:
 
-~~~bash
+```text
 McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-James CE, Atyeo J, Beach AJ, Burns J, Clarke S, Collins NJ, Coppieters MW, Cornwall J, Crawford RJ, De Martino E, Dunn AG, Eyles JP, Feng HJ, Fortin M, Franettovich Smith MM, Galloway G, Gandomkar Z, Glastras S, Henderson LA, Hides JA, Hiller CE, Hilmer SN, Hoggarth MA, Kim B, Lal N, LaPorta L, Magnussen JS, Maloney S, March L, Nackley AG, O'Leary SP, Peolsson A, Perraton Z, Pool-Goudzwaard AL, Schnitzler M, Seitz AL, Semciw AI, Sheard PW, Smith AC, Snodgrass SJ, Sullivan J, Tran V, Valentin S, Walton DM, Wishart LR, Elliott JM. *MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle.* J Imaging. 2024;10(11):262.  
 [https://doi.org/10.3390/jimaging10110262](https://doi.org/10.3390/jimaging10110262)  
-~~~~
+```
 [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('McKay2024MuscleMapConsortium'); return false;" }
 
 ---
@@ -31,80 +31,206 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
     </tr>
   </thead>
   <tbody>
-    <!-- mm_segment -->
+
+    <!-- ===================== mm_segment ====================== -->
     <tr>
       <td rowspan="5"><strong>mm_segment</strong></td>
       <td>
-        <strong>Whole-body</strong> – Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT.</em> Abstract accepted for oral presentation at the ISMRM Annual Meeting 2025, Honolulu, Hawaii, USA.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
+
+        <!-- Whole-body -->
+        <div class="mm-ref-block">
+          <p>
+            <strong>Whole-body —</strong>
+            Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S,
+            Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M,
+            Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A,
+            Pevenage P, Weber II KA.
+            <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision
+            Muscle Segmentation Model for MRI and CT.</em>
+            ISMRM 2025 abstract.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">
+             Download BibTeX
+          </a>
+        </div>
+
       </td>
     </tr>
+
+    <!-- ABDOMEN -->
     <tr>
       <td>
-        <strong>Abdomen</strong> – Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM, Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd. <em>Investigating the associations between lumbar paraspinal muscle health and age, BMI, sex, physical activity, and back pain using an automated computer-vision model: a UK Biobank study.</em> Spine J. 2024;24(7):1253–1266.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2024Biobank'); return false;">Download BibTeX</a>
-        <br><br>
-        Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B, Pool-Goudzwaard A, Weber II KA. <em>Convolutional neural networks for the automatic segmentation of lumbar paraspinal muscles in people with low back pain.</em> Sci Rep. 2022;12(1):13485.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2022CNNLumbar'); return false;">Download BibTeX</a>
+
+        <div class="mm-ref-block">
+          <p>
+            <strong>Abdomen —</strong>
+            Wesselink EO, Pool-Goudzwaard A, De Leener B, Law CSW, Fenyo MB, Ello GM,
+            Coppieters MW, Elliott JM, Mackey S, Weber KA 2nd.
+            <em>Investigating the associations between lumbar paraspinal muscle health and
+            age, BMI, sex, physical activity, and back pain using an automated
+            computer-vision model: a UK Biobank study.</em>
+            Spine J. 2024;24(7):1253–1266.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2024Biobank'); return false;">Download BibTeX</a>
+        </div>
+
+        <div class="mm-ref-sub">
+          <p>
+            Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B,
+            Pool-Goudzwaard A, Weber II KA.
+            <em>Convolutional neural networks for the automatic segmentation of lumbar
+            paraspinal muscles in people with low back pain.</em>
+            Sci Rep. 2022;12(1):13485.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2022CNNLumbar'); return false;">Download BibTeX</a>
+        </div>
+
       </td>
     </tr>
+
+    <!-- PELVIS -->
     <tr>
       <td>
-        <strong>Pelvis</strong> – Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT.</em> ISMRM 2025 abstract.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
-        <br><br>
-        Stewart C, Wesselink EO, Perraton Z, Weber II KA, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. <em>Muscle fat and volume differences in people with hip-related pain compared to controls: A machine learning approach.</em> J Cachexia Sarcopenia Muscle. 2024;15(6):2642–2650.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Stewart2024HipPain'); return false;">Download BibTeX</a>
+
+        <div class="mm-ref-block">
+          <p>
+            <strong>Pelvis —</strong>
+            Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S,
+            Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M,
+            Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A,
+            Pevenage P, Weber II KA.
+            <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision
+            Muscle Segmentation Model for MRI and CT.</em> ISMRM 2025 abstract.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
+        </div>
+
+        <div class="mm-ref-sub">
+          <p>
+            Stewart C, Wesselink EO, Perraton Z, Weber II KA, King MG, Kemp JL,
+            Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ,
+            Lawrenson PR, Calabrese C, Semciw AI.
+            <em>Muscle fat and volume differences in people with hip-related pain
+            compared to controls: A machine learning approach.</em>
+            J Cachexia Sarcopenia Muscle. 2024;15(6):2642–2650.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Stewart2024HipPain'); return false;">Download BibTeX</a>
+        </div>
+
       </td>
     </tr>
+
+    <!-- THIGH -->
     <tr>
       <td>
-        <strong>Thigh</strong> – Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT.</em> ISMRM 2025 abstract.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
+
+        <div class="mm-ref-block">
+          <p>
+            <strong>Thigh —</strong>
+            Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S,
+            Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M,
+            Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A,
+            Pevenage P, Weber II KA.
+            <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision
+            Muscle Segmentation Model for MRI and CT.</em>
+            ISMRM 2025 abstract.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
+        </div>
+
       </td>
     </tr>
+
+    <!-- LEG -->
     <tr>
       <td>
-        <strong>Leg</strong> – Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S, Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M, Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A, Pevenage P, Weber II KA. <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision Muscle Segmentation Model for MRI and CT.</em> ISMRM 2025 abstract.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
-        <br><br>
-        Smith AC, Muñoz Laguna J, Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM, Weber II KA. <em>Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI.</em> J Cachexia Sarcopenia Muscle. 2025;16(1):e13735.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Smith2025LegMuscleVolume'); return false;">Download BibTeX</a>
+
+        <div class="mm-ref-block">
+          <p>
+            <strong>Leg —</strong>
+            Wesselink EO, Elliott JM, McKay M, de Martino E, Caplan N, Mackey S,
+            Cohen-Adad J, Bédard S, De Leener B, Naga Karthik E, Law CSW, Fortin M,
+            Vleggeert–Lankamp C, Di Leva A, Kim B, Hancock M, Pool-Goudzwaard A,
+            Pevenage P, Weber II KA.
+            <em>Segment-Any-Muscle: Towards an Open-Source, Contrast-Agnostic Computer-Vision
+            Muscle Segmentation Model for MRI and CT.</em>
+            ISMRM 2025 abstract.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
+        </div>
+
+        <div class="mm-ref-sub">
+          <p>
+            Smith AC, Muñoz Laguna J, Wesselink EO, Scott ZE, Jenkins H, Thornton W,
+            Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S,
+            Elliott JM, Weber II KA.
+            <em>Leg Muscle Volume, Intramuscular Fat, and Force Generation:
+            Insights from a Computer Vision Model and Fat-Water MRI.</em>
+            J Cachexia Sarcopenia Muscle. 2025;16(1):e13735.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Smith2025LegMuscleVolume'); return false;">Download BibTeX</a>
+        </div>
+
       </td>
     </tr>
+
+    <!-- ================= mm_extract_metrics ================= -->
     <tr>
       <td><strong>mm_extract_metrics</strong></td>
       <td>
-        Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP, Di Ieva A, Weber II KA. <em>Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability of automated thresholding models.</em> N Am Spine Soc J. 2024;17:100313.
+        Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP,
+        Di Ieva A, Weber II KA.
+        <em>Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability
+        of automated thresholding models.</em>
+        N Am Spine Soc J. 2024;17:100313.
         <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Wesselink2024Thresholding'); return false;">Download BibTeX</a>
+        <a href="#" class="btn btn-outline btn-sm"
+           onclick="downloadBibtex('Wesselink2024Thresholding'); return false;">Download BibTeX</a>
       </td>
     </tr>
 
-    <!-- mm_register_to_template -->
+    <!-- ============== mm_register_to_template ================= -->
     <tr>
       <td><strong>mm_register_to_template</strong></td>
       <td>
-        Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J, Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM, Hancock M, De Leener B. <em>Three-dimensional spatial distribution of lumbar paraspinal intramuscular fat revealed by spatial parametric mapping.</em> Eur Spine J. 2025;34(1):27–35.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('Weber2025SpatialParametric'); return false;">Download BibTeX</a>
-        <br><br>
-        De Leener B, Lévy S, Dupont SM, Fonov VS, Stikov N, Collins DL, Callot V, Cohen-Adad J. <em>SCT: Spinal Cord Toolbox, an open-source software for processing spinal cord MRI data.</em> Neuroimage. 2017;145(Pt A):24–43.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm" onclick="downloadBibtex('DeLeener2017SCT'); return false;">Download BibTeX</a>
+
+        <div class="mm-ref-block">
+          <p>
+            Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J,
+            Hu S, Chaudhari AS, Pool-Goudzwaard A, Coppieters MW, Elliott JM,
+            Hancock M, De Leener B.
+            <em>Three-dimensional spatial distribution of lumbar paraspinal
+            intramuscular fat revealed by spatial parametric mapping.</em>
+            Eur Spine J. 2025;34(1):27–35.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('Weber2025SpatialParametric'); return false;">Download BibTeX</a>
+        </div>
+
+        <div class="mm-ref-sub">
+          <p>
+            De Leener B, Lévy S, Dupont SM, Fonov VS, Stikov N, Collins DL,
+            Callot V, Cohen-Adad J.
+            <em>SCT: Spinal Cord Toolbox, an open-source software for processing spinal cord MRI data.</em>
+            Neuroimage. 2017;145(Pt A):24–43.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+             onclick="downloadBibtex('DeLeener2017SCT'); return false;">Download BibTeX</a>
+        </div>
+
       </td>
     </tr>
+
   </tbody>
 </table>
-
 ---
 
 <script>
