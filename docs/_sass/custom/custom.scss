@@ -298,11 +298,11 @@
 }
 
 /* Maak de section headers (Overview / User section) oranje en niet klikbaar */
-.site-nav .nav-list-link[href$="/Overview/"],
-.site-nav .nav-list-link[href$="/User section/"] {
-  color: #f26419;           /* oranje */
+.site-nav .nav-list-link[href*="/overview/"],
+.site-nav .nav-list-link[href*="/user-section/"] {
+  color: #f26419 !important;     /* oranje */
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
   cursor: default;
-  pointer-events: none;     /* niet klikbaar */
+  pointer-events: none;          /* niet klikbaar */
 }
