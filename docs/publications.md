@@ -125,55 +125,6 @@ nav_order: 5
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2017SpinalCordSCI'); return false;" }
 
 <script>
-  // Pad naar je ene BibTeX-bestand
-  const BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
-
-  let bibCache = null;
-
-  async function loadBibFile() {
-    if (bibCache !== null) return bibCache;
-
-    const response = await fetch(BIB_URL);
-    if (!response.ok) {
-      console.error("Kan BibTeX-bestand niet laden:", response.status);
-      alert("Kon het BibTeX-bestand niet laden.");
-      return "";
-    }
-    bibCache = await response.text();
-    return bibCache;
-  }
-
-  function extractBibEntry(bibText, key) {
-    // zoek @...{key, tot voor de volgende @ of einde
-    const escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
-    const pattern = new RegExp(
-      "@[^{]+\\{\\s*" + escapedKey + "\\s*,[\\s\\S]*?(?=\\n@|$)",
-      "m"
-    );
-    const match = bibText.match(pattern);
-    return match ? match[0].trim() + "\n" : null;
-  }
-
-  async function downloadBibtex(key) {
-    const bibText = await loadBibFile();
-    if (!bibText) return;
-
-    const entry = extractBibEntry(bibText, key);
-    if (!entry) {
-      alert("BibTeX entry niet gevonden voor key: " + key);
-      return;
-    }
-
-    const blob = new Blob([entry], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = key + ".bib";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
+  window.MUSCLEMAP_BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
 </script>
-
+<script src="{{ '/assets/js/bibtex-download.js' | relative_url }}"></script>
