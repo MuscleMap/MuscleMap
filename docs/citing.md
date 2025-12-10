@@ -50,13 +50,9 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
     </tr>
   </thead>
   <tbody>
-
-    <!-- ===================== mm_segment ====================== -->
     <tr>
       <td rowspan="5"><strong>mm_segment</strong></td>
       <td>
-
-        <!-- Whole-body -->
         <div class="mm-ref-block">
           <p>
             <strong>Whole-body —</strong>
@@ -73,14 +69,10 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
              Download BibTeX
           </a>
         </div>
-
       </td>
     </tr>
-
-    <!-- ABDOMEN -->
     <tr>
       <td>
-
         <div class="mm-ref-block">
           <p>
             <strong>Abdomen —</strong>
@@ -94,7 +86,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Wesselink2024Biobank'); return false;">Download BibTeX</a>
         </div>
-
         <div class="mm-ref-sub">
           <p>
             Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B,
@@ -106,14 +97,10 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Wesselink2022CNNLumbar'); return false;">Download BibTeX</a>
         </div>
-
       </td>
     </tr>
-
-    <!-- PELVIS -->
     <tr>
       <td>
-
         <div class="mm-ref-block">
           <p>
             <strong>Pelvis —</strong>
@@ -127,7 +114,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
         </div>
-
         <div class="mm-ref-sub">
           <p>
             Stewart C, Wesselink EO, Perraton Z, Weber II KA, King MG, Kemp JL,
@@ -140,14 +126,10 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Stewart2024HipPain'); return false;">Download BibTeX</a>
         </div>
-
       </td>
     </tr>
-
-    <!-- THIGH -->
     <tr>
       <td>
-
         <div class="mm-ref-block">
           <p>
             <strong>Thigh —</strong>
@@ -162,14 +144,10 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
         </div>
-
       </td>
     </tr>
-
-    <!-- LEG -->
     <tr>
       <td>
-
         <div class="mm-ref-block">
           <p>
             <strong>Leg —</strong>
@@ -184,7 +162,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Wesselink2025SegmentAnyMuscle'); return false;">Download BibTeX</a>
         </div>
-
         <div class="mm-ref-sub">
           <p>
             Smith AC, Muñoz Laguna J, Wesselink EO, Scott ZE, Jenkins H, Thornton W,
@@ -197,11 +174,8 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Smith2025LegMuscleVolume'); return false;">Download BibTeX</a>
         </div>
-
       </td>
     </tr>
-
-    <!-- ================= mm_extract_metrics ================= -->
     <tr>
       <td><strong>mm_extract_metrics</strong></td>
       <td>
@@ -215,12 +189,9 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
            onclick="downloadBibtex('Wesselink2024Thresholding'); return false;">Download BibTeX</a>
       </td>
     </tr>
-
-    <!-- ============== mm_register_to_template ================= -->
     <tr>
       <td><strong>mm_register_to_template</strong></td>
       <td>
-
         <div class="mm-ref-block">
           <p>
             Weber KA 2nd, Wesselink EO, Gutierrez J, Law CSW, Mackey S, Ratliff J,
@@ -233,7 +204,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('Weber2025SpatialParametric'); return false;">Download BibTeX</a>
         </div>
-
         <div class="mm-ref-sub">
           <p>
             De Leener B, Lévy S, Dupont SM, Fonov VS, Stikov N, Collins DL,
@@ -244,10 +214,8 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
           <a href="#" class="btn btn-outline btn-sm"
              onclick="downloadBibtex('DeLeener2017SCT'); return false;">Download BibTeX</a>
         </div>
-
       </td>
     </tr>
-
   </tbody>
 </table>
 ---
