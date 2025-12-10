@@ -23,6 +23,8 @@ McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB, Ashton-Ja
 When using specific components of the **MuscleMap Toolbox**, please cite the relevant methods papers below.
 
 > **Tip:** each reference includes a *Download BibTeX* button that exports the corresponding entry. 
+
+
 <table class="mm-citing-table">
   <thead>
     <tr>

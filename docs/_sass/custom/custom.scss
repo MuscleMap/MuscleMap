@@ -339,3 +339,32 @@
   border-left: 3px solid #c4c4c4;
 }
 
+/* Main reference block (blijft zoals het is) */
+.mm-ref-block {
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #f97316; /* MuscleMap orange */
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  background: #fafafa;
+}
+
+/* Sub-references: geen box, maar doorlopende oranje lijn */
+.mm-ref-sub {
+  border-left: 4px solid #f97316; /* laat de lijn doorlopen */
+  padding: 0.75rem 1rem 1rem 1rem;
+  margin-left: 0.25rem;           /* perfect uitlijnen met .mm-ref-block */
+  margin-bottom: 1rem;
+}
+
+/* Optioneel: iets subtielere achtergrond wanneer sub-blocks gewild */
+.mm-ref-sub p {
+  margin-bottom: 0.5rem;
+}
+
+/* Kleine spacing fix voor buttons onderaan */
+.mm-ref-sub .btn,
+.mm-ref-block .btn {
+  margin-top: 0.3rem;
+}
+
