@@ -102,7 +102,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
               Download BibTeX
             </a>
           </div>
-
         </div>
       </td>
     </tr>
@@ -168,7 +167,6 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
     <tr>
       <td>
         <div class="mm-ref-block mm-ref-block-multi">
-
           <div class="mm-ref-item">
             <p>
               <strong>Leg —</strong>
@@ -199,24 +197,26 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
               Download BibTeX
             </a>
           </div>
-
         </div>
       </td>
     </tr>
-    <!-- ========== mm_extract_metrics ========== -->
+   <!-- ========== mm_extract_metrics ========== -->
     <tr>
       <td><strong>mm_extract_metrics</strong></td>
       <td>
-        Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP,
-        Di Ieva A, Weber II KA.
-        <em>Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability
-        of automated thresholding models.</em>
-        N Am Spine Soc J. 2024;17:100313.
-        <br>
-        <a href="#" class="btn btn-outline btn-sm"
-           onclick="downloadBibtex('Wesselink2024Thresholding'); return false;">
-          Download BibTeX
-        </a>
+        <div class="mm-ref-block">
+          <p>
+            Wesselink EO, Elliott JM, Pool-Goudzwaard A, Coppieters MW, Pevenage PP,
+            Di Ieva A, Weber II KA.
+            <em>Quantifying lumbar paraspinal intramuscular fat: Accuracy and reliability
+            of automated thresholding models.</em>
+            N Am Spine Soc J. 2024;17:100313.
+          </p>
+          <a href="#" class="btn btn-outline btn-sm"
+            onclick="downloadBibtex('Wesselink2024Thresholding'); return false;">
+            Download BibTeX
+          </a>
+        </div>
       </td>
     </tr>
     <!-- ========== mm_register_to_template ========== -->
