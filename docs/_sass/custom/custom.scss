@@ -302,8 +302,9 @@
 .site-nav .nav-list-link[href*="/user-section/"] {
   color: #f26419 !important;
   font-weight: 700;
+  font-size: 0.98rem;   /* of 1rem als je het echt groot wilt */
   cursor: default;
-  pointer-events: none;   /* link uitschakelen */
+  pointer-events: none;
 }
 
 /* Chevron verbergen */
@@ -314,4 +315,9 @@
 /* Voorkom extra indenting die door het ontbreken van de expander kan ontstaan */
 .site-nav .nav-list .nav-list .nav-list-item {
   margin-left: 1.2rem;
+}
+
+/* Toon alle submenus altijd */
+.site-nav .nav-list .nav-list {
+  display: block !important;
 }
