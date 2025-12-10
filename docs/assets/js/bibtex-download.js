@@ -27,15 +27,24 @@ async function loadBibFile() {
 }
 
 function extractBibEntry(bibText, key) {
-  const escapedKey = key.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+  // normaliseer Windows \r\n naar \n
+  const norm = bibText.replace(/\r\n/g, "\n");
 
-  // LET OP: GEEN "m" MEER ALS TWEEDE ARGUMENT
-  const pattern = new RegExp(
-    "@[^{]+\\{\\s*" + escapedKey + "\\s*,[\\s\\S]*?(?=\\n@|$)"
-  );
+  // splitsen op "\n@" (nieuw entry begint altijd met @article / @inproceedings / etc.)
+  const chunks = norm.split(/\n@/);
 
-  const match = bibText.match(pattern);
-  return match ? match[0].trim() + "\n" : null;
+  for (let i = 0; i < chunks.length; i++) {
+    // eerste chunk begint meestal direct met "@", de rest niet
+    let entry = i === 0 ? chunks[i] : "@" + chunks[i];
+
+    // simpele check: bevat deze entry "{Key," ?
+    if (entry.includes("{" + key + ",")) {
+      return entry.trim() + "\n";
+    }
+  }
+
+  // niets gevonden
+  return null;
 }
 
 window.downloadBibtex = async function (key) {
