@@ -18,7 +18,7 @@ Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
 <div style="
   border: 1px solid #30363d;
-  background: #161b22;
+  background: #ffffffff;
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;">
@@ -35,7 +35,7 @@ Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
 <div style="
   border: 1px solid #30363d;
-  background: #161b22;
+  background: #ffffffff;
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;">
@@ -54,7 +54,7 @@ Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
 <div style="
   border: 1px solid #30363d;
-  background: #161b22;
+  background: #ffffffff;
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;">
@@ -71,7 +71,7 @@ Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
 <div style="
   border: 1px solid #30363d;
-  background: #161b22;
+  background: #ffffffff;
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;">
@@ -87,7 +87,7 @@ Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
 <div style="
   border: 1px solid #30363d;
-  background: #161b22;
+  background: #ffffffff;
   border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;">
