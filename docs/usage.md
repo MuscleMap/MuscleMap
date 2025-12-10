@@ -1,6 +1,7 @@
 ---
 title: Usage
 nav_order: 2
+parent: User section
 ---
 
 # Usage
