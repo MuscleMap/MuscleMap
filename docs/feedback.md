@@ -1,6 +1,7 @@
 ---
 title: Share your experience
 nav_order: 99
+parent: Developer section
 ---
 
 # Share your experience with MuscleMap
