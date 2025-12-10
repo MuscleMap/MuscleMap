@@ -332,19 +332,27 @@
 }
 /* ===== Citing blocks (Citing MuscleMap pagina) ===== */
 
-/* Main reference (de bovenste citeerbox) */
+/* Main reference cite box */
 .mm-main-cite {
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #f97316;   /* zelfde oranje accent */
+  border-left: 4px solid #f97316;
   border-radius: 6px;
-  padding: 1rem 1.25rem;
   background: #fafafa;
+  padding: 0.9rem 1rem;
   margin: 0.75rem 0 1rem;
-  line-height: 1.5;
 }
 
-.mm-main-cite p {
-  margin: 0 0 0.4rem;
+/* Kleinere tekst, consistent met tabelblokken */
+.mm-main-cite-text {
+  font-size: 0.88rem;     /* kleiner dan standaard headings */
+  line-height: 1.45;
+  margin-bottom: 0.6rem;
+}
+
+.mm-main-cite-link {
+  font-size: 0.88rem;
+  display: inline-block;
+  margin-bottom: 0.6rem;
 }
 
 /* Één blok per regio in de tabel (Whole-body, Abdomen, Pelvis, …) */
