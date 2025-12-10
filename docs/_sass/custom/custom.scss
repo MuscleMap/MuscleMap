@@ -297,12 +297,21 @@
   }
 }
 
-/* SECTION HEADERS (Overview / User section) */
+/* Oranje header, niet klikbaar */
 .site-nav .nav-list-link[href*="/overview/"],
 .site-nav .nav-list-link[href*="/user-section/"] {
   color: #f26419 !important;
   font-weight: 700;
   cursor: default;
-  pointer-events: none; /* niet klikbaar */
-  text-transform: none; /* geen uppercase */
+  pointer-events: none;   /* link uitschakelen */
+}
+
+/* Chevron verbergen */
+.site-nav .nav-list-item > .nav-list-expander {
+  display: none !important;
+}
+
+/* Voorkom extra indenting die door het ontbreken van de expander kan ontstaan */
+.site-nav .nav-list .nav-list .nav-list-item {
+  margin-left: 1.2rem;
 }
