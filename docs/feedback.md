@@ -4,7 +4,7 @@ nav_order: 99
 parent: Developer section
 ---
 
-# Share your experience with MuscleMap
+# Share your experience 
 
 We love to hear how researchers and clinicians use MuscleMap. Click the button below to submit feedback:
 
