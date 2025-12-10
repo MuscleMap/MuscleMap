@@ -1,8 +1,7 @@
 ---
 title: License
-nav_order: 3
-parent: Overview
-mm_gui
+nav_order: 1
+parent: Developer section
 ---
 
 ~~~bash

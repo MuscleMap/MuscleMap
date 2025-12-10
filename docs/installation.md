@@ -3,7 +3,6 @@ title: Installation
 nav_order: 1
 parent: User section
 permalink: /installation/
-
 ---
 
 # Installation
