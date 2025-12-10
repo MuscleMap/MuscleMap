@@ -65,7 +65,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
 <!-- ===== VERSION 0.3 PRE-RELEASE ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v0.3 (Pre-release)</strong>
+  <strong style="font-size: 22px;">v0.3</strong>
   <span style="
     background: #ff9800;
     color: white;
@@ -96,7 +96,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
 <!-- ===== VERSION 0.2 PRE-RELEASE ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v0.2 (Pre-release)</strong>
+  <strong style="font-size: 22px;">v0.2</strong>
   <span style="
     background: #ff9800;
     color: white;
@@ -126,7 +126,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
 <!-- ===== VERSION 0.1 PRE-RELEASE ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v0.1 (Pre-release)</strong>
+  <strong style="font-size: 22px;">v0.1</strong>
   <span style="
     background: #ff9800;
     color: white;
@@ -161,7 +161,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
 <!-- ===== VERSION 0.0 PRE-RELEASE ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v0.0 (Pre-release)</strong>
+  <strong style="font-size: 22px;">v0.0</strong>
   <span style="
     background: #ff9800;
     color: white;
