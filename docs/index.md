@@ -38,7 +38,7 @@ parent: Overview
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
              href="{{ '/mm_segment/' | relative_url }}">
-            View <code>mm_segment</code>
+            View mm_segment 
           </a>
         </div>
       </div>
@@ -56,7 +56,7 @@ parent: Overview
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
              href="{{ '/mm_extract_metrics/' | relative_url }}">
-            View <code>mm_extract_metrics</code>
+            View mm_extract_metrics
           </a>
         </div>
       </div>
@@ -74,7 +74,7 @@ parent: Overview
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
              href="{{ '/mm_register_to_template/' | relative_url }}">
-            View <code>mm_register_to_template</code>
+            View mm_register_to_template
           </a>
         </div>
       </div>
@@ -82,23 +82,26 @@ parent: Overview
         <img src="{{ '/assets/images/template.png' | relative_url }}" alt="Template example">
       </div>
     </div>
-    <div class="mm-card mm-card-with-media">
-      <div class="mm-card-text">
-        <h3>Integrated in pipelines</h3>
-        <p>
-          GitHub GUI and Slicer extension so you can easily run MuscleMap and/or
-          inspect individual cases for quality control.
-        </p>
-        <div class="mm-card-actions">
-          <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/usage/' | relative_url }}">
-            View examples
-          </a>
-        </div>
+  <div class="mm-card mm-card-with-media">
+    <div class="mm-card-text">
+      <h3>Integrated in pipelines</h3>
+      <p>
+        Includes a graphical user interface and a Slicer extension to make MuscleMap easy 
+        to run and to inspect individual cases for quality control.
+      </p>
+      <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a class="mm-btn mm-btn-ghost mm-btn-sm"
+          href="{{ '/mm_gui/' | relative_url }}">
+          View mm_gui
+        </a>
+        <a class="mm-btn mm-btn-ghost mm-btn-sm"
+          href="https://github.com/Eddowesselink/SlicerMuscleMap" target="_blank">
+          View Slicer extension
+        </a>
       </div>
-      <div class="mm-card-media">
-        <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
-      </div>
+    </div>
+    <div class="mm-card-media">
+      <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
     </div>
   </div>
 </div>
