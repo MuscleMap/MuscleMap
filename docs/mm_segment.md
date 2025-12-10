@@ -1,8 +1,8 @@
 ---
 title: mm_segment
-nav_order: 1
 parent: MuscleMap Commands
-has_children: true
+grand_parent: User section
+nav_order: 1
 ---
 
 
