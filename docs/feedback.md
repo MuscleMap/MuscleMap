@@ -6,8 +6,6 @@ parent: Developer section
 
 # Share your experience with MuscleMap
 
-We love to hear how researchers and clinicians use MuscleMap.
+We love to hear how researchers and clinicians use MuscleMap. Click the button below to submit feedback:
 
-Click the button below to submit feedback:
-
-[**Submit your feedback →**](https://github.com/MuscleMap/MuscleMap/issues/new?template=feedback.yml){: .button .button-primary }
+[**Submit your feedback →**](https://github.com/MuscleMap/MuscleMap/issues/new?template=feedback.yml){: .btn .btn-warning }
