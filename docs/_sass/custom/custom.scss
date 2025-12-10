@@ -93,15 +93,23 @@
   background: #fdba74;
   border-color: #fed7aa;
 }
-
-.mm-btn-ghost {
-  background: transparent;
-  color: #111827;       
-  border-color: #d1d5db; 
+/* Ghost buttons: transparant met oranje rand en zwarte tekst */
+.mm-btn-ghost,
+.mm-card-actions .mm-btn-ghost.mm-btn-sm,
+.mm-hero-actions .mm-btn-ghost {
+  background: transparent !important;
+  border: 2px solid #f97316 !important;
+  color: #111 !important;          /* zwarte tekst */
 }
 
-.mm-btn-ghost:hover {
-  border-color: #9ca3af;
+/* Hover: nog steeds transparant, alleen iets donkerdere rand */
+.mm-btn-ghost:hover,
+.mm-card-actions .mm-btn-ghost.mm-btn-sm:hover,
+.mm-hero-actions .mm-btn-ghost:hover {
+  background: transparent !important;
+  border-color: #c75a12 !important; /* iets donkerder oranje */
+  color: #111 !important;
+  transition: 0.15s ease;
 }
 
 /* Sections & cards */
@@ -370,20 +378,6 @@
 .site-title {
   color: #f97316 !important;   /* MuscleMap orange */
   font-weight: 700 !important; /* bold */
-}
-
-/* === Feature card action buttons: orange outline === */
-.mm-card-actions .mm-btn-ghost.mm-btn-sm {
-  border-color: #f97316 !important;   /* orange border */
-  color: #f97316 !important;           /* orange text */
-}
-
-/* Hover state: filled orange button */
-.mm-card-actions .mm-btn-ghost.mm-btn-sm:hover {
-  background: #f97316 !important;
-  color: #ffffff !important;
-  border-color: #f97316 !important;
-  transition: 0.2s ease;
 }
 
 .site-nav .nav-list .nav-list .nav-list-link {
