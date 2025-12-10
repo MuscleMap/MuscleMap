@@ -10,9 +10,6 @@ parent: User section
 
 When citing **MuscleMap**, please cite the following article:
 
-door dit:
-
-```markdown
 <div class="mm-main-cite">
   <p>
     McKay MJ, Weber KA 2nd, Wesselink EO, Smith ZA, Abbott R, Anderson DB,
