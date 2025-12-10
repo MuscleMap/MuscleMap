@@ -1,4 +1,4 @@
-const BIB_URL = window.MUSCLEMAP_BIB_URL || '/musclemap_publications.bib';
+const BIB_URL = window.MUSCLEMAP_BIB_URL;
 
 let bibCache = null;
 
