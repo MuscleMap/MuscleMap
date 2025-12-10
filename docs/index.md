@@ -59,7 +59,7 @@ parent: Overview
         </p>
       </div>
       <div class="mm-card-media">
-        <img src="MuscleMap_Slicer3D.png" alt="MuscleMap Slicer 3D view">
+        <img src="template.png" alt="Template example">
       </div>
     </div>
   </div>
