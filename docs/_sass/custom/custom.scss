@@ -370,3 +370,17 @@
   color: #f97316 !important;   /* MuscleMap orange */
   font-weight: 700 !important; /* bold */
 }
+
+/* === Feature card action buttons: orange outline === */
+.mm-card-actions .mm-btn-ghost.mm-btn-sm {
+  border-color: #f97316 !important;   /* orange border */
+  color: #f97316 !important;           /* orange text */
+}
+
+/* Hover state: filled orange button */
+.mm-card-actions .mm-btn-ghost.mm-btn-sm:hover {
+  background: #f97316 !important;
+  color: #ffffff !important;
+  border-color: #f97316 !important;
+  transition: 0.2s ease;
+}
