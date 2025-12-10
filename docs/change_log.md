@@ -9,8 +9,6 @@ parent: Developer section
 All notable changes to **MuscleMap** are listed below.  
 Source: GitHub Releases (https://github.com/MuscleMap/MuscleMap/releases)
 
-# Changelog
-
 <p align="left">
   <strong style="font-size: 22px;">1.1</strong>
   <span style="background: #2ea44f; color: white; padding: 2px 6px; border-radius: 6px; font-size: 12px; margin-left: 6px;">
