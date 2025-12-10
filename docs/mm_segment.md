@@ -1,8 +1,9 @@
 ---
 title: mm_segment
-parent: MuscleMap Commands
+parent: MuscleMap commands
 grand_parent: User section
 nav_order: 1
+permalink: /mm_segment/
 ---
 
 
