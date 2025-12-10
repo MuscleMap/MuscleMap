@@ -13,8 +13,9 @@ parent: Overview
         Whole-body muscle segmentation and quantitative analysis for large-scale imaging studies.
       </p>
       <div class="mm-hero-actions">
-        <a class="mm-btn mm-btn-primary" href="installation.html">Get started</a>
-        <a class="mm-btn mm-btn-ghost" href="usage.html">View examples</a>
+        <!-- FIXED links -->
+        <a class="mm-btn mm-btn-primary" href="{{ '/installation/' | relative_url }}">Get started</a>
+        <a class="mm-btn mm-btn-ghost" href="{{ '/usage/' | relative_url }}">View examples</a>
       </div>
       <p class="mm-hero-footnote">
         Built for researchers, clinicians, and data scientists working with whole-body MRI and CT.
@@ -25,6 +26,7 @@ parent: Overview
     </div>
   </div>
 </div>
+
 <div class="mm-section">
   <h2>Features</h2>
   <div class="mm-grid">
@@ -46,6 +48,7 @@ parent: Overview
         <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}" alt="MuscleMap whole-body GIF">
       </div>
     </div>
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>Automated quantitative muscle metrics</h3>
@@ -64,6 +67,7 @@ parent: Overview
         <img src="{{ '/assets/images/thresholding_scroll.gif' | relative_url }}" alt="MuscleMap thresholding GIF">
       </div>
     </div>
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>Registration to muscle template and 3D spatial parametric mapping</h3>
@@ -82,44 +86,46 @@ parent: Overview
         <img src="{{ '/assets/images/template.png' | relative_url }}" alt="Template example">
       </div>
     </div>
-  <div class="mm-card mm-card-with-media">
-    <div class="mm-card-text">
-      <h3>Integrated in pipelines</h3>
-      <p>
-        Includes a graphical user interface and a Slicer extension to make MuscleMap easy 
-        to run and to inspect individual cases for quality control.
-      </p>
-      <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <a class="mm-btn mm-btn-ghost mm-btn-sm"
-          href="{{ '/mm_gui/' | relative_url }}">
-          View mm_gui
-        </a>
-        <a class="mm-btn mm-btn-ghost mm-btn-sm"
-          href="https://github.com/Eddowesselink/SlicerMuscleMap" target="_blank">
-          View Slicer extension
-        </a>
+
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
+        <h3>Integrated in pipelines</h3>
+        <p>
+          Includes a graphical user interface and a Slicer extension to make MuscleMap easy 
+          to run and to inspect individual cases for quality control.
+        </p>
+        <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="{{ '/mm_gui/' | relative_url }}">
+            View mm_gui
+          </a>
+          <a class="mm-btn mm-btn-ghost mm-btn-sm"
+             href="https://github.com/Eddowesselink/SlicerMuscleMap" target="_blank">
+            View Slicer extension
+          </a>
+        </div>
+      </div>
+      <div class="mm-card-media">
+        <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
       </div>
     </div>
-    <div class="mm-card-media">
-      <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
-    </div>
-  </div>
-</div>
+  </div> <!-- einde .mm-grid -->
+</div>   <!-- einde Features section -->
 
 <div class="mm-section">
   <h2>Quick links</h2>
   <div class="mm-grid mm-grid-2">
-    <a class="mm-link-card" href="installation.html">
+    <!-- FIXED links -->
+    <a class="mm-link-card" href="{{ '/installation/' | relative_url }}">
       <h3>Installation</h3>
       <p>Set up the MuscleMap environment with conda and install the toolbox in editable mode.</p>
     </a>
-    <a class="mm-link-card" href="usage.html">
+    <a class="mm-link-card" href="{{ '/usage/' | relative_url }}">
       <h3>Usage</h3>
       <p>Learn how to run <code>mm_segment</code>, <code>mm_extract_metrics</code>, and <code>mm_gui</code>.</p>
     </a>
   </div>
 </div>
-
 
 <div class="mm-section mm-section-muted">
   <h2>Typical workflow</h2>
