@@ -229,20 +229,31 @@
     width: 100%;
   }
 }
-
-.mm-hero-banner {
+/* HERO LAYOUT: tekst links — afbeelding rechts */
+.mm-hero-inner {
+  max-width: 960px;
+  margin: 0 auto;
   display: flex;
-  justify-content: flex-end;  /* beeld rechts uitlijnen */
-  align-items: center;
-  width: 100%;
-  margin: 0 auto 2rem auto;
+  justify-content: space-between;
+  align-items: center;   /* verticaal centreren */
+  gap: 2rem;
 }
 
+/* De banner zelf (rechter kolom) */
+.mm-hero-banner {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Afbeelding kleiner + niet croppen */
 .mm-hero-banner img {
-  max-width: 260px;  /* kies grootte → kan bv. 200–320px zijn */
+  max-width: 180px;      /* → maak kleiner of groter naar smaak */
   height: auto;
-  object-fit: contain; /* toont volledige afbeelding zonder crop */
+  object-fit: contain;
   display: block;
+  margin-top: -40px;     /* → schuift afbeelding omhoog */
 }
 
 /* Brightness boost for the quantitative metrics GIF */
