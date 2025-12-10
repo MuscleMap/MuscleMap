@@ -2,16 +2,17 @@
 title: Studies using MuscleMap
 nav_order: 5
 ---
-<div class="mm-toc-wrapper">
 
 # Publications
 {: .no_toc }
 
+<div class="mm-toc-wrapper">
 ## Table of contents
 {: .no_toc .text-delta }
 
 1. Years
 {:toc}
+
 </div>
 
 ## 2025

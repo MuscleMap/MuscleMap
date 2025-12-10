@@ -289,7 +289,13 @@
     top: 6rem;
     width: 220px;
     max-height: calc(100vh - 8rem);
-    overflow: auto;
+    overflow-y: auto;
     font-size: 0.9rem;
+    padding-left: 1rem;
+    border-left: 1px solid #e0e0e0;
+  }
+
+  .mm-toc-wrapper .toc-list {
+    margin-top: 0.5rem;
   }
 }
