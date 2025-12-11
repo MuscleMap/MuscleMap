@@ -1,15 +1,17 @@
 ---
 title: mm_segment
 parent: MuscleMap commands
+description: "MuscleMap's mm_segment performs automatic whole-body muscle and bone segmentation on MRI and CT using deep learning. Supports 89 muscles, intramuscular fat analysis, and quantitative muscle metrics."
 grand_parent: User section
 nav_order: 1
 permalink: /mm_segment/
 ---
 
+MuscleMap provides automatic whole-body muscle segmentation for MRI and CT, using a deep learning model that identifies 89 muscles and bones. It supports muscle quantification, intramuscular fat measurement, and body composition analysis.
+
 # `mm_segment`
 
-`mm_segment` is the command-line tool in the MuscleMap toolbox for automatic segmentation of muscles and selected bones from axial MRI or CT images.  
-It uses a contrast-agnostic whole-body model that segments **89 muscles and bones** by default.
+`mm_segment` is the command-line tool in the MuscleMap toolbox for automatic segmentation of muscles and selected bones from axial MRI or CT images.  It uses a contrast-agnostic whole-body model that segments **89 muscles and bones** by default.
 
 This page explains:
 
