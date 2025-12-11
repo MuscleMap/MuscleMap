@@ -1,5 +1,5 @@
-title: MuscleMap
-description: MuscleMap documentation
+title: "MuscleMap"
+description: "Documentation for MuscleMap: an open-source toolbox for whole-body muscle and bone segmentation and quantitative analysis."
 
 remote_theme: just-the-docs/just-the-docs
 
@@ -8,3 +8,19 @@ url: "https://musclemap.github.io"
 baseurl: "/MuscleMap"
 
 search_enabled: true
+
+plugins:
+  - jekyll-sitemap
+
+# SEO default metadata
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+      seo: true
+
+# Optional but recommended:
+just_the_docs:
+  search:
+    token_separator: /[\s\-/]+/
