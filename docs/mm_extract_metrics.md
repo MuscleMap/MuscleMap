@@ -1,6 +1,7 @@
 ---
 title: mm_extract_metrics
 parent: MuscleMap commands
+description: "mm_extract_metrics is MuscleMap’s quantitative analysis tool for MRI and CT. It computes muscle volume, CSA, intramuscular fat fraction, CT density, and region-specific body composition from deep learning–based whole-body segmentation."
 grand_parent: User section
 nav_order: 2
 permalink: /mm_extract_metrics/
