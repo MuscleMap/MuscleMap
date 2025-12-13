@@ -91,6 +91,7 @@ For multiple images:
 
 - loop through images in shell/Python  
 - keep consistent naming using BIDS  
+
 ---
 
 ## 3. Output
