@@ -27,11 +27,11 @@ defaults:
       seo: true
 
 # Optional: helps Google/social previews
-logo: /assets/images/logo.png
+logo:  /assets/images/og-image.png
 image: /assets/images/og-image.png
 
 just_the_docs:
-  logo: "/assets/images/og-image.png"
+  logo: null
   logo_alt: "MuscleMap – whole-body muscle segmentation and quantitative analysis"
   search:
     token_separator: /[\s\-/]+/
