@@ -140,11 +140,19 @@ Example:
 ```bash
 mm_segment -i image.nii.gz -r abdomen
 ```
-
-{: .warning }
-**Note**  
+<div style="
+  border-left: 6px solid #f59e0b;
+  background: rgba(245,158,11,0.12);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+">
+  <strong>Warning</strong><br>
 The legacy regional models are maintained for backward compatibility only.  
 Active development and state-of-the-art performance are provided exclusively by the **whole-body model**, which achieves robust performance across all anatomical regions.
+</div>
 
 ---
 
@@ -166,10 +174,19 @@ Example:
 mm_segment -i image.nii.gz -s 50
 ```
 
-{: .note }
-**Note**  
+<div style="
+  border-left: 6px solid #32f50bff;
+  background: rgba(245,158,11,0.12);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+">
+  <strong>Note</strong><br>
 Lower sliding-window overlap increases inference speed but may reduce segmentation performance, particularly near tile boundaries.  
 Higher overlap improves robustness at the cost of longer runtimes.
+</div>
 
 ### 5.3 `-r` — region model
 
@@ -186,11 +203,19 @@ Example:
 ```bash
 mm_segment -i image.nii.gz -g Y
 ```
-
-{: .note }
-**Note**  
+<div style="
+  border-left: 6px solid #32f50bff;
+  background: rgba(245,158,11,0.12);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+">
+  <strong>Note</strong><br>
 By default, MuscleMap runs inference on the **GPU** when available.  
 Use `-g N` to explicitly force CPU-based inference.
+</div>
 
 ### 5.5 `-h` — help
 
