@@ -424,3 +424,14 @@
   border-left: 6px solid #f59e0b;           /* orange */
   background: rgba(245, 158, 11, 0.12);
 }
+
+/* Aux link (top-right GitHub link) */
+.aux-nav-list-item a {
+  color: #f97316;          /* oranje */
+  font-weight: 500;
+}
+
+.aux-nav-list-item a:hover {
+  color: #ea580c;          /* donkerder oranje bij hover */
+  text-decoration: none;
+}
