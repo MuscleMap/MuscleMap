@@ -16,13 +16,13 @@
 
   <!-- Overview subpages -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/publications.html</loc>
+    <loc>https://musclemap.github.io/MuscleMap/publications.html/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/included/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/anatomy/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -42,50 +42,50 @@
 
   <!-- Commands -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/mm_segment/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/segmentation/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.95</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/mm_extract_metrics/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/muscle-quantification/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.95</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/mm_register_to_template/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/spatial_distribution/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/mm_gui/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/graphical-user-interface/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/citing.html</loc>
+    <loc>https://musclemap.github.io/MuscleMap/cite.html/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Developer section -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/change_log.html</loc>
+    <loc>https://musclemap.github.io/MuscleMap/change_log.html/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/License.html</loc>
+    <loc>https://musclemap.github.io/MuscleMap/license.html/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/feedback.html</loc>
+    <loc>https://musclemap.github.io/MuscleMap/feedback.html/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>

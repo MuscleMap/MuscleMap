@@ -405,3 +405,22 @@
   padding: 8px 14px;
   font-weight: 600;
 }
+
+/* Callout boxes */
+.callout {
+  padding: 10px 14px;
+  margin: 16px 0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.callout-note {
+  border-left: 6px solid #22c55e;           /* green */
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.callout-warning {
+  border-left: 6px solid #f59e0b;           /* orange */
+  background: rgba(245, 158, 11, 0.12);
+}

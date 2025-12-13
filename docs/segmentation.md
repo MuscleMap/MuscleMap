@@ -1,21 +1,19 @@
 ---
-title: mm_segment
+title: Segmentation
 parent: MuscleMap commands
 description: "MuscleMap's mm_segment performs automatic whole-body muscle and bone segmentation on MRI and CT using deep learning. Supports 89 muscles, intramuscular fat analysis, and quantitative muscle metrics."
 grand_parent: User section
 nav_order: 1
-permalink: /mm_segment/
+permalink: /segmentation/
 ---
 
-MuscleMap provides automatic whole-body muscle segmentation for MRI and CT, using a deep learning model that identifies 89 muscles and bones. It supports muscle quantification, intramuscular fat measurement, and body composition analysis.
+# Automated whole-body muscle segmentation using deep learning | MuscleMap
 
-# `mm_segment`
-
-`mm_segment` is the command-line tool in the MuscleMap toolbox for automatic segmentation of muscles and selected bones from axial MRI or CT images. It uses a contrast-agnostic whole-body model that segments **89 muscles and bones** by default.
+The segmentation is performed using a deep learning–based, contrast-agnostic whole-body model trained for robust muscle and bone segmentation across MRI and CT modalities.
 
 This page explains:
 
-- how to run `mm_segment`
+- how to run segmentation module: `mm_segment`
 - all available options and flags
 - whole-body vs. regional models
 - recommended workflows
@@ -37,7 +35,7 @@ This page explains:
 conda activate MuscleMap
 ```
 
-### 1.2 Run `mm_segment` on a single NIfTI imag
+### 1.2 Run `mm_segment` on a single NIfTI image
 
 First, navigate to the directory containing your input image (or provide the full path to the file):
 
@@ -57,19 +55,12 @@ This command:
 - writes a segmentation labelmap (NIfTI) next to the input file  
 - prints output paths and logs to the terminal  
 
-<div style="
-  border-left: 6px solid #f59e0b;
-  background: rgba(245,158,11,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin: 16px 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-">
+<div class="callout callout-warning">
   <strong>Warning</strong><br>
   Running <code>mm_segment</code> from the command line works as expected when MuscleMap is installed in <strong>editable mode</strong> (<code>pip install -e .</code>).<br>
   If the package was installed using <code>pip install .</code>, it may be preferable to run the script directly using <code>python mm_segment.py</code>.
 </div>
+
 
 ---
 
@@ -96,7 +87,7 @@ For multiple images:
 
 ## 3. Output
 
-`mm_segment` generates:
+`mm_segment` generates deep learning–based whole-body muscle segmentation outputs, including:
 
 - a **segmentation labelmap** (NIfTI) with integer labels  
 - an output file saved next to the input  
@@ -140,15 +131,8 @@ Example:
 ```bash
 mm_segment -i image.nii.gz -r abdomen
 ```
-<div style="
-  border-left: 6px solid #f59e0b;
-  background: rgba(245,158,11,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin: 16px 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-">
+
+<div class="callout callout-warning">
   <strong>Warning</strong><br>
 The legacy regional models are maintained for backward compatibility only.  
 Active development and state-of-the-art performance are provided exclusively by the **whole-body model**, which achieves robust performance across all anatomical regions.
@@ -174,15 +158,7 @@ Example:
 mm_segment -i image.nii.gz -s 50
 ```
 
-<div style="
-  border-left: 6px solid #32f50bff;
-  background: rgba(245,158,11,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin: 16px 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-">
+<div class="callout callout-note">
   <strong>Note</strong><br>
 Lower sliding-window overlap increases inference speed but may reduce segmentation performance, particularly near tile boundaries.  
 Higher overlap improves robustness at the cost of longer runtimes.
@@ -203,19 +179,13 @@ Example:
 ```bash
 mm_segment -i image.nii.gz -g Y
 ```
-<div style="
-  border-left: 6px solid #32f50bff;
-  background: rgba(245,158,11,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin: 16px 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-">
+
+<div class="callout callout-note">
   <strong>Note</strong><br>
 By default, MuscleMap runs inference on the **GPU** when available.  
 Use `-g N` to explicitly force CPU-based inference.
 </div>
+
 
 ### 5.5 `-h` — help
 
@@ -252,6 +222,8 @@ mm_segment -i image.nii.gz
 mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
 ```
 ---
+
+See the [Muscle quantification and metric extraction](../muscle-quantification/) page for details on muscle volume and fat infiltration analysis.
 
 ## 7. Best practices & troubleshooting
 

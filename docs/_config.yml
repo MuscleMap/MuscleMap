@@ -1,6 +1,5 @@
 title: "MuscleMap"
-description: "Documentation for MuscleMap: an open-source toolbox for whole-body muscle and bone segmentation and quantitative analysis."
-
+description: "MuscleMap is an open-source toolbox for automated whole-body muscle and bone segmentation from MRI and CT, with quantitative analysis of muscle volume and intramuscular fat infiltration."
 remote_theme: just-the-docs/just-the-docs
 
 # Site URL (project page)
@@ -11,6 +10,13 @@ search_enabled: true
 
 plugins:
   - jekyll-sitemap
+  - jekyll-seo-tag
+
+tagline: "Whole-body muscle segmentation and quantitative muscle analysis"
+
+aux_links:
+  "MuscleMap on GitHub":
+    - "https://github.com/MuscleMap/MuscleMap"
 
 # SEO default metadata
 defaults:
@@ -20,7 +26,12 @@ defaults:
       layout: default
       seo: true
 
-# Optional but recommended:
+# Optional: helps Google/social previews
+logo: /assets/images/logo.png
+image: /assets/images/og-image.png
+
 just_the_docs:
+  logo: "/assets/images/logo.png"
+  logo_alt: "MuscleMap – whole-body muscle segmentation and quantitative analysis"
   search:
     token_separator: /[\s\-/]+/
