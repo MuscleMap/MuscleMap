@@ -1,7 +1,7 @@
 ---
 title: Change log 
 nav_order: 1
-description: "Change log for MuscleMap code as released in https://github.com/MuscleMap/MuscleMap/releases". 
+description: "Change log for MuscleMap code as released in main github page.  
 parent: Developer section
 ---
 
