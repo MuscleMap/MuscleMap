@@ -1,5 +1,5 @@
 ---
-title: mm_gui
+title: Graphical user interface
 parent: MuscleMap commands
 grand_parent: User section
 nav_order: 4
