@@ -2,15 +2,14 @@
 title: MuscleMap commands
 nav_order: 2
 parent: User section
+description: "Command line tools for utilizing Musclemap (segmentation, fat and muscle volume quantificationa and template registration")
 has_children: true
 permalink: /commands/
 ---
 
 # MuscleMap commands
 
-MuscleMap provides three command-line tools: `mm_segment` for generating whole-body muscle and bone segmentations, `mm_extract_metrics` for computing region-wise quantitative metrics, and `mm_gui` for visual inspection and quality control. Below is a complete, continuous explanation of all three tools in one block.
-
-A video demonstration is provided below.
+MuscleMap provides four command-line tools: `mm_segment` for generating whole-body muscle and bone segmentations, `mm_extract_metrics` for computing region-wise quantitative metrics for muscle volume and intramuscular fat, `mm_register_to_template` to conduct standardized analysis for the 3D spatial distribution of intramuscular fat,  and `mm_gui` for visual inspection and quality control. A video demonstration is provided below.
 
 <div class="mm-video-container">
   <iframe

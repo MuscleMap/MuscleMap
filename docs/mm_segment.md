@@ -11,7 +11,7 @@ MuscleMap provides automatic whole-body muscle segmentation for MRI and CT, usin
 
 # `mm_segment`
 
-`mm_segment` is the command-line tool in the MuscleMap toolbox for automatic segmentation of muscles and selected bones from axial MRI or CT images.  It uses a contrast-agnostic whole-body model that segments **89 muscles and bones** by default.
+`mm_segment` is the command-line tool in the MuscleMap toolbox for automatic segmentation of muscles and selected bones from axial MRI or CT images. It uses a contrast-agnostic whole-body model that segments **89 muscles and bones** by default.
 
 This page explains:
 
@@ -37,8 +37,15 @@ This page explains:
 conda activate MuscleMap
 ```
 
-### 1.2 Run `mm_segment` on a single NIfTI image
+### 1.2 Run `mm_segment` on a single NIfTI imag
 
+First, navigate to the directory containing your input image (or provide the full path to the file):
+
+```bash
+cd /path/to/your/data
+```
+
+Then run:
 ```bash
 mm_segment -i image.nii.gz
 ```
@@ -49,6 +56,11 @@ This command:
 - applies the default **whole-body segmentation model**  
 - writes a segmentation labelmap (NIfTI) next to the input file  
 - prints output paths and logs to the terminal  
+
+{: .note }
+**Note**  
+Running `mm_segment` from the command line works as expected when MuscleMap is installed in **editable mode** (`pip install -e .`).  
+If the package was installed using `pip install .`, it may be preferable to run the script directly using `python mm_segment.py`.
 
 ---
 
@@ -70,7 +82,6 @@ For multiple images:
 
 - loop through images in shell/Python  
 - keep consistent naming using BIDS  
-
 ---
 
 ## 3. Output
@@ -83,12 +94,11 @@ For multiple images:
 
 Visualise results in:
 
-- ITK-SNAP  
-- 3D Slicer  
-- FSLeyes  
+- [ITK-SNAP](https://www.itksnap.org/pmwiki/pmwiki.php)
+- [3D Slicer](https://www.slicer.org/)
+- [FSLeyes](https://open.oxcin.ox.ac.uk/pages/fslcourse/practicals/intro1/index.html)
 
 ---
-
 ## 4. Models and regions
 
 ### 4.1 Whole-body model (default)
@@ -101,9 +111,10 @@ Segments:
 
 - trunk muscles  
 - pelvic muscles  
-- thigh muscles  
+- thigh muscles
+- leg muscles
+- neck muscles  
 - selected bones  
-- many smaller groups (89 structures total)
 
 ### 4.2 Legacy regional models
 
@@ -119,6 +130,11 @@ Example:
 ```bash
 mm_segment -i image.nii.gz -r abdomen
 ```
+
+{: .warning }
+**Note**  
+The legacy regional models are maintained for backward compatibility only.  
+Active development and state-of-the-art performance are provided exclusively by the **whole-body model**, which achieves robust performance across all anatomical regions.
 
 ---
 
@@ -140,6 +156,11 @@ Example:
 mm_segment -i image.nii.gz -s 50
 ```
 
+{: .note }
+**Note**  
+Lower sliding-window overlap increases inference speed but may reduce segmentation performance, particularly near tile boundaries.  
+Higher overlap improves robustness at the cost of longer runtimes.
+
 ### 5.3 `-r` — region model
 
 ```bash
@@ -148,9 +169,18 @@ mm_segment -i image.nii.gz -r thigh
 
 ### 5.4 `-g` — GPU/CPU selection
 
+Controls whether inference is performed on the GPU or CPU.
+
+Example:
+
 ```bash
-mm_segment -i image.nii.gz -g 0
+mm_segment -i image.nii.gz -g Y
 ```
+
+{: .note }
+**Note**  
+By default, MuscleMap runs inference on the **GPU** when available.  
+Use `-g N` to explicitly force CPU-based inference.
 
 ### 5.5 `-h` — help
 
@@ -186,7 +216,6 @@ mm_segment -i sub-03_T2w.nii.gz -r abdomen
 mm_segment -i image.nii.gz
 mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
 ```
-
 ---
 
 ## 7. Best practices & troubleshooting
@@ -197,9 +226,6 @@ mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
 
 If something looks wrong:
 
-- verify NIfTI orientation  
-- reduce overlap (`-s 50`)  
-- check GPU installation  
-- open a GitHub issue with an example  
+- open a [GitHub issue](https://github.com/MuscleMap/MuscleMap/issues) with an example  
 
 ---
