@@ -7,7 +7,7 @@ nav_order: 1
 permalink: /segmentation/
 ---
 
-# Automated whole-body muscle segmentation using deep learning | MuscleMap
+# Automated whole-body muscle segmentation
 
 The segmentation is performed using a deep learning–based, contrast-agnostic whole-body model trained for robust muscle and bone segmentation across MRI and CT modalities.
 
