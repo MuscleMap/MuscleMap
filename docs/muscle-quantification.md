@@ -1,6 +1,6 @@
 ---
 title: Muscle quantification
-parent: MuscleMap commands
+parent: Key features
 description: "MuscleMap’s mm_extract_metrics performs quantitative muscle analysis from MRI and CT, including muscle volume, cross-sectional area, intramuscular fat infiltration, and CT muscle density from deep learning–based whole-body segmentation."
 grand_parent: User section
 nav_order: 2
