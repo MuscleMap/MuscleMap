@@ -435,3 +435,22 @@
   color: #ea580c;          /* donkerder oranje bij hover */
   text-decoration: none;
 }
+
+/* Page titles (H1) smaller + bold */
+.main-content h1 {
+  font-size: 2.0rem;   /* probeer 1.8–2.1 */
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Section headers (H2/H3) iets compacter */
+.main-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 1.8rem;
+}
+
+.main-content h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
