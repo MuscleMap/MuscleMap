@@ -5,9 +5,9 @@ parent: Overview
 permalink: /included/
 ---
 
-MuscleMap provides automated quantfication of 89 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and lower leg.
+MuscleMap provides automated segmentation and quantfication (muscle volume, intramuscular fat and/or intensity) of 89 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and leg.
 
-The table below lists all anatomical structures included in the latest version of MuscleMap, together with their label values and laterality. These labels are consistent across all MuscleMap tools (mm_segment, mm_extract_metrics, mm_gui). 
+The table below lists all anatomical structures included in the latest version of MuscleMap, together with their label values and laterality. These labels are consistent across all MuscleMap tools (mm_segment, mm_extract_metrics, mm_register_to_template and mm_gui). 
 
 
 | Region   | Anatomy                               | Side       | Value |

@@ -9,8 +9,9 @@ permalink: /mm_extract_metrics/
 
 # `mm_extract_metrics`
 
-`mm_extract_metrics` is the MuscleMap command-line tool used to compute **quantitative muscle metrics** from MRI or CT images, using the segmentation produced by `mm_segment`.  
-It supports Gaussian Mixture Models (GMM), Otsu thresholding, HU‑based fat quantification for CT, region‑based summaries, and customizable output formats.
+`mm_extract_metrics` is the MuscleMap command-line tool used to compute **quantitative muscle metrics for muscle volume and intramuscular fat** from MRI or CT images, using the segmentation produced by `mm_segment`.  
+
+It supports Gaussian Mixture Models (GMM), K-means clustering for T1 and T2-weighted MRI, fat fraction for Dixon MRI and HU‑based fat quantification for CT in customizable (.csv) output formats.
 
 This page explains:
 
@@ -90,13 +91,12 @@ Use this for:
 - T2-weighted MRI  
 - Dixon MRI (if not using raw water/fat channels)
 
-### **2. `otsu` — Otsu thresholding (MRI)**  
+### **2. `Kmeans` — Kmeans clustering (MRI)**  
 Automatically selects intensity thresholds to separate tissues.
 
 ```bash
-mm_extract_metrics -m otsu -i img.nii.gz -s img_dseg.nii.gz
+mm_extract_metrics -m kmeans -i img.nii.gz -s img_dseg.nii.gz
 ```
-
 Useful for quick processing or low-contrast MRI.
 
 ### **3. `hu` — Hounsfield Unit metrics (CT)**  

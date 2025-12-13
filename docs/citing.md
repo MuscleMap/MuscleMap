@@ -1,6 +1,7 @@
 ---
 title: Citing MuscleMap
 nav_order: 3
+description: "Instructions how to cite MuscleMap when utilizing the open-source models"
 parent: User section
 ---
 
