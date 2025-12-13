@@ -57,11 +57,11 @@ This command:
 - writes a segmentation labelmap (NIfTI) next to the input file  
 - prints output paths and logs to the terminal  
 
-{: .warning }
-
+::: warning
 **Warning**  
 Running `mm_segment` from the command line works as expected when MuscleMap is installed in **editable mode** (`pip install -e .`).  
 If the package was installed using `pip install .`, it may be preferable to run the script directly using `python mm_segment.py`.
+:::
 
 ---
 
