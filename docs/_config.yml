@@ -27,8 +27,8 @@ defaults:
       seo: true
 
 # Optional: helps Google/social previews
-logo:  /assets/images/og-image.png
-image: /assets/images/og-image.png
+logo:  /assets/images/logo_musclemap_white.png
+image: /assets/images/logo_musclemap_white.png
 
 just_the_docs:
   logo: null
