@@ -26,12 +26,6 @@ defaults:
       layout: default
       seo: true
 
-# Optional: helps Google/social previews
-logo:  /assets/images/logo_musclemap_white.png
-image: /assets/images/logo_musclemap_white.png
-
 just_the_docs:
-  logo: false
-  title: "MuscleMap"
   search:
     token_separator: /[\s\-/]+/
