@@ -1,7 +1,7 @@
 ---
-title: Muscle quantification
+title: mm_extract_metrics
 parent: MuscleMap commands
-description: "mm_extract_metrics is MuscleMap’s quantitative analysis tool for MRI and CT. It computes muscle volume, CSA, intramuscular fat fraction, CT density, and region-specific body composition from deep learning–based whole-body segmentation."
+description: "MuscleMap’s mm_extract_metrics performs quantitative muscle analysis from MRI and CT, including muscle volume, cross-sectional area, intramuscular fat infiltration, and CT muscle density from deep learning–based whole-body segmentation."
 grand_parent: User section
 nav_order: 2
 permalink: /muscle-quantification/
@@ -9,7 +9,7 @@ permalink: /muscle-quantification/
 
 # Muscle quantification and metric extraction from MRI and CT | MuscleMap
 
-`mm_extract_metrics` is the MuscleMap command-line tool used to compute **quantitative muscle metrics for muscle volume and intramuscular fat** from MRI or CT images, using the segmentation produced by `mm_segment`.  
+`mm_extract_metrics` is the MuscleMap command-line tool for **quantitative muscle analysis**, enabling automated estimation of **muscle volume**, **cross-sectional area (CSA)**, **intramuscular fat infiltration**, and **muscle density** from **MRI and CT images** from **deep learning–based whole-body muscle segmentation**.
 
 It supports Gaussian Mixture Models (GMM), K-means clustering for T1 and T2-weighted MRI, fat fraction for Dixon MRI and HU‑based fat quantification for CT in customizable (.csv) output formats.
 
