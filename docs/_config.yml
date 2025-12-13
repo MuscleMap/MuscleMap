@@ -31,7 +31,7 @@ logo:  /assets/images/logo_musclemap_white.png
 image: /assets/images/logo_musclemap_white.png
 
 just_the_docs:
-  logo: null
-  logo_alt: "MuscleMap – whole-body muscle segmentation and quantitative analysis"
+  logo: false
+  title: "MuscleMap"
   search:
     token_separator: /[\s\-/]+/
