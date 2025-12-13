@@ -7,7 +7,7 @@ nav_order: 2
 permalink: /muscle-quantification/
 ---
 
-# Muscle quantification and metric extraction from MRI and CT | MuscleMap
+# Muscle quantification and metric extraction from MRI and CT 
 
 `mm_extract_metrics` is the MuscleMap command-line tool for **quantitative muscle analysis**, enabling automated estimation of **muscle volume**, **cross-sectional area (CSA)**, **intramuscular fat infiltration**, and **muscle density** from **MRI and CT images** from **deep learning–based whole-body muscle segmentation**.
 
