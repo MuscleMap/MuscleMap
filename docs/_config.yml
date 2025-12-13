@@ -31,7 +31,7 @@ logo: /assets/images/logo.png
 image: /assets/images/og-image.png
 
 just_the_docs:
-  logo: "/assets/images/logo.png"
+  logo: "/assets/images/og-image.png"
   logo_alt: "MuscleMap – whole-body muscle segmentation and quantitative analysis"
   search:
     token_separator: /[\s\-/]+/
