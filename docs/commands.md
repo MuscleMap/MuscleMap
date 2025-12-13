@@ -1,5 +1,5 @@
 ---
-title: MuscleMap commands
+title: Key features
 nav_order: 2
 parent: User section
 description: "Command line tools for utilizing Musclemap (segmentation, fat and muscle volume quantificationa and template registration"

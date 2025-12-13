@@ -1,5 +1,5 @@
 ---
-title: mm_segment
+title: Segmentation
 parent: MuscleMap commands
 description: "MuscleMap's mm_segment performs automatic whole-body muscle and bone segmentation on MRI and CT using deep learning. Supports 89 muscles, intramuscular fat analysis, and quantitative muscle metrics."
 grand_parent: User section
