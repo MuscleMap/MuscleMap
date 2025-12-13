@@ -2,7 +2,7 @@
 title: Anatomical Labels
 nav_order: 3
 parent: Overview
-permalink: /included/
+permalink: /anatomy/
 ---
 
 MuscleMap provides automated segmentation and quantfication (muscle volume, intramuscular fat and/or intensity) of 89 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and leg.
