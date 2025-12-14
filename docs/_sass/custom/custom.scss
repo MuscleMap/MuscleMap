@@ -591,3 +591,12 @@
   width: auto !important;
   display: block;
 }
+
+.site-nav
+  .nav-list-item > .nav-list-link[href*="key-features"]
+  + .nav-list
+  .nav-list-link {
+  font-style: italic;
+  font-weight: 400 !important;
+  opacity: 0.95;
+}
