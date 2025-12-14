@@ -37,7 +37,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/mm_segment/' | relative_url }}">
+             href="{{ '/segmentation/' | relative_url }}">
             View mm_segment 
           </a>
         </div>
@@ -55,7 +55,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/mm_extract_metrics/' | relative_url }}">
+             href="{{ '/muscle-quantification/' | relative_url }}">
             View mm_extract_metrics
           </a>
         </div>
@@ -73,7 +73,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/mm_register_to_template/' | relative_url }}">
+             href="{{ '/spatial-fat-distribution/' | relative_url }}">
             View mm_register_to_template
           </a>
         </div>
@@ -91,7 +91,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/mm_gui/' | relative_url }}">
+             href="{{ '/graphical-user-interface/' | relative_url }}">
             View mm_gui
           </a>
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
