@@ -1,5 +1,5 @@
 ---
-title: MuscleMap
+title: Home
 nav_order: 1
 parent: Overview
 ---
