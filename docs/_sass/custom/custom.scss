@@ -562,3 +562,32 @@
 .site-nav-toggle[aria-expanded="true"] .icon {
   color: #f97316 !important;
 }
+/* ===== Header logo: groter + perfect gecentreerd ===== */
+
+/* Container van logo */
+.site-title {
+  display: flex;
+  align-items: center;      /* verticaal centreren */
+  justify-content: center;  /* centreer binnen zijn kolom */
+  padding: 0.6rem 0;
+}
+
+/* Het logo zelf */
+.site-logo {
+  width: 48px !important;   /* ← groter (probeer 40–56) */
+  height: 48px !important;
+  max-width: none !important;
+  max-height: none !important;
+
+  background-size: contain !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Als het logo als <img> wordt gerenderd */
+.site-logo img,
+.site-title img {
+  height: 48px !important;
+  width: auto !important;
+  display: block;
+}
