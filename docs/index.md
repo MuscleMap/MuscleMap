@@ -14,7 +14,7 @@ parent: Overview
       </p>
       <div class="mm-hero-actions">
         <a class="mm-btn mm-btn-primary" href="{{ '/installation/' | relative_url }}">Get started</a>
-        <a class="mm-btn mm-btn-ghost" href="{{ '/commands/' | relative_url}}">View examples</a>
+        <a class="mm-btn mm-btn-ghost" href="https://github.com/MuscleMap/MuscleMap" target="_blank" rel="noopener"> View code</a>
       </div>
       <p class="mm-hero-footnote">
         Built for researchers, clinicians, and data scientists working with whole-body MRI and CT.
