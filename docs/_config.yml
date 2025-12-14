@@ -5,8 +5,8 @@ remote_theme: just-the-docs/just-the-docs
 # Site URL (project page)
 url: "https://musclemap.github.io"
 baseurl: "/MuscleMap"
-logo: "/assets/images/favicon.png"
-image: "/assets/images/favicon.png"
+logo: "docs/assets/images/favicon.png"
+image: "docs/assets/images/favicon.png"
 
 search_enabled: true
 
@@ -29,7 +29,5 @@ defaults:
       seo: true
 
 just_the_docs:
-  logo: "{{ site.baseurl }}/assets/images/favicon.png"
-  logo_alt: "MuscleMap"
   search:
     token_separator: /[\s\-/]+/
