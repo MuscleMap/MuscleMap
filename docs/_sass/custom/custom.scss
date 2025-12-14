@@ -395,6 +395,12 @@
   max-height: 36px;
   width: auto;
 }
+.site-logo {
+  width: 36px !important;
+  height: 36px !important;
+  display: inline-block !important;
+  background: url("/MuscleMap/assets/images/favicon.png") no-repeat center / contain !important;
+}
 
 .site-nav .nav-list .nav-list .nav-list-link {
   font-weight: 400 !important;
