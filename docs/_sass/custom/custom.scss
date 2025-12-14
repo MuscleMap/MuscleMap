@@ -606,3 +606,27 @@
   background-color: #fafafa;   /* warm lichtgrijs */
   border-right: 1px solid #e5e7eb;
 }
+/* ===== Content links: MuscleMap orange ===== */
+
+/* Normale links in content */
+.main-content a {
+  color: #f97316 !important;     /* MuscleMap oranje */
+  text-decoration: none;
+}
+
+/* Bezochte links (paars weg) */
+.main-content a:visited {
+  color: #f97316 !important;
+}
+
+/* Hover */
+.main-content a:hover {
+  color: #ea580c !important;     /* iets donkerder oranje */
+  text-decoration: underline;
+}
+
+/* Focus (toegankelijkheid) */
+.main-content a:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
