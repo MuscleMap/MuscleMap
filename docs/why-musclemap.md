@@ -1,5 +1,5 @@
 ---
-title: Why Musclemap>
+title: Why Musclemap?
 parent: Overview
 description: "MuscleMap,Navigating to the root of debilitating disease"
 nav_order: 2
