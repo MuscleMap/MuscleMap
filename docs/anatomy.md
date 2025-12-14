@@ -1,7 +1,7 @@
 ---
 title: Anatomical Labels
 nav_order: 3
-parent: Overview
+parent: User section
 permalink: /anatomy/
 ---
 
