@@ -383,8 +383,17 @@
   margin-top: 0.2rem;
 }
 
-.site-title {
+/* Verberg alleen de titel-TEKST, laat logo-container staan */
+.site-title .site-title-text {
   display: none;
+}
+
+/* Zorg dat het logo zichtbaar blijft */
+.site-title .site-logo,
+.site-title img {
+  display: inline-block !important;
+  max-height: 36px;
+  width: auto;
 }
 
 .site-nav .nav-list .nav-list .nav-list-link {
