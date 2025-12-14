@@ -5,8 +5,7 @@ remote_theme: just-the-docs/just-the-docs
 # Site URL (project page)
 url: "https://musclemap.github.io"
 baseurl: "/MuscleMap"
-logo: "docs/assets/images/favicon.png"
-image: "docs/assets/images/favicon.png"
+logo: "/MuscleMap/assets/images/favicon.png"
 
 search_enabled: true
 
