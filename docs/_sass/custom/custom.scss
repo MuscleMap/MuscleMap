@@ -633,3 +633,22 @@
 .mm-btn-primary {
   color: #ffffff !important;   /* wit */
 }
+/* ===== Fix: content-links oranje, maar NIET buttons ===== */
+.main-content a:not(.mm-btn):not(.btn) {
+  color: #f97316 !important;
+  text-decoration: none;
+}
+
+.main-content a:not(.mm-btn):not(.btn):visited {
+  color: #f97316 !important;
+}
+
+.main-content a:not(.mm-btn):not(.btn):hover {
+  color: #ea580c !important;
+  text-decoration: underline;
+}
+
+/* Extra zekerheid: primary button tekst blijft wit */
+.mm-btn.mm-btn-primary {
+  color: #ffffff !important;
+}
