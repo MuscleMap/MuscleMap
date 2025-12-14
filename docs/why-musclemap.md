@@ -1,12 +1,10 @@
 ---
-title: Why-musclemap
+title: Why Musclemap>
 parent: Overview
 description: "MuscleMap,Navigating to the root of debilitating disease"
 nav_order: 2
 permalink: /why-musclemap/
 ---
-
-![Why MuscleMap](assets/images/why-musclemap.png)
 
 ## Navigating to the root of debilitating disease
 
