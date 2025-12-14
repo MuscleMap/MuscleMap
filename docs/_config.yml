@@ -27,5 +27,7 @@ defaults:
       seo: true
 
 just_the_docs:
+  logo: "/assets/images/favicon.svg"
+  logo_alt: "MuscleMap"
   search:
     token_separator: /[\s\-/]+/
