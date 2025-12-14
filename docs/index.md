@@ -48,10 +48,10 @@ parent: Overview
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Automated quantitative muscle metrics</h3>
+        <h3>Automated muscle quantification from MRI and CT</h3>
         <p>
           Extract muscle-specific metrics such as volumes, intensity,
-          or fat-related measures across multiple MRI contrasts and CT.
+          or intramuscular fat across multiple MRI contrasts and CT.
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
@@ -66,9 +66,9 @@ parent: Overview
     </div>
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
-        <h3>Registration to muscle template and 3D spatial parametric mapping</h3>
+        <h3> Three-dimensional spatial parametric mapping</h3>
         <p>
-          Visualize and calculate the spatial distribution of intramuscular fat
+          Visualize and calculate the 3D spatial distribution of intramuscular fat
           in a standardized muscle template.
         </p>
         <div class="mm-card-actions">
