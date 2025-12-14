@@ -517,3 +517,42 @@
 .site-search {
   display: none !important;
 }
+
+/* ===== Breadcrumbs kleur ===== */
+
+/* Links in breadcrumb */
+.breadcrumb-nav a {
+  color: #f97316 !important;   /* MuscleMap oranje */
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* Hover */
+.breadcrumb-nav a:hover {
+  color: #ea580c !important;   /* iets donkerder oranje */
+  text-decoration: underline;
+}
+
+/* Actieve (laatste) breadcrumb */
+.breadcrumb-nav span,
+.breadcrumb-nav .breadcrumb-nav-list-item:last-child {
+  color: #000000;              /* huidige pagina zwart */
+  font-weight: 600;
+}
+
+/* ===== Mobile navigation hamburger ===== */
+
+/* De drie streepjes */
+.site-nav-toggle .icon {
+  color: #f97316 !important;   /* MuscleMap oranje */
+}
+
+/* Hover / active */
+.site-nav-toggle:hover .icon,
+.site-nav-toggle:focus-visible .icon {
+  color: #ea580c !important;   /* iets donkerder oranje */
+}
+
+.site-nav-toggle[aria-expanded="true"] .icon {
+  color: #f97316 !important;
+}
