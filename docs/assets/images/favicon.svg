@@ -1,9 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#f97316"/>
-  <text x="32" y="42"
-        text-anchor="middle"
-        font-size="36"
-        font-family="Arial, Helvetica, sans-serif"
-        font-weight="700"
-        fill="white">M</text>
+  <!-- Transparent background by default -->
+
+  <!-- Left chevron (orange) -->
+  <path d="M8 44 L22 20 L36 44"
+        fill="none"
+        stroke="#F2994A"
+        stroke-width="10"
+        stroke-linecap="square"
+        stroke-linejoin="miter"/>
+
+  <!-- Right chevron (red) -->
+  <path d="M28 44 L42 20 L56 44"
+        fill="none"
+        stroke="#EB5757"
+        stroke-width="10"
+        stroke-linecap="square"
+        stroke-linejoin="miter"/>
 </svg>
