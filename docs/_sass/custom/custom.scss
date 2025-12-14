@@ -608,15 +608,18 @@
 }
 /* ===== Content links: MuscleMap orange ===== */
 
-/* Normale links in content */
-.main-content a {
-  color: #f97316 !important;     /* MuscleMap oranje */
+.main-content a:not(.mm-btn):not(.btn) {
+  color: #f97316;
   text-decoration: none;
 }
 
-/* Bezochte links (paars weg) */
-.main-content a:visited {
-  color: #f97316 !important;
+.main-content a:not(.mm-btn):not(.btn):visited {
+  color: #f97316;
+}
+
+.main-content a:not(.mm-btn):not(.btn):hover {
+  color: #ea580c;
+  text-decoration: underline;
 }
 
 /* Hover */
@@ -637,6 +640,19 @@
 .mm-btn.mm-btn-ghost {
   color: #111 !important;
   text-decoration: none !important;
+}
+
+.mm-btn.mm-btn-ghost:hover {
+  color: #111 !important;
+}
+/* Primary button: altijd wit */
+.mm-btn.mm-btn-primary {
+  color: #ffffff !important;
+}
+
+/* Ghost buttons: altijd zwart */
+.mm-btn.mm-btn-ghost {
+  color: #111 !important;
 }
 
 .mm-btn.mm-btn-ghost:hover {
