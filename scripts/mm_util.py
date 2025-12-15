@@ -6,8 +6,7 @@ import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-from monai.transforms import MapTransform, Invertd
-from monai.data import MetaTensor
+from monai.transforms import (MapTransform)
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
@@ -15,7 +14,6 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
-from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -697,7 +695,6 @@ def estimate_chunk_size(
     overlap: float,
     use_fp16: bool = True,
     image_shape: tuple = None,
-    verbose: bool = False,
 ) -> int:
     """
     Robustly estimate optimal chunk size with self-tuning based on OOM history.
@@ -712,7 +709,6 @@ def estimate_chunk_size(
         overlap: spatial overlap ratio (0.5 = 50% overlap)
         use_fp16: whether FP16 is enabled (CUDA only)
         image_shape: optional image shape for OOM history lookup
-        verbose: if True, log detailed memory information
     
     Returns:
         Estimated chunk size (number of slices)
@@ -755,13 +751,10 @@ def estimate_chunk_size(
             # Expanded bounds for maximal speed: 20-150 slices
             chunk_size = max(20, min(chunk_size, 150))
             
-            if verbose:
-                device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
-                logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
-                logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
-                logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
-            else:
-                logging.info(f"Estimated chunk size: {chunk_size} slices")
+            device_name = "MPS (Apple Silicon)" if device.type == 'mps' else "CPU"
+            logging.info(f"{device_name} detected: {total_ram / 1024**3:.1f} GB total, {available_ram / 1024**3:.1f} GB available")
+            logging.info(f"Memory per slice: {memory_per_slice / 1024**3:.4f} GB (5.0x overhead)")
+            logging.info(f"Using {memory_utilization*100:.0f}% RAM, estimated chunk size: {chunk_size} slices")
             return chunk_size
             
         except Exception as e:
@@ -832,6 +825,7 @@ def estimate_chunk_size(
         chunk_size = max(5, min(chunk_size, 250))
         
         # Log memory information
+        logging.info(f"GPU Memory: {total_memory / 1024**3:.2f} GB total, {available_memory / 1024**3:.2f} GB available")
         logging.info(f"Estimated chunk size: {chunk_size} slices")
         
         return chunk_size
@@ -852,41 +846,180 @@ def run_inference(
     model=None,
     verbose=False,
     fallback_device=None,
-    use_memory_chunking=False,
-    use_early_argmax=False,
 ):
-    """
-    Unified inference function with configurable optimizations.
-    
-    Args:
-        use_memory_chunking: If True, applies pre_transforms once and chunks in RAM (faster, more memory)
-        use_early_argmax: If True, applies argmax before Invertd (much faster, less memory)
-        
-    Optimization modes:
-        - Normal (both False): Disk-based chunking with full post-processing per chunk
-        - Fast memory (memory=True, argmax=False): In-memory chunking, standard post-processing
-        - Fast transform (memory=False, argmax=True): Disk-based with early discretization
-        - Full fast (both True): In-memory chunking with early discretization (fastest)
-    """
+
     out_path = _make_out_path(image_path, output_dir, "_dseg")
+    img_nii  = nib.load(image_path)
+    affine   = img_nii.affine.copy()
+    header   = img_nii.header.copy()
+    img_data = img_nii.get_fdata().astype(np.float32)
+    img_shape = img_data.shape  # Store shape before potential deletion
+    D        = img_data.shape[-1]
     
-    # Use memory chunking approach
-    if use_memory_chunking:
-        return _run_inference_memory_chunking(
-            image_path, output_dir, pre_transforms, post_transforms,
-            amp_context, chunk_size, device, inferer, model,
-            verbose, fallback_device, use_early_argmax
-        )
-    
-    # Use disk-based chunking approach
-    return _run_inference_disk_chunking(
-        image_path, output_dir, pre_transforms, post_transforms,
-        amp_context, chunk_size, device, inferer, model,
-        verbose, fallback_device, use_early_argmax
-    )
+    # Logic if no chunking needed
+    if D <= chunk_size:
+        try:
+            data   = {"image": image_path}
+            data   = pre_transforms(data)
+            tensor = data["image"]
+            if device.type in ["cpu", "mps"]:
+                tensor = tensor.float()  # MPS doesn't support float64
+            if tensor.ndim == 4:
+                tensor = tensor.unsqueeze(0)              
+            tensor = tensor.to(device, non_blocking=True)
+
+            with amp_context, torch.inference_mode():
+                pred = inferer(tensor, model)
+            
+            mem_monitor.end_stage()
+
+            # Post-processing
+            single_pred = pred.squeeze(0).squeeze(0)
+            # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
+            if device.type == "mps":
+                single_pred = single_pred.cpu()
+            post_in = {
+                "pred": single_pred,
+                "image": data["image"],
+                "image_meta_dict": data["image_meta_dict"],
+            }
+            del data
+            
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy()
+            full_seg = connected_chunks(seg_np)
+            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            
+            # Clean up memory
+            del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            return out_path
+        
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                logging.warning(f"{device.type.upper()} OOM on small image, falling back to CPU: {e}")
+                # Retry on CPU
+                torch.cuda.empty_cache()
+                gc.collect()
+                device = fallback_device
+                model = model.to(device).float()
+                amp_context = torch.autocast('cpu', enabled=False)
+                
+                # Retry inference on CPU
+                return run_inference(
+                    image_path, output_dir, pre_transforms, post_transforms,
+                    amp_context, chunk_size, device, inferer, model, verbose, None
+                )
+            else:
+                raise
+
+    temp_dir = os.path.join(output_dir, "temp_chunks")
+    os.makedirs(temp_dir, exist_ok=True)
+    gc.collect()  
+
+    # Store chunks in dict
+    chunk_files = []
+    for start in range(0, D, chunk_size):
+        end       = min(start + chunk_size, D)
+        vol_chunk = img_data[..., start:end]
+        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
+        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
+        del vol_chunk  
+        chunk_files.append({"image": chunk_path, "start": start, "end": end})
+
+    del img_data, img_nii
+    gc.collect()
+
+    with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
+        for i, entry in enumerate(chunk_files):
+            try:
+                data   = {"image": entry["image"]}
+                data   = pre_transforms(data)
+                tensor = data["image"]
+                if device.type in ["cpu", "mps"]:
+                    tensor = tensor.float()
+                if tensor.ndim == 4:
+                    tensor = tensor.unsqueeze(0)
+                tensor = tensor.to(device, non_blocking=True)
+
+                with amp_context, torch.inference_mode():
+                    pred = inferer(tensor, model)
+
+                single_pred = pred.squeeze(0).squeeze(0)
+                # Move to CPU for MPS compatibility (MONAI inverse transforms need float64)
+                if device.type == "mps":
+                    single_pred = single_pred.cpu()
+                post_in = {
+                    "pred": single_pred,
+                    "image": data["image"],
+                    "image_meta_dict": data["image_meta_dict"],
+                }
+                del data  
+                post_out = post_transforms(post_in)
+                seg_tensor = post_out["pred"].detach().cpu().to(torch.int16) #int16 is smallest dtype possible
+                seg_np = seg_tensor.numpy()
+                seg_path = os.path.join(
+                    temp_dir,
+                    f"seg_{entry['start']}_{entry['end']}.nii.gz"
+                )
+                nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
+                entry["seg"] = seg_path
+
+                # Clean up memory
+                del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                
+                pbar.update(1)
+
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                    logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU for remaining chunks: {e}")
+                    
+                    # Retry on CPU
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    device = fallback_device
+                    model = model.to(device).float()
+                    amp_context = torch.autocast('cpu', enabled=False)
+                    
+                    # Clean up and retry with CPU
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    return run_inference(
+                        image_path, output_dir, pre_transforms, post_transforms,
+                        amp_context, chunk_size, device, inferer, model, verbose, None
+                    )
+                else:
+                    raise
+
+    # Post-processing
+    dims     = header.get_data_shape()  
+    full_seg = np.zeros(dims, dtype=np.int16)
+    for entry in chunk_files:
+        s, e, sp = entry["start"], entry["end"], entry["seg"]
+        vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
+        full_seg[..., s:e] = vol_seg
+        gc.collect()
+        del vol_seg 
+
+    gc.collect()  
+    full_seg = connected_chunks(full_seg)
+    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+
+    # final cleanup
+    del full_seg
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    return out_path
 
 
-def _run_inference_memory_chunking(
+def run_inference_fast(
     image_path,
     output_dir,
     pre_transforms,
@@ -896,18 +1029,23 @@ def _run_inference_memory_chunking(
     device=None,
     inferer=None,
     model=None,
-    verbose=False,
     fallback_device=None,
-    use_early_argmax=False,
 ):
     """
-    Memory-based chunking: preprocess once, chunk in RAM.
-    Optionally uses early argmax for speed.
+    Fast inference using in-memory chunking with early discretization in post_tranforms, avoiding binary labelmaps for every
+    class in the model for every voxel.
+    
+    Key differences from the original disk-based chunking:
+    - Applies pre_transforms to full image and then chunks (not per-chunk)
+    - Converts preprocessed result to numpy and chunks in RAM
+    - Processes chunks on GPU with early discretization (argmax before Invertd)
+    - Applies Invertd once at end to accumulated discrete result
+    - Much faster: no disk I/O, reduced memory from early discretization
     """
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     logging.info(f"Loading and preprocessing image: {os.path.basename(image_path)}")
     
-    # Apply pre_transforms to FULL image once
+    # Apply pre_transforms to FULL image (like reference implementation)
     data = {"image": image_path}
     data = pre_transforms(data)
     
@@ -921,11 +1059,10 @@ def _run_inference_memory_chunking(
     if img_array.ndim == 4 and img_array.shape[0] == 1:
         img_array = img_array[0]
     
-    # This is the PREPROCESSED shape (after resampling)
-    preprocessed_shape = img_array.shape
-    D = preprocessed_shape[-1]
+    img_shape = img_array.shape
+    D = img_shape[-1]
     
-    logging.info(f"Preprocessed image shape: {preprocessed_shape}, Depth: {D} slices")
+    logging.info(f"Preprocessed image shape: {img_shape}, Depth: {D} slices")
     
     # Clean up
     del original_image_tensor, data
@@ -933,8 +1070,8 @@ def _run_inference_memory_chunking(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
-    # Small image - process as single volume
     if D <= chunk_size:
+        # Small image - process as single volume
         logging.info(f"Image is small ({D} slices), processing as single volume...")
         try:
             tensor = torch.from_numpy(img_array).float()
@@ -947,52 +1084,37 @@ def _run_inference_memory_chunking(
             with amp_context, torch.inference_mode():
                 pred = inferer(tensor, model)
             
-            if use_early_argmax:
-                # Early discretization: argmax BEFORE Invertd (reduces memory 90x)
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
-                
-                # Apply Invertd to resample back to original space
-                pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
-                pred_metatensor.applied_operations = stored_applied_operations
-                
-                invertd = Invertd(
-                    keys="pred",
-                    transform=pre_transforms,
-                    orig_keys="image",
-                    meta_keys="pred_meta_dict",
-                    orig_meta_keys="image_meta_dict",
-                    meta_key_postfix="meta_dict",
-                    nearest_interp=True,
-                    to_tensor=True,
-                    device="cpu",
-                )
-                
-                post_in = {
-                    "pred": pred_metatensor,
-                    "image": torch.from_numpy(img_array),
-                    "image_meta_dict": stored_meta_dict,
-                    "image_transforms": stored_applied_operations,
-                }
-                
-                post_out = invertd(post_in)
-                seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-                
-                del tensor, pred, pred_discrete, pred_metatensor, post_in, post_out
-            else:
-                # Standard post-processing with full post_transforms
-                single_pred = pred.squeeze(0).squeeze(0)
-                if device.type == "mps":
-                    single_pred = single_pred.cpu()
-                
-                post_in = {
-                    "pred": single_pred,
-                    "image": torch.from_numpy(img_array),
-                    "image_meta_dict": stored_meta_dict,
-                }
-                post_out = post_transforms(post_in)
-                seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-                
-                del tensor, pred, single_pred, post_in, post_out
+            # Early discretization: argmax BEFORE Invertd (reduces memory 90x)
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16) # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
+            
+            # Apply Invertd to resample back to original space
+            from monai.transforms import Invertd
+            from monai.data import MetaTensor
+            
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+            pred_metatensor.applied_operations = stored_applied_operations
+            
+            invertd = Invertd(
+                keys="pred",
+                transform=pre_transforms,
+                orig_keys="image",
+                meta_keys="pred_meta_dict",
+                orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict",
+                nearest_interp=True,
+                to_tensor=True,
+                device="cpu", # Pushing to CPU RAM to avoid GPU OOM
+            )
+            
+            post_in = {
+                "pred": pred_metatensor,
+                "image": torch.from_numpy(img_array),
+                "image_meta_dict": stored_meta_dict,
+                "image_transforms": stored_applied_operations,
+            }
+            
+            post_out = invertd(post_in)
+            seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
             
             # Apply connected components
             full_seg = connected_chunks(seg_np)
@@ -1001,7 +1123,7 @@ def _run_inference_memory_chunking(
             img_nii = nib.load(image_path)
             nib.save(nib.Nifti1Image(full_seg, img_nii.affine, img_nii.header), out_path)
             
-            del seg_np, full_seg, img_array
+            del tensor, pred, pred_discrete, pred_metatensor, post_in, post_out, seg_np, full_seg, img_array
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -1016,213 +1138,107 @@ def _run_inference_memory_chunking(
                 model = model.to(device).float()
                 amp_context = torch.autocast('cpu', enabled=False)
                 
-                return _run_inference_memory_chunking(
+                return run_inference_fast(
                     image_path, output_dir, pre_transforms, post_transforms,
-                    amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
+                    amp_context, chunk_size, device, inferer, model, None
                 )
             else:
                 raise
 
-    # Multi-chunk processing
-    if use_early_argmax:
-        # Multi-chunk processing with early argmax - accumulate in PREPROCESSED space
-        logging.info(f"Processing {D} slices with in-memory chunking and early argmax...")
-        
-        # Initialize output array in PREPROCESSED space (not original space!)
-        full_pred = np.zeros(preprocessed_shape, dtype=np.int16)
-        
-        # Process chunks from preprocessed array
-        with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
-            for start in range(0, D, chunk_size):
-                try:
-                    end = min(start + chunk_size, D)
-                    
-                    # Extract chunk from preprocessed array in RAM
-                    chunk_array = img_array[..., start:end]
-                    
-                    # Convert to tensor and move to device
-                    tensor = torch.from_numpy(chunk_array).float()
-                    if tensor.ndim == 3:
-                        tensor = tensor.unsqueeze(0).unsqueeze(0)
-                    elif tensor.ndim == 4:
-                        tensor = tensor.unsqueeze(0)
-                    tensor = tensor.to(device, non_blocking=True)
-                    
-                    # Run inference
-                    with amp_context, torch.inference_mode():
-                        pred = inferer(tensor, model)
-                    
-                    # Apply argmax immediately (early discretization)
-                    pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
-                    
-                    # Store discrete prediction in PREPROCESSED space
-                    full_pred[..., start:end] = pred_discrete
-                    
-                    # Cleanup
-                    del tensor, pred, pred_discrete, chunk_array
-                    gc.collect()
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    
-                    pbar.update(end - start)
-                    
-                except RuntimeError as e:
-                    if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                        logging.warning(f"{device.type.upper()} memory error on chunk {start}-{end}, falling back to CPU: {e}")
-                        torch.cuda.empty_cache()
-                        gc.collect()
-                        device = fallback_device
-                        model = model.to(device).float()
-                        amp_context = torch.autocast('cpu', enabled=False)
-                        
-                        # Restart with CPU
-                        del full_pred, img_array
-                        gc.collect()
-                        return _run_inference_memory_chunking(
-                            image_path, output_dir, pre_transforms, post_transforms,
-                            amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
-                        )
-                    else:
-                        raise
-        
-        # Apply Invertd once to accumulated discrete result to resample to original space
-        logging.info("Applying inverse transforms to resample to original space...")
-        full_pred_tensor = torch.from_numpy(full_pred)
-        pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
-        pred_metatensor.applied_operations = stored_applied_operations
-        
-        invertd = Invertd(
-            keys="pred",
-            transform=pre_transforms,
-            orig_keys="image",
-            meta_keys="pred_meta_dict",
-            orig_meta_keys="image_meta_dict",
-            meta_key_postfix="meta_dict",
-            nearest_interp=True,
-            to_tensor=True,
-            device="cpu",
-        )
-        
-        post_in = {
-            "pred": pred_metatensor,
-            "image": torch.from_numpy(img_array),
-            "image_meta_dict": stored_meta_dict,
-            "image_transforms": stored_applied_operations,
-        }
-        
-        post_out = invertd(post_in)
-        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-        
-        del full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, img_array
-        gc.collect()
-        
-        # Apply connected components
-        full_seg = connected_chunks(seg_np)
-        del seg_np
+    # Multi-chunk processing: chunk preprocessed array in RAM, apply Invertd once at end
+    logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
     
-    else:
-        # Standard post-processing per chunk (no early argmax)
-        # Note: When using Invertd per-chunk, each chunk gets resampled to original space
-        # We need to calculate the proper slice indices in original space
-        
-        # Get original image dimensions for reconstruction
-        img_nii = nib.load(image_path)
-        original_dims = img_nii.header.get_data_shape()
-        original_D = original_dims[-1]
-        
-        # Calculate scale factor between preprocessed and original depth
-        scale_factor = original_D / D
-        
-        chunk_results = []
-        
-        with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
-            for start in range(0, D, chunk_size):
-                try:
-                    end = min(start + chunk_size, D)
-                    
-                    # Calculate corresponding indices in original space
-                    orig_start = int(round(start * scale_factor))
-                    orig_end = int(round(end * scale_factor))
-                    
-                    # Extract chunk from preprocessed array in RAM
-                    chunk_array = img_array[..., start:end]
-                    
-                    # Convert to tensor and move to device
-                    tensor = torch.from_numpy(chunk_array).float()
-                    if tensor.ndim == 3:
-                        tensor = tensor.unsqueeze(0).unsqueeze(0)
-                    elif tensor.ndim == 4:
-                        tensor = tensor.unsqueeze(0)
-                    tensor = tensor.to(device, non_blocking=True)
-                    
-                    # Run inference
-                    with amp_context, torch.inference_mode():
-                        pred = inferer(tensor, model)
-                    
-                    # Standard post-processing
-                    single_pred = pred.squeeze(0).squeeze(0)
-                    if device.type == "mps":
-                        single_pred = single_pred.cpu()
-                    
-                    # Create chunk-specific metadata
-                    chunk_meta = stored_meta_dict.copy()
-                    post_in = {
-                        "pred": single_pred,
-                        "image": torch.from_numpy(chunk_array),
-                        "image_meta_dict": chunk_meta,
-                    }
-                    post_out = post_transforms(post_in)
-                    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
-                    
-                    chunk_results.append({"orig_start": orig_start, "orig_end": orig_end, "seg": seg_np})
-                    
-                    # Cleanup
-                    del tensor, pred, single_pred, post_in, post_out, chunk_array
+    # Initialize output array for discrete predictions (int16, not float32 probabilities)
+    full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
+    
+    # Process chunks from preprocessed array
+    with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
+        for start in range(0, D, chunk_size):
+            try:
+                end = min(start + chunk_size, D)
+                
+                # Extract chunk from preprocessed array in RAM
+                chunk_array = img_array[..., start:end]
+                
+                # Convert to tensor and move to device
+                tensor = torch.from_numpy(chunk_array).float()
+                if tensor.ndim == 3:
+                    tensor = tensor.unsqueeze(0).unsqueeze(0)
+                elif tensor.ndim == 4:
+                    tensor = tensor.unsqueeze(0)
+                tensor = tensor.to(device, non_blocking=True)
+                
+                # Run inference
+                with amp_context, torch.inference_mode():
+                    pred = inferer(tensor, model)
+                
+                # Apply argmax immediately (early discretization) so each voxel has just one labelamp per voxel
+                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy() # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
+                
+                # Store discrete prediction in RAM
+                full_pred[..., start:end] = pred_discrete
+                
+                # Cleanup
+                del tensor, pred, pred_discrete, chunk_array
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                
+                pbar.update(end - start)
+                
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
+                    logging.warning(f"{device.type.upper()} memory error on chunk {start}-{end}, falling back to CPU: {e}")
+                    torch.cuda.empty_cache()
                     gc.collect()
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
+                    device = fallback_device
+                    model = model.to(device).float()
+                    amp_context = torch.autocast('cpu', enabled=False)
                     
-                    pbar.update(end - start)
-                    
-                except RuntimeError as e:
-                    if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                        logging.warning(f"{device.type.upper()} memory error on chunk {start}-{end}, falling back to CPU: {e}")
-                        torch.cuda.empty_cache()
-                        gc.collect()
-                        device = fallback_device
-                        model = model.to(device).float()
-                        amp_context = torch.autocast('cpu', enabled=False)
-                        
-                        # Restart with CPU
-                        del img_array
-                        gc.collect()
-                        return _run_inference_memory_chunking(
-                            image_path, output_dir, pre_transforms, post_transforms,
-                            amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
-                        )
-                    else:
-                        raise
-        
-        # Reconstruct full segmentation using original space indices
-        full_seg = np.zeros(original_dims, dtype=np.int16)
-        
-        for entry in chunk_results:
-            orig_s, orig_e, seg = entry["orig_start"], entry["orig_end"], entry["seg"]
-            seg_squeezed = seg.squeeze()
-            if seg_squeezed.ndim == 3:
-                # The actual output depth may differ slightly due to Invertd resampling
-                actual_depth = seg_squeezed.shape[-1]
-                # Adjust end index if needed to match actual output
-                adj_end = min(orig_s + actual_depth, original_D)
-                full_seg[..., orig_s:adj_end] = seg_squeezed[..., :adj_end - orig_s]
-            else:
-                full_seg[..., orig_s:orig_e] = seg_squeezed
-        
-        del chunk_results, img_array
-        gc.collect()
-        
-        # Apply connected components
-        full_seg = connected_chunks(full_seg)
+                    # Restart with CPU
+                    del full_pred, img_array
+                    gc.collect()
+                    return run_inference_fast(
+                        image_path, output_dir, pre_transforms, post_transforms,
+                        amp_context, chunk_size, device, inferer, model, None
+                    )
+                else:
+                    raise
+    
+    # Apply Invertd once to accumulated discrete result
+    logging.info("Applying inverse transforms to resample back to original space...")
+    from monai.transforms import Invertd
+    from monai.data import MetaTensor
+    
+    full_pred_tensor = torch.from_numpy(full_pred)
+    pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
+    pred_metatensor.applied_operations = stored_applied_operations
+    
+    invertd = Invertd(
+        keys="pred",
+        transform=pre_transforms,
+        orig_keys="image",
+        meta_keys="pred_meta_dict",
+        orig_meta_keys="image_meta_dict",
+        meta_key_postfix="meta_dict",
+        nearest_interp=True,
+        to_tensor=True,
+        device="cpu",
+    )
+    
+    post_in = {
+        "pred": pred_metatensor,
+        "image": torch.from_numpy(img_array),
+        "image_meta_dict": stored_meta_dict,
+        "image_transforms": stored_applied_operations,
+    }
+    
+    post_out = invertd(post_in)
+    seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
+    
+    # Apply connected components
+    logging.info("Connecting chunks...")
+    full_seg = connected_chunks(seg_np)
     
     # Save with original affine/header
     img_nii = nib.load(image_path)
@@ -1230,334 +1246,9 @@ def _run_inference_memory_chunking(
     logging.info(f"Segmentation saved to: {out_path}")
     
     # Cleanup
-    del full_seg
+    del img_array, full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, seg_np, full_seg
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     
-    return out_path
-
-
-def _run_inference_disk_chunking(
-    image_path,
-    output_dir,
-    pre_transforms,
-    post_transforms,
-    amp_context=None,
-    chunk_size=25,
-    device=None,
-    inferer=None,
-    model=None,
-    verbose=False,
-    fallback_device=None,
-    use_early_argmax=False,
-):
-    """
-    Disk-based chunking: save/load chunks to disk.
-    Optionally uses early argmax for speed.
-    """
-    out_path = _make_out_path(image_path, output_dir, "_dseg")
-    img_nii  = nib.load(image_path)
-    affine   = img_nii.affine.copy()
-    header   = img_nii.header.copy()
-    img_data = img_nii.get_fdata().astype(np.float32)
-    img_shape = img_data.shape
-    D        = img_data.shape[-1]
-    
-    # Small image - no chunking needed
-    if D <= chunk_size:
-        try:
-            data   = {"image": image_path}
-            data   = pre_transforms(data)
-            tensor = data["image"]
-            if device.type in ["cpu", "mps"]:
-                tensor = tensor.float()
-            if tensor.ndim == 4:
-                tensor = tensor.unsqueeze(0)              
-            tensor = tensor.to(device, non_blocking=True)
-
-            with amp_context, torch.inference_mode():
-                pred = inferer(tensor, model)
-            
-            if use_early_argmax:
-                # Early discretization
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
-                
-                # Need to apply Invertd manually when using early argmax
-                from monai.transforms import Invertd
-                from monai.data import MetaTensor
-                
-                stored_meta_dict = dict(data["image"].meta) if hasattr(data["image"], 'meta') else data.get("image_meta_dict", {})
-                stored_applied_operations = list(data["image"].applied_operations) if hasattr(data["image"], 'applied_operations') else []
-                
-                pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
-                pred_metatensor.applied_operations = stored_applied_operations
-                
-                invertd = Invertd(
-                    keys="pred",
-                    transform=pre_transforms,
-                    orig_keys="image",
-                    meta_keys="pred_meta_dict",
-                    orig_meta_keys="image_meta_dict",
-                    meta_key_postfix="meta_dict",
-                    nearest_interp=True,
-                    to_tensor=True,
-                    device="cpu",
-                )
-                
-                post_in = {
-                    "pred": pred_metatensor,
-                    "image": data["image"],
-                    "image_meta_dict": stored_meta_dict,
-                    "image_transforms": stored_applied_operations,
-                }
-                
-                post_out = invertd(post_in)
-                seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-                
-                del tensor, pred, pred_discrete, pred_metatensor, post_in, post_out
-            else:
-                # Standard post-processing
-                single_pred = pred.squeeze(0).squeeze(0)
-                if device.type == "mps":
-                    single_pred = single_pred.cpu()
-                post_in = {
-                    "pred": single_pred,
-                    "image": data["image"],
-                    "image_meta_dict": data["image_meta_dict"],
-                }
-                del data
-                
-                post_out = post_transforms(post_in)
-                seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-                
-                del tensor, pred, single_pred, post_in, post_out
-            
-            full_seg = connected_chunks(seg_np)
-            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-            
-            del seg_np, full_seg
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            return out_path
-        
-        except RuntimeError as e:
-            if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                logging.warning(f"{device.type.upper()} OOM on small image, falling back to CPU: {e}")
-                torch.cuda.empty_cache()
-                gc.collect()
-                device = fallback_device
-                model = model.to(device).float()
-                amp_context = torch.autocast('cpu', enabled=False)
-                
-                return _run_inference_disk_chunking(
-                    image_path, output_dir, pre_transforms, post_transforms,
-                    amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
-                )
-            else:
-                raise
-
-    # Multi-chunk processing with disk storage
-    temp_dir = os.path.join(output_dir, "temp_chunks")
-    os.makedirs(temp_dir, exist_ok=True)
-    gc.collect()
-
-    # Store chunks on disk
-    chunk_files = []
-    for start in range(0, D, chunk_size):
-        end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii.gz")
-        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-        del vol_chunk  
-        chunk_files.append({"image": chunk_path, "start": start, "end": end})
-
-    del img_data, img_nii
-    gc.collect()
-
-    if use_early_argmax:
-        # Process chunks with early argmax, then apply Invertd once at end
-        dims = header.get_data_shape()
-        full_pred = np.zeros(dims, dtype=np.int16)
-        
-        # Metadata for Invertd - extract from first chunk
-        stored_meta_dict = None
-        stored_applied_operations = None
-        
-        with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
-            for i, entry in enumerate(chunk_files):
-                try:
-                    data = {"image": entry["image"]}
-                    data = pre_transforms(data)
-                    
-                    # Store metadata from first chunk
-                    if stored_meta_dict is None:
-                        stored_meta_dict = dict(data["image"].meta) if hasattr(data["image"], 'meta') else data.get("image_meta_dict", {})
-                        stored_applied_operations = list(data["image"].applied_operations) if hasattr(data["image"], 'applied_operations') else []
-                    
-                    tensor = data["image"]
-                    if device.type in ["cpu", "mps"]:
-                        tensor = tensor.float()
-                    if tensor.ndim == 4:
-                        tensor = tensor.unsqueeze(0)
-                    tensor = tensor.to(device, non_blocking=True)
-
-                    with amp_context, torch.inference_mode():
-                        pred = inferer(tensor, model)
-
-                    # Apply argmax immediately
-                    pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
-                    
-                    # Store in full array (in preprocessed space, will be resampled later)
-                    s, e = entry["start"], entry["end"]
-                    full_pred[..., s:e] = pred_discrete
-
-                    # Clean up memory
-                    del data, tensor, pred, pred_discrete
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    gc.collect()
-                    
-                    pbar.update(1)
-
-                except RuntimeError as e:
-                    if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                        logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU: {e}")
-                        
-                        torch.cuda.empty_cache()
-                        gc.collect()
-                        device = fallback_device
-                        model = model.to(device).float()
-                        amp_context = torch.autocast('cpu', enabled=False)
-                        
-                        shutil.rmtree(temp_dir, ignore_errors=True)
-                        return _run_inference_disk_chunking(
-                            image_path, output_dir, pre_transforms, post_transforms,
-                            amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
-                        )
-                    else:
-                        raise
-        
-        # Apply Invertd once to full result to resample to original space
-        from monai.transforms import Invertd
-        from monai.data import MetaTensor
-        
-        logging.info("Applying inverse transforms to resample to original space...")
-        
-        # Load original image for metadata
-        img_nii_orig = nib.load(image_path)
-        img_data_orig = img_nii_orig.get_fdata().astype(np.float32)
-        
-        full_pred_tensor = torch.from_numpy(full_pred)
-        pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
-        pred_metatensor.applied_operations = stored_applied_operations
-        
-        invertd = Invertd(
-            keys="pred",
-            transform=pre_transforms,
-            orig_keys="image",
-            meta_keys="pred_meta_dict",
-            orig_meta_keys="image_meta_dict",
-            meta_key_postfix="meta_dict",
-            nearest_interp=True,
-            to_tensor=True,
-            device="cpu",
-        )
-        
-        post_in = {
-            "pred": pred_metatensor,
-            "image": torch.from_numpy(img_data_orig),
-            "image_meta_dict": stored_meta_dict,
-            "image_transforms": stored_applied_operations,
-        }
-        
-        post_out = invertd(post_in)
-        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-        
-        del full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, img_data_orig
-        gc.collect()
-        
-        full_seg = connected_chunks(seg_np)
-        del seg_np
-    else:
-        # Standard processing per chunk
-        with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
-            for i, entry in enumerate(chunk_files):
-                try:
-                    data   = {"image": entry["image"]}
-                    data   = pre_transforms(data)
-                    tensor = data["image"]
-                    if device.type in ["cpu", "mps"]:
-                        tensor = tensor.float()
-                    if tensor.ndim == 4:
-                        tensor = tensor.unsqueeze(0)
-                    tensor = tensor.to(device, non_blocking=True)
-
-                    with amp_context, torch.inference_mode():
-                        pred = inferer(tensor, model)
-
-                    single_pred = pred.squeeze(0).squeeze(0)
-                    if device.type == "mps":
-                        single_pred = single_pred.cpu()
-                    post_in = {
-                        "pred": single_pred,
-                        "image": data["image"],
-                        "image_meta_dict": data["image_meta_dict"],
-                    }
-                    del data  
-                    post_out = post_transforms(post_in)
-                    seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-                    seg_np = seg_tensor.numpy()
-                    seg_path = os.path.join(temp_dir, f"seg_{entry['start']}_{entry['end']}.nii.gz")
-                    nib.save(nib.Nifti1Image(seg_np, affine, header), seg_path)
-                    entry["seg"] = seg_path
-
-                    # Clean up memory
-                    del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    gc.collect()
-                    
-                    pbar.update(1)
-
-                except RuntimeError as e:
-                    if "out of memory" in str(e).lower() and device.type in ['cuda', 'mps'] and fallback_device is not None:
-                        logging.warning(f"{device.type.upper()} OOM on chunk {i+1}, falling back to CPU: {e}")
-                        
-                        torch.cuda.empty_cache()
-                        gc.collect()
-                        device = fallback_device
-                        model = model.to(device).float()
-                        amp_context = torch.autocast('cpu', enabled=False)
-                        
-                        shutil.rmtree(temp_dir, ignore_errors=True)
-                        return _run_inference_disk_chunking(
-                            image_path, output_dir, pre_transforms, post_transforms,
-                            amp_context, chunk_size, device, inferer, model, verbose, None, use_early_argmax
-                        )
-                    else:
-                        raise
-
-        # Reconstruct full segmentation - use ORIGINAL image dimensions
-        dims = header.get_data_shape()  
-        full_seg = np.zeros(dims, dtype=np.int16)
-        for entry in chunk_files:
-            s, e, sp = entry["start"], entry["end"], entry["seg"]
-            vol_seg  = nib.load(sp).get_fdata().astype(np.int16)
-            full_seg[..., s:e] = vol_seg
-            gc.collect()
-            del vol_seg 
-
-        gc.collect()  
-        full_seg = connected_chunks(full_seg)
-    
-    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-    # Cleanup
-    del full_seg
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    shutil.rmtree(temp_dir, ignore_errors=True)
     return out_path
