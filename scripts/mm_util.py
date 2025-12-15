@@ -921,10 +921,11 @@ def _run_inference_memory_chunking(
     if img_array.ndim == 4 and img_array.shape[0] == 1:
         img_array = img_array[0]
     
-    img_shape = img_array.shape
-    D = img_shape[-1]
+    # This is the PREPROCESSED shape (after resampling)
+    preprocessed_shape = img_array.shape
+    D = preprocessed_shape[-1]
     
-    logging.info(f"Preprocessed image shape: {img_shape}, Depth: {D} slices")
+    logging.info(f"Preprocessed image shape: {preprocessed_shape}, Depth: {D} slices")
     
     # Clean up
     del original_image_tensor, data
@@ -1022,11 +1023,13 @@ def _run_inference_memory_chunking(
             else:
                 raise
 
-        # Multi-chunk processing with early argmax - apply Invertd once at end
+    # Multi-chunk processing
+    if use_early_argmax:
+        # Multi-chunk processing with early argmax - accumulate in PREPROCESSED space
         logging.info(f"Processing {D} slices with in-memory chunking and early argmax...")
         
-        # Initialize output array for discrete predictions (int16)
-        full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
+        # Initialize output array in PREPROCESSED space (not original space!)
+        full_pred = np.zeros(preprocessed_shape, dtype=np.int16)
         
         # Process chunks from preprocessed array
         with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
@@ -1052,7 +1055,7 @@ def _run_inference_memory_chunking(
                     # Apply argmax immediately (early discretization)
                     pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
                     
-                    # Store discrete prediction in RAM
+                    # Store discrete prediction in PREPROCESSED space
                     full_pred[..., start:end] = pred_discrete
                     
                     # Cleanup
@@ -1083,9 +1086,6 @@ def _run_inference_memory_chunking(
                         raise
         
         # Apply Invertd once to accumulated discrete result to resample to original space
-        from monai.transforms import Invertd
-        from monai.data import MetaTensor
-        
         logging.info("Applying inverse transforms to resample to original space...")
         full_pred_tensor = torch.from_numpy(full_pred)
         pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
@@ -1189,14 +1189,19 @@ def _run_inference_memory_chunking(
                     else:
                         raise
         
-        # Reconstruct full segmentation
+        # Reconstruct full segmentation - use ORIGINAL image dimensions
         img_nii = nib.load(image_path)
         dims = img_nii.header.get_data_shape()
         full_seg = np.zeros(dims, dtype=np.int16)
         
         for entry in chunk_results:
             s, e, seg = entry["start"], entry["end"], entry["seg"]
-            full_seg[..., s:e] = seg
+            # Note: seg is already in original space due to post_transforms with Invertd
+            seg_squeezed = seg.squeeze()
+            if seg_squeezed.ndim == 3:
+                full_seg[..., s:e] = seg_squeezed
+            else:
+                full_seg[..., s:e] = seg_squeezed
         
         del chunk_results, img_array
         gc.collect()
@@ -1520,7 +1525,7 @@ def _run_inference_disk_chunking(
                     else:
                         raise
 
-        # Reconstruct full segmentation
+        # Reconstruct full segmentation - use ORIGINAL image dimensions
         dims = header.get_data_shape()  
         full_seg = np.zeros(dims, dtype=np.int16)
         for entry in chunk_files:
