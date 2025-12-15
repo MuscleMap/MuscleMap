@@ -16,7 +16,7 @@
 
   <!-- Overview subpages -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/publications.html/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/publications/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -54,7 +54,7 @@
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/spatial_distribution/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/spatial-distribution/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
@@ -66,26 +66,26 @@
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/cite.html/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/cite/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <!-- Developer section -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/change_log.html/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/change-log/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/license.html/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/license/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/feedback.html/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/feedback/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
