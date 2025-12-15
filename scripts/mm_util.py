@@ -1022,11 +1022,10 @@ def _run_inference_memory_chunking(
             else:
                 raise
 
-    # Multi-chunk processing
-    logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
-    
-    if use_early_argmax:
-        # Initialize output array for discrete predictions (int16, not float32 probabilities)
+        # Multi-chunk processing with early argmax - apply Invertd once at end
+        logging.info(f"Processing {D} slices with in-memory chunking and early argmax...")
+        
+        # Initialize output array for discrete predictions (int16)
         full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
         
         # Process chunks from preprocessed array
@@ -1083,45 +1082,43 @@ def _run_inference_memory_chunking(
                     else:
                         raise
         
-        # Apply Invertd once to accumulated discrete result
+        # Apply Invertd once to accumulated discrete result to resample to original space
         from monai.transforms import Invertd
         from monai.data import MetaTensor
         
-        with tqdm(total=2, desc="Post-processing", unit="step") as pbar:
-            pbar.set_description("Applying inverse transforms")
-            full_pred_tensor = torch.from_numpy(full_pred)
-            pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
-            pred_metatensor.applied_operations = stored_applied_operations
-            
-            invertd = Invertd(
-                keys="pred",
-                transform=pre_transforms,
-                orig_keys="image",
-                meta_keys="pred_meta_dict",
-                orig_meta_keys="image_meta_dict",
-                meta_key_postfix="meta_dict",
-                nearest_interp=True,
-                to_tensor=True,
-                device="cpu",
-            )
-            
-            post_in = {
-                "pred": pred_metatensor,
-                "image": torch.from_numpy(img_array),
-                "image_meta_dict": stored_meta_dict,
-                "image_transforms": stored_applied_operations,
-            }
-            
-            post_out = invertd(post_in)
-            seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
-            pbar.update(1)
-            
-            # Apply connected components
-            pbar.set_description("Filtering connected components")
-            full_seg = connected_chunks(seg_np)
-            pbar.update(1)
+        logging.info("Applying inverse transforms to resample to original space...")
+        full_pred_tensor = torch.from_numpy(full_pred)
+        pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
+        pred_metatensor.applied_operations = stored_applied_operations
         
-        del img_array, full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, seg_np
+        invertd = Invertd(
+            keys="pred",
+            transform=pre_transforms,
+            orig_keys="image",
+            meta_keys="pred_meta_dict",
+            orig_meta_keys="image_meta_dict",
+            meta_key_postfix="meta_dict",
+            nearest_interp=True,
+            to_tensor=True,
+            device="cpu",
+        )
+        
+        post_in = {
+            "pred": pred_metatensor,
+            "image": torch.from_numpy(img_array),
+            "image_meta_dict": stored_meta_dict,
+            "image_transforms": stored_applied_operations,
+        }
+        
+        post_out = invertd(post_in)
+        seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
+        
+        del full_pred, full_pred_tensor, pred_metatensor, post_in, post_out, img_array
+        gc.collect()
+        
+        # Apply connected components
+        full_seg = connected_chunks(seg_np)
+        del seg_np
     
     else:
         # Standard post-processing per chunk (no early argmax)
@@ -1360,12 +1357,13 @@ def _run_inference_disk_chunking(
     gc.collect()
 
     if use_early_argmax:
-        # Process chunks with early argmax
-        # Store metadata from first chunk for later Invertd
-        stored_meta_dict = None
-        stored_applied_operations = None
+        # Process chunks with early argmax, then apply Invertd once at end
         dims = header.get_data_shape()
         full_pred = np.zeros(dims, dtype=np.int16)
+        
+        # Metadata for Invertd - extract from first chunk
+        stored_meta_dict = None
+        stored_applied_operations = None
         
         with tqdm(total=len(chunk_files), desc="Processing chunks", unit="chunk") as pbar:
             for i, entry in enumerate(chunk_files):
@@ -1391,7 +1389,7 @@ def _run_inference_disk_chunking(
                     # Apply argmax immediately
                     pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
                     
-                    # Store in full array
+                    # Store in full array (in preprocessed space, will be resampled later)
                     s, e = entry["start"], entry["end"]
                     full_pred[..., s:e] = pred_discrete
 
@@ -1421,11 +1419,11 @@ def _run_inference_disk_chunking(
                     else:
                         raise
         
-        # Apply Invertd once to full result
+        # Apply Invertd once to full result to resample to original space
         from monai.transforms import Invertd
         from monai.data import MetaTensor
         
-        logging.info("Applying inverse transforms to full volume...")
+        logging.info("Applying inverse transforms to resample to original space...")
         
         # Load original image for metadata
         img_nii_orig = nib.load(image_path)
@@ -1461,6 +1459,7 @@ def _run_inference_disk_chunking(
         gc.collect()
         
         full_seg = connected_chunks(seg_np)
+        del seg_np
         del seg_np
     else:
         # Standard processing per chunk
