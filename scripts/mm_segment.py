@@ -71,13 +71,13 @@ def get_parser():
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
     
     optional.add_argument("--fast", action='store_true',
-                    help="Enable fast mode: uses in-memory chunking and early argmax for maximum speed. Default overlap is 50%% (can be overridden with -s).")
+                    help="Enable fast mode: uses both in-memory chunking and early argmax for maximum speed (original fast implementation). Default overlap is 50%% (can be overridden with -s).")
     
     optional.add_argument("--fast_memory", action='store_true',
-                    help="Enable fast memory mode: uses in-memory chunking only (no early argmax). Default overlap is 50%% (can be overridden with -s).")
+                    help="Enable fast memory mode: uses in-memory chunking only (preprocess once, chunk in RAM without disk I/O). Note: still uses standard per-chunk post-processing. Default overlap is 50%% (can be overridden with -s).")
     
     optional.add_argument("--fast_transform", action='store_true',
-                    help="Enable fast transform mode: uses early argmax only (no in-memory chunking). Default overlap is 50%% (can be overridden with -s).")
+                    help="Enable fast transform mode: uses early argmax only (argmax before Invertd reduces memory ~90x). Uses disk-based chunking. Default overlap is 50%% (can be overridden with -s).")
     
     optional.add_argument("--verbose", action='store_true',
                     help="Enable verbose output during inference.")
@@ -286,7 +286,10 @@ def main():
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
             
-            # Determine which optimizations to use
+            # Determine which optimizations to use:
+            # --fast: Both optimizations (in-memory chunking AND early argmax) - fastest
+            # --fast_memory: Only in-memory chunking (preprocess once, chunk in RAM)
+            # --fast_transform: Only early argmax (disk-based chunking with early argmax)
             use_memory_chunking = args.fast or args.fast_memory
             use_early_argmax = args.fast or args.fast_transform
             
