@@ -663,10 +663,8 @@
 .main-content p,
 .main-content li,
 .main-content td,
-.main-content th,
-.main-content .text-grey,
-.main-content .text-gray {
+.main-content th {
   color: #000000 !important;
-  font-size: 0.95rem;   /* iets kleiner dan default */
+  font-size: 0.8rem;
+  opacity: 0.9;
 }
-

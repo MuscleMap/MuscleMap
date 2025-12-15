@@ -28,7 +28,7 @@ This page explains:
 
 ---
 
-# 1. Basic usage
+## 1. Basic usage
 
 After generating a segmentation with `mm_segment`, run:
 
@@ -46,9 +46,9 @@ This command:
 
 ---
 
-# 2. Required inputs
+## 2. Required inputs
 
-## 2.1 `-i` — input image
+### 2.1 `-i` — input image
 
 The MRI/CT image from which metrics are extracted:
 
@@ -56,7 +56,7 @@ The MRI/CT image from which metrics are extracted:
 mm_extract_metrics -i sub-01_T2w.nii.gz
 ```
 
-## 2.2 `-s` — segmentation labelmap
+### 2.2 `-s` — segmentation labelmap
 
 The labelmap produced by `mm_segment`:
 
@@ -66,13 +66,15 @@ mm_extract_metrics -s sub-01_dseg.nii.gz
 
 The segmentation must contain the same dimensions and orientation as the input image.
 
-> [!WARNING]
-> If the segmentation does not match the input image dimensions, metrics cannot be computed.  
-> Ensure you use the segmentation produced for that exact image.
+<div class="callout callout-warning">
+  <strong>Warning</strong><br>
+    If the segmentation does not match the input image dimensions, metrics cannot be computed.  
+    Ensure you use the segmentation produced for that exact image.
+</div>
 
 ---
 
-# 3. Metric computation methods (`-m`)
+## 3. Metric computation methods (`-m`)
 
 The `-m` flag determines **how fat fraction / composition metrics are computed**.
 
@@ -112,12 +114,14 @@ Outputs metrics such as:
 - low-attenuation muscle area  
 - voxel-level HU maps  
 
-> [!TIP]
-> Use `hu` metrics only for CT. MRI intensities do **not** reflect physical density.
+<div class="callout callout-warning">
+  <strong>Warning</strong><br>
+    Use `hu` metrics only for CT. MRI intensities do **not** reflect physical density.
+</div>
 
 ---
 
-# 4. Region selection (`-r`)
+## 4. Region selection (`-r`)
 
 Choose which muscle regions to extract metrics for.
 
@@ -137,12 +141,13 @@ Common values include:
 
 Regions correspond to MuscleMap's anatomical label groups.
 
-> [!NOTE]
-> Region definitions are based on the MuscleMap atlas and segmentation model.
-
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+Region definitions are based on the MuscleMap atlas and segmentation model.
+</div>
 ---
 
-# 5. Number of clusters (`-c`)
+## 5. Number of clusters (`-c`)
 
 Used only with **GMM**.
 
@@ -159,7 +164,7 @@ Typical choice:
 
 ---
 
-# 6. Output files
+## 6. Output files
 
 `mm_extract_metrics` typically produces:
 
@@ -184,22 +189,22 @@ Examples:
 
 ---
 
-# 7. Example workflows
+## 7. Example workflows
 
-## 7.1 MRI (T1/T2/Dixon) using GMM
+### 7.1 MRI (T1/T2/Dixon) using GMM
 
 ```bash
 mm_segment -i sub-01_T2w.nii.gz
 mm_extract_metrics -m gmm -i sub-01_T2w.nii.gz -s sub-01_T2w_dseg.nii.gz -r wholebody -c 3
 ```
 
-## 7.2 MRI using Otsu (fast)
+### 7.2 MRI using Otsu (fast)
 
 ```bash
 mm_extract_metrics -m otsu -i img.nii.gz -s img_dseg.nii.gz -r pelvis
 ```
 
-## 7.3 CT muscle density (HU)
+### 7.3 CT muscle density (HU)
 
 ```bash
 mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
@@ -207,7 +212,7 @@ mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
 
 ---
 
-# 8. Integration with `mm_gui`
+## 8. Integration with `mm_gui`
 
 If you prefer a GUI:
 
@@ -223,10 +228,13 @@ In the GUI you may:
 
 ---
 
-# 9. Best practices & troubleshooting
+## 9. Best practices & troubleshooting
 
-> [!IMPORTANT]
-> Always **visually inspect both segmentation and metric outputs** before analysis.
+<div class="callout callout-warning">
+  <strong>Warning</strong><br>
+Always **visually inspect both segmentation and metric outputs** before analysis.
+</div>
+
 
 ### Common issues:
 
@@ -251,16 +259,14 @@ mm_extract_metrics -v
 
 ---
 
-# 10. Summary
+## 10. Summary
 
 `mm_extract_metrics` is the quantitative analysis backbone of MuscleMap:
 
 - accepts MRI or CT images + segmentations  
 - computes fat fraction, HU metrics, tissue composition  
-- supports GMM, Otsu, HU-based methods  
+- supports GMM, Kmeans, HU-based methods  
 - outputs CSV and optional maps  
 - integrates with `mm_gui` for streamlined workflows  
-
-It is designed for **reproducible, large-scale muscle phenotyping**.
 
 ---
