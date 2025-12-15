@@ -659,6 +659,7 @@
   color: #111 !important;
 }
 
+/* Body-tekst overal kleiner */
 .main-content p,
 .main-content li,
 .main-content td,
@@ -667,3 +668,13 @@
   font-size: 0.8rem;
   opacity: 0.9;
 }
+
+/* HERO blijft precies zoals jij hem definieert */
+.mm-hero p {
+  font-size: inherit;  /* of specifieker hieronder */
+  opacity: 1;
+}
+
+.mm-hero .mm-eyebrow { font-size: 0.8rem; opacity: 0.85; }
+.mm-hero .mm-subtitle { font-size: 1.05rem; opacity: 1; }
+.mm-hero .mm-hero-footnote { font-size: 0.8rem; opacity: 0.9; }
