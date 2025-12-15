@@ -33,10 +33,10 @@ from monai.networks.layers import Norm
 from time import perf_counter
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, estimate_chunk_size
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, estimate_chunk_size
 import torch
 
 #naming not functional
@@ -71,10 +71,16 @@ def get_parser():
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
     
     optional.add_argument("--fast", action='store_true',
-                    help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
+                    help="Enable fast mode: uses in-memory chunking and early argmax for maximum speed. Default overlap is 50%% (can be overridden with -s).")
+    
+    optional.add_argument("--fast_memory", action='store_true',
+                    help="Enable fast memory mode: uses in-memory chunking only (no early argmax). Default overlap is 50%% (can be overridden with -s).")
+    
+    optional.add_argument("--fast_transform", action='store_true',
+                    help="Enable fast transform mode: uses early argmax only (no in-memory chunking). Default overlap is 50%% (can be overridden with -s).")
     
     optional.add_argument("--verbose", action='store_true',
-                    help="Enable verbose output during inference (only applicable in non-fast mode).")
+                    help="Enable verbose output during inference.")
 
     return parser
 
@@ -226,17 +232,20 @@ def main():
         except Exception as e:
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
-    # Apply fast mode settings
-    if args.fast and args.overlap != 75:
-        # User specified both --fast and custom --overlap, use custom value
+    # Determine if any fast mode is enabled
+    any_fast_mode = args.fast or args.fast_memory or args.fast_transform
+    
+    # Apply overlap settings
+    if any_fast_mode and args.overlap != 75:
+        # User specified custom --overlap with a fast mode, use custom value
         overlap_inference = args.overlap / 100
         logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
-    elif args.fast:
+    elif any_fast_mode:
         # Fast mode with default overlap, use 50%
         overlap_inference = 0.50
         logging.info("Fast mode enabled: using 50% overlap")
     else:
-        # Normal mode, use specified overlap
+        # Normal mode, use specified overlap (default 75%)
         overlap_inference = args.overlap / 100
     
     # Create SliceInferer (2D model)
@@ -277,35 +286,35 @@ def main():
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
             
-            # Use fast inference mode if --fast flag is set
+            # Determine which optimizations to use
+            use_memory_chunking = args.fast or args.fast_memory
+            use_early_argmax = args.fast or args.fast_transform
+            
+            # Run inference with appropriate optimizations
+            run_inference(
+                test["image"], 
+                output_dir, 
+                pre_transforms, 
+                post_transforms, 
+                amp_context, 
+                chunk_size, 
+                device, 
+                inferer, 
+                model, 
+                verbose=args.verbose,
+                fallback_device=fallback_device,
+                use_memory_chunking=use_memory_chunking,
+                use_early_argmax=use_early_argmax
+            )
+            
+            # Determine method description for logging
             if args.fast:
-                run_inference_fast(
-                    test["image"], 
-                    output_dir, 
-                    pre_transforms, 
-                    post_transforms, 
-                    amp_context, 
-                    chunk_size, 
-                    device, 
-                    inferer, 
-                    model, 
-                    fallback_device=fallback_device
-                )
-                method = "fast mode"
+                method = "fast mode (memory+argmax)"
+            elif args.fast_memory:
+                method = "fast memory mode"
+            elif args.fast_transform:
+                method = "fast transform mode"
             else:
-                run_inference(
-                    test["image"], 
-                    output_dir, 
-                    pre_transforms, 
-                    post_transforms, 
-                    amp_context, 
-                    chunk_size, 
-                    device, 
-                    inferer, 
-                    model, 
-                    verbose=args.verbose,
-                    fallback_device=fallback_device
-                )
                 method = "disk-based chunking" if chunk_size else "full volume"
             
             inference_time = perf_counter()-t0
