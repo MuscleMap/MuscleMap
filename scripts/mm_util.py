@@ -1122,13 +1122,27 @@ def _run_inference_memory_chunking(
     
     else:
         # Standard post-processing per chunk (no early argmax)
-        # Store chunks as numpy arrays in memory
+        # Note: When using Invertd per-chunk, each chunk gets resampled to original space
+        # We need to calculate the proper slice indices in original space
+        
+        # Get original image dimensions for reconstruction
+        img_nii = nib.load(image_path)
+        original_dims = img_nii.header.get_data_shape()
+        original_D = original_dims[-1]
+        
+        # Calculate scale factor between preprocessed and original depth
+        scale_factor = original_D / D
+        
         chunk_results = []
         
         with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
             for start in range(0, D, chunk_size):
                 try:
                     end = min(start + chunk_size, D)
+                    
+                    # Calculate corresponding indices in original space
+                    orig_start = int(round(start * scale_factor))
+                    orig_end = int(round(end * scale_factor))
                     
                     # Extract chunk from preprocessed array in RAM
                     chunk_array = img_array[..., start:end]
@@ -1160,7 +1174,7 @@ def _run_inference_memory_chunking(
                     post_out = post_transforms(post_in)
                     seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
                     
-                    chunk_results.append({"start": start, "end": end, "seg": seg_np})
+                    chunk_results.append({"orig_start": orig_start, "orig_end": orig_end, "seg": seg_np})
                     
                     # Cleanup
                     del tensor, pred, single_pred, post_in, post_out, chunk_array
@@ -1189,19 +1203,20 @@ def _run_inference_memory_chunking(
                     else:
                         raise
         
-        # Reconstruct full segmentation - use ORIGINAL image dimensions
-        img_nii = nib.load(image_path)
-        dims = img_nii.header.get_data_shape()
-        full_seg = np.zeros(dims, dtype=np.int16)
+        # Reconstruct full segmentation using original space indices
+        full_seg = np.zeros(original_dims, dtype=np.int16)
         
         for entry in chunk_results:
-            s, e, seg = entry["start"], entry["end"], entry["seg"]
-            # Note: seg is already in original space due to post_transforms with Invertd
+            orig_s, orig_e, seg = entry["orig_start"], entry["orig_end"], entry["seg"]
             seg_squeezed = seg.squeeze()
             if seg_squeezed.ndim == 3:
-                full_seg[..., s:e] = seg_squeezed
+                # The actual output depth may differ slightly due to Invertd resampling
+                actual_depth = seg_squeezed.shape[-1]
+                # Adjust end index if needed to match actual output
+                adj_end = min(orig_s + actual_depth, original_D)
+                full_seg[..., orig_s:adj_end] = seg_squeezed[..., :adj_end - orig_s]
             else:
-                full_seg[..., s:e] = seg_squeezed
+                full_seg[..., orig_s:orig_e] = seg_squeezed
         
         del chunk_results, img_array
         gc.collect()
@@ -1464,7 +1479,6 @@ def _run_inference_disk_chunking(
         gc.collect()
         
         full_seg = connected_chunks(seg_np)
-        del seg_np
         del seg_np
     else:
         # Standard processing per chunk
