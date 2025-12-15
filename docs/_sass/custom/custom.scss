@@ -667,10 +667,6 @@
 .main-content .text-grey,
 .main-content .text-gray {
   color: #000000 !important;
+  font-size: 0.95rem;   /* iets kleiner dan default */
 }
 
-
-.mm-card,
-.mm-link-card {
-  border: 1px solid #000000 !important;
-}
