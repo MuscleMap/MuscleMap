@@ -112,7 +112,6 @@ Outputs metrics such as:
 
 - mean HU per muscle  
 - low-attenuation muscle area  
-- voxel-level HU maps  
 
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
@@ -133,7 +132,7 @@ mm_extract_metrics -r wholebody
 
 Common values include:
 
-- `wholebody`  
+- `wholebody` (default)  
 - `abdomen`  
 - `pelvis`  
 - `thigh`  
@@ -149,7 +148,7 @@ Region definitions are based on the MuscleMap atlas and segmentation model.
 
 ## 5. Number of clusters (`-c`)
 
-Used only with **GMM**.
+Used only with **GMM** or **Kmeans** and T1- or T2-weighted MRI.
 
 Example for 3 clusters:
 
@@ -161,6 +160,11 @@ Typical choice:
 
 - **2 clusters:** fat vs. muscle  
 - **3 clusters:** fat, muscle, intermediate tissue  
+
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+Intermediate reflects a voxel with intermediate voxel signal not clearly corresponding to either fat or muscle. 
+</div>
 
 ---
 
@@ -174,16 +178,12 @@ Contains per-muscle metrics such as:
 - muscle volume  
 - fat fraction  
 - HU mean (for CT)  
-- GMM cluster proportions  
-- Otsu thresholding values  
 
 ### **2. Voxel-wise metric maps (optional depending on method)**
 
 Examples:
 
-- GMM class map  
-- Otsu threshold map  
-- HU-based fat fraction map (CT)
+- Thresholding maps for either GMM or Kmeans and two or three clusters
 
 ### **3. Optional NIfTI files for debugging or visualization**
 
@@ -191,17 +191,17 @@ Examples:
 
 ## 7. Example workflows
 
-### 7.1 MRI (T1/T2/Dixon) using GMM
+### 7.1 MRI (T1/T2) using GMM
 
 ```bash
 mm_segment -i sub-01_T2w.nii.gz
 mm_extract_metrics -m gmm -i sub-01_T2w.nii.gz -s sub-01_T2w_dseg.nii.gz -r wholebody -c 3
 ```
 
-### 7.2 MRI using Otsu (fast)
+### 7.2 MRI using k-means
 
 ```bash
-mm_extract_metrics -m otsu -i img.nii.gz -s img_dseg.nii.gz -r pelvis
+mm_extract_metrics -m kmeans -i img.nii.gz -s img_dseg.nii.gz -r pelvis
 ```
 
 ### 7.3 CT muscle density (HU)
@@ -212,54 +212,16 @@ mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
 
 ---
 
-## 8. Integration with `mm_gui`
-
-If you prefer a GUI:
-
-```bash
-mm_gui
-```
-
-In the GUI you may:
-
-- run `mm_segment`  
-- run `mm_extract_metrics`  
-- automatically chain them (segmentation → metrics → summary)
-
----
-
-## 9. Best practices & troubleshooting
+## 8. Best practices & troubleshooting
 
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
 Always **visually inspect both segmentation and metric outputs** before analysis.
 </div>
 
-
-### Common issues:
-
-#### **Segmentation and image do not align**
-- Ensure they come from the same subject/session.
-- Ensure preprocessing did not change one but not the other.
-
-#### **GMM produces incorrect clusters**
-- Try a different number of clusters (`-c 2` or `-c 3`).
-- Consider using Otsu if MRI contrast is low.
-
-#### **CT metrics look wrong**
-- Confirm method is set to `hu`.
-- Ensure units are in **Hounsfield Units**, not rescaled.
-
-#### **Output missing?**
-Run with verbose logs:
-
-```bash
-mm_extract_metrics -v
-```
-
 ---
 
-## 10. Summary
+## 9. Summary
 
 `mm_extract_metrics` is the quantitative analysis backbone of MuscleMap:
 
