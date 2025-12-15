@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-Sitemap: https://musclemap.github.io/MuscleMap/sitemap.xml
+
+Sitemap: https://musclemap.github.io/sitemap.xml
