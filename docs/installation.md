@@ -5,45 +5,151 @@ parent: User section
 permalink: /installation/
 ---
 
-# Installation
+# Musclemap installation
 
 Below we describe a typical setup using `conda` and an editable install of MuscleMap.
 Adapt paths and Python versions as needed.
 
-## 1. Clone the repository
+---
 
-~~~bash
-git clone https://github.com/MuscleMap/MuscleMap.git
-cd MuscleMap
-~~~
+## Dependencies
+
+- **Python:** 3.9.23  
+- **Operating system:** Linux, macOS, or Windows  
+- **Optional (recommended):** GPU with CUDA (NVIDIA) or ROCm (AMD)
+
+The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially better with GPU acceleration.
+
+---
+
+## 1. Install Python (Conda recommended)
+
+We recommend installing **Miniconda** or **Anaconda**:
+
+- https://docs.conda.io/en/latest/miniconda.html  
+- https://www.anaconda.com/download  
+
+---
 
 ## 2. Create and activate a conda environment
 
-~~~bash
-conda create --name MuscleMap python=3.9.13
+```bash
+conda create --name MuscleMap python=3.9.23
 conda activate MuscleMap
-~~~
+```
 
-## 3. Install MuscleMap in editable mode
+---
 
-~~~bash
+## 3. Download the MuscleMap repository
+
+### Option A — Using Git
+
+```bash
+git clone https://github.com/MuscleMap/MuscleMap.git
+cd MuscleMap
+```
+
+### Option B — Download ZIP
+
+1. Open https://github.com/MuscleMap/MuscleMap  
+2. Click the green **<> Code ▼** button  
+3. Click **Download ZIP**  
+4. Unzip the archive  
+5. Navigate to the extracted folder:
+
+```bash
+cd MuscleMap
+```
+
+---
+
+## 4. Install MuscleMap in editable mode
+
+```bash
 pip install -e .
-~~~
+```
 
-This will install all required Python dependencies and register the command line
-entry points:
+This installs all required Python dependencies and registers the command-line tools:
 
 - `mm_segment`
 - `mm_extract_metrics`
-- `mm_extract_metrics_batch` (if available)
+- `mm_register_to_template`
 - `mm_gui`
 
-## 4. Verify the installation
+---
 
-~~~bash
+## 5. (Optional) Install PyTorch with GPU support
+
+If you plan to run MuscleMap **on CPU only**, you may skip this step.
+
+To use a GPU, you need one of the following:
+
+- **NVIDIA GPU** with a compatible CUDA runtime  
+- **AMD GPU** with ROCm support  
+
+### Step 5.1 — Check if CUDA is already available
+
+Open a Python console:
+
+```python
+import torch
+print("Is CUDA available?:", torch.cuda.is_available())
+```
+
+- `True` → CUDA is available and ready  
+- `False` → continue with the steps below
+
+---
+
+### Step 5.2 — Check your system GPU runtime
+
+In a terminal, run:
+
+**NVIDIA (CUDA):**
+```bash
+nvidia-smi
+```
+
+**AMD (ROCm):**
+```bash
+rocm-smi
+```
+
+This tells you which CUDA or ROCm version your system supports.
+
+---
+
+### Step 5.3 — Install a compatible PyTorch version
+
+Install **PyTorch 2.4.0** matching your system configuration.
+We recommend using `pip` and following the official PyTorch instructions:
+
+https://pytorch.org/get-started/locally/
+
+Example (CUDA, adjust version as needed):
+
+```bash
+pip install torch==2.4.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+  Make sure the CUDA version of PyTorch matches the CUDA runtime reported by <code>nvidia-smi</code>.
+</div>
+
+---
+
+## 6. Verify the installation
+
+Run:
+
+```bash
 mm_segment --help
 mm_extract_metrics --help
+mm_register_to_template --help
 mm_gui --help
-~~~
+```
 
-If these commands show a help message instead of an error, the installation is successful.
+If these commands print a help message instead of an error, the installation was successful.
+
+---
