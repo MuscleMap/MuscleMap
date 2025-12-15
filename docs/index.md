@@ -61,7 +61,7 @@ parent: Overview
         </div>
       </div>
       <div class="mm-card-media">
-        <img src="{{ '/assets/images/thresholding_scroll.gif' | relative_url }}" alt="MuscleMap thresholding GIF">
+        <img src="{{ '/assets/images/thresholding.png' | relative_url }}" alt="MuscleMap thresholding png">
       </div>
     </div>
     <div class="mm-card mm-card-with-media">
