@@ -15,6 +15,7 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
 
 #check_image_exists 
 def check_image_exists(image_path):
