@@ -6,7 +6,8 @@ import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-from monai.transforms import (MapTransform)
+from monai.transforms import MapTransform, Invertd
+from monai.data import MetaTensor
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
@@ -1086,10 +1087,6 @@ def run_inference_fast(
             
             # Early discretization: argmax BEFORE Invertd (reduces memory 90x)
             pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16) # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
-            
-            # Apply Invertd to resample back to original space
-            from monai.transforms import Invertd
-            from monai.data import MetaTensor
             
             pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
             pred_metatensor.applied_operations = stored_applied_operations
