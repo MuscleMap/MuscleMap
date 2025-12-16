@@ -872,8 +872,6 @@ def run_inference(
 
             with amp_context, torch.inference_mode():
                 pred = inferer(tensor, model)
-            
-            mem_monitor.end_stage()
 
             # Post-processing
             single_pred = pred.squeeze(0).squeeze(0)
@@ -1147,7 +1145,7 @@ def run_inference_fast(
     logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
     
     # Initialize output array for discrete predictions (int16, not float32 probabilities)
-    full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
+    full_pred = np.zeros(img_shape, dtype=np.int16)
     
     # Process chunks from preprocessed array
     with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
@@ -1155,11 +1153,11 @@ def run_inference_fast(
             try:
                 end = min(start + chunk_size, D)
                 
-                # Extract chunk from preprocessed array in RAM
+                # Extract chunk from preprocessed array in RAM (no copy needed, view is sufficient)
                 chunk_array = img_array[..., start:end]
                 
                 # Convert to tensor and move to device
-                tensor = torch.from_numpy(chunk_array).float()
+                tensor = torch.from_numpy(chunk_array.copy()).float()
                 if tensor.ndim == 3:
                     tensor = tensor.unsqueeze(0).unsqueeze(0)
                 elif tensor.ndim == 4:
@@ -1170,17 +1168,14 @@ def run_inference_fast(
                 with amp_context, torch.inference_mode():
                     pred = inferer(tensor, model)
                 
-                # Apply argmax immediately (early discretization) so each voxel has just one labelamp per voxel
-                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy() # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
+                # Apply argmax immediately (early discretization)
+                pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16).numpy()
                 
                 # Store discrete prediction in RAM
                 full_pred[..., start:end] = pred_discrete
                 
-                # Cleanup
-                del tensor, pred, pred_discrete, chunk_array
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+                # Minimal cleanup - only delete large tensors, skip gc in loop for speed
+                del tensor, pred, pred_discrete
                 
                 pbar.update(end - start)
                 
@@ -1203,10 +1198,12 @@ def run_inference_fast(
                 else:
                     raise
     
+    # Clear GPU memory after chunk processing completes
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
     # Apply Invertd once to accumulated discrete result
     logging.info("Applying inverse transforms to resample back to original space...")
-    from monai.transforms import Invertd
-    from monai.data import MetaTensor
     
     full_pred_tensor = torch.from_numpy(full_pred)
     pred_metatensor = MetaTensor(full_pred_tensor.unsqueeze(0), meta=stored_meta_dict)
