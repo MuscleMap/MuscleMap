@@ -72,6 +72,9 @@ def get_parser():
     
     optional.add_argument("--fast", action='store_true',
                     help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
+    
+    optional.add_argument("--verbose", action='store_true',
+                    help="Enable verbose output during inference.")
 
     return parser
 
@@ -182,11 +185,22 @@ def main():
 
     test_files = [{"image": image} for image in image_paths]
 
-   if args.region == 'wholebody':
+    if args.region == 'wholebody':
         post_transforms.extend([
-        RemapLabels(keys=["pred"], id_map=inv_id_map)])
+            RemapLabels(keys=["pred"], id_map=inv_id_map)])
     
     post_transforms = Compose(post_transforms)
+
+    model = UNet(
+        spatial_dims=spatial_dims,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        channels=channels,
+        strides=strides,
+        num_res_units=num_res_units,
+        norm=import_norm,
+        act=act
+    ).to(device)
   
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
@@ -206,16 +220,17 @@ def main():
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     # Apply fast mode settings
-    if args.fast and args.overlap != 50:
-        # User specified both --fast and custom --overlap, use custom value
+    # Default overlap is 75%, but --fast mode uses 50% unless user specifies otherwise
+    if args.fast and args.overlap != 75:
+        # User specified both --fast and custom --overlap (e.g., --fast -s 60), use custom value
         overlap_inference = args.overlap / 100
         logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
     elif args.fast:
-        # Fast mode with default overlap, use 50%
+        # Fast mode with default overlap (user didn't specify -s), use 50%
         overlap_inference = 0.50
         logging.info("Fast mode enabled: using 50% overlap")
     else:
-        # Normal mode, use specified overlap
+        # Normal mode, use specified overlap (default 75%)
         overlap_inference = args.overlap / 100
     
     # Create SliceInferer (2D model)
@@ -288,9 +303,9 @@ def main():
             inference_time = perf_counter()-t0
             logging.info(f"Inference of {test['image']} finished in {inference_time:.2f}s ({method})")
 
-            except Exception as e:
-                logging.exception(f"Error processing {test['image']}: {e}")
-                errors_occurred = True
+        except Exception as e:
+            logging.exception(f"Error processing {test['image']}: {e}")
+            errors_occurred = True
             
     if not errors_occurred:
         logging.info("Inference completed. All outputs saved.")        
