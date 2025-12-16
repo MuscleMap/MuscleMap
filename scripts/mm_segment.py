@@ -66,8 +66,8 @@ def get_parser():
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
-    optional.add_argument("-s", '--overlap', required=False, default = 75, type=float,
-                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75. If accuracy needs to be improved, the spatial overlap can be increased to 90.")
+    optional.add_argument("-s", '--overlap', required=False, default=None, type=float,
+                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75 (or 50 with --fast). If accuracy needs to be improved, the spatial overlap can be increased to 90.")
     
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=str,
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
@@ -251,17 +251,18 @@ def main():
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
     # Apply fast mode settings
-    if args.fast and args.overlap != 50:
-        # User specified both --fast and custom --overlap, use custom value
-        overlap_inference = args.overlap / 100
-        logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
-    elif args.fast:
-        # Fast mode with default overlap, use 50%
-        overlap_inference = 0.50
-        logging.info("Fast mode enabled: using 50% overlap")
+    if args.fast:
+        if args.overlap is not None:
+            # User explicitly specified overlap with --fast, use their value
+            overlap_inference = args.overlap / 100
+            logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
+        else:
+            # Fast mode default: 50%
+            overlap_inference = 0.50
+            logging.info("Fast mode enabled: using 50% overlap")
     else:
-        # Normal mode, use specified overlap
-        overlap_inference = args.overlap / 100
+        # Normal mode: use specified overlap or default 75%
+        overlap_inference = (args.overlap if args.overlap is not None else 75) / 100
     
     # Create SliceInferer (2D model)
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
