@@ -1032,14 +1032,13 @@ def run_inference_fast(
     fallback_device=None,
 ):
     """
-    Fast inference using in-memory chunking with early discretization in post_tranforms, avoiding binary labelmaps for every
-    class in the model for every voxel.
+    Fast inference using IN-MEMORY chunking with early discretization.
     
-    Key differences from the original disk-based chunking:
-    - Applies pre_transforms to full image and then chunks (not per-chunk)
+    Key difference from disk-based:
+    - Applies pre_transforms ONCE to full image (not per-chunk)
     - Converts preprocessed result to numpy and chunks in RAM
     - Processes chunks on GPU with early discretization (argmax before Invertd)
-    - Applies Invertd once at end to accumulated discrete result
+    - Applies Invertd ONCE at end to accumulated discrete result
     - Much faster: no disk I/O, reduced memory from early discretization
     """
     out_path = _make_out_path(image_path, output_dir, "_dseg")
@@ -1085,8 +1084,9 @@ def run_inference_fast(
                 pred = inferer(tensor, model)
             
             # Early discretization: argmax BEFORE Invertd (reduces memory 90x)
-            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16) # Unable to retain the transformation applied operations using MONAI Invertd if kept on device
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
             
+            # Apply Invertd to resample back to original space
             pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
             pred_metatensor.applied_operations = stored_applied_operations
             
@@ -1099,7 +1099,7 @@ def run_inference_fast(
                 meta_key_postfix="meta_dict",
                 nearest_interp=True,
                 to_tensor=True,
-                device="cpu", # Pushing to CPU RAM to avoid GPU OOM
+                device="cpu",
             )
             
             post_in = {
@@ -1145,7 +1145,7 @@ def run_inference_fast(
     logging.info(f"Processing {D} slices with in-memory chunking (chunk_size={chunk_size})...")
     
     # Initialize output array for discrete predictions (int16, not float32 probabilities)
-    full_pred = np.zeros(img_shape, dtype=np.int16)
+    full_pred = np.zeros((*img_shape[:2], D), dtype=np.int16)
     
     # Process chunks from preprocessed array
     with tqdm(total=D, desc="Processing slices", unit="slice") as pbar:
@@ -1153,11 +1153,11 @@ def run_inference_fast(
             try:
                 end = min(start + chunk_size, D)
                 
-                # Extract chunk from preprocessed array in RAM (no copy needed, view is sufficient)
+                # Extract chunk from preprocessed array in RAM
                 chunk_array = img_array[..., start:end]
                 
                 # Convert to tensor and move to device
-                tensor = torch.from_numpy(chunk_array.copy()).float()
+                tensor = torch.from_numpy(chunk_array).float()
                 if tensor.ndim == 3:
                     tensor = tensor.unsqueeze(0).unsqueeze(0)
                 elif tensor.ndim == 4:
@@ -1174,8 +1174,8 @@ def run_inference_fast(
                 # Store discrete prediction in RAM
                 full_pred[..., start:end] = pred_discrete
                 
-                # Minimal cleanup - only delete large tensors, skip gc in loop for speed
-                del tensor, pred, pred_discrete
+                # Cleanup
+                del tensor, pred, pred_discrete, chunk_array
                 
                 pbar.update(end - start)
                 
@@ -1198,11 +1198,7 @@ def run_inference_fast(
                 else:
                     raise
     
-    # Clear GPU memory after chunk processing completes
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    
-    # Apply Invertd once to accumulated discrete result
+    # Apply Invertd ONCE to accumulated discrete result
     logging.info("Applying inverse transforms to resample back to original space...")
     
     full_pred_tensor = torch.from_numpy(full_pred)
@@ -1232,7 +1228,7 @@ def run_inference_fast(
     seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
     
     # Apply connected components
-    logging.info("Connecting chunks...")
+    logging.info("Applying connected component filtering...")
     full_seg = connected_chunks(seg_np)
     
     # Save with original affine/header
