@@ -178,7 +178,7 @@ def main():
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
+        to_tensor=False, device="cpu"  # Use CPU to avoid OOM during inverse transforms
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
