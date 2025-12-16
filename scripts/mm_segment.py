@@ -3,11 +3,10 @@
 
 # For usage, type: python mm_segment.py -h
 
-# Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
+# Authors: Richard Yin, Eddo Wesselink, and Kenneth Weber
 
-import warnings
-import argparse
-warnings.filterwarnings("ignore")
+# IMPORTS: necessary libraries, modules, including MONAI for image processing, argparse, and torch for Deep Learning
+
 import argparse
 import logging
 import os
@@ -30,13 +29,16 @@ from monai.transforms import (
     CropForegroundd,
 )
 from monai.networks.layers import Norm
+from monai.utils import set_determinism
 from time import perf_counter
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, is_nifti, estimate_chunk_size
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, is_nifti, estimate_chunk_size
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
 import torch
 
 #naming not functional
@@ -65,22 +67,19 @@ def get_parser():
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
     optional.add_argument("-s", '--overlap', required=False, default = 75, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
+                        help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 75. If accuracy needs to be improved, the spatial overlap can be increased to 90.")
     
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=str,
                     help="Number of axial slices to be processed as a single chunk, or 'auto' to estimate from CPU or GPU memory. Default is 25")
     
     optional.add_argument("--fast", action='store_true',
-                    help="Enable fast mode: uses both in-memory chunking and early argmax for maximum speed (original fast implementation). Default overlap is 50%% (can be overridden with -s).")
+                    help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
     
-    optional.add_argument("--fast_memory", action='store_true',
-                    help="Enable fast memory mode: uses in-memory chunking only (preprocess once, chunk in RAM without disk I/O). Note: still uses standard per-chunk post-processing. Default overlap is 50%% (can be overridden with -s).")
+    optional.add_argument("-v", '--verbose', action='store_true',
+                    help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
     
-    optional.add_argument("--fast_transform", action='store_true',
-                    help="Enable fast transform mode: uses early argmax only (argmax before Invertd reduces memory ~90x). Uses disk-based chunking. Default overlap is 50%% (can be overridden with -s).")
-    
-    optional.add_argument("--verbose", action='store_true',
-                    help="Enable verbose output during inference.")
+    optional.add_argument("--wandb", action='store_true',
+                    help="Enable Weights & Biases experiment tracking. Default is off.")
 
     return parser
 
@@ -103,17 +102,32 @@ def main():
     else:
         device = torch.device("cpu")
     
-    logging.info(f"Processing using: {device}")
+    logging.info(f"Processing using device: {device}")
     
-    amp_context = torch.amp.autocast('cuda') if device.type == 'cuda' else nullcontext()
+    # Set up mixed precision context
+    if device.type == 'cuda':
+        amp_context = torch.amp.autocast('cuda', dtype=torch.float16)
+    else:
+        amp_context = nullcontext()
     
     if device.type == 'cuda':
+        logging.info(f"Using GPU: {torch.cuda.get_device_name(0)}")
+        logging.info("FP16 mixed precision enabled for faster inference")
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.benchmark = True
     elif device.type == 'mps':
-        logging.info("MPS (Apple Silicon GPU) detected")
+        logging.info("Using Apple Silicon GPU (MPS)")
+        # MPS-specific optimizations
+        os.environ['PYTORCH_MPS_HIGH_WATERMARK_RATIO'] = '0.0'  # Aggressive memory management
+        logging.info("MPS memory optimizations enabled")
     else:
-        logging.info(f"Processing on a CPU will slow down inference speed")
+        # Optimize CPU inference with threading and oneDNN
+        num_threads = os.cpu_count()
+        torch.set_num_threads(num_threads)
+        torch.set_num_interop_threads(num_threads)
+        if hasattr(torch.backends, 'mkldnn'):
+            torch.backends.mkldnn.enabled = True
+        logging.info(f"Processing on CPU with {num_threads} threads and oneDNN optimizations enabled")
 
     if args.output_dir is None:
         output_dir = os.getcwd()
@@ -124,6 +138,7 @@ def main():
 
     elif os.path.exists(args.output_dir):
        output_dir=args.output_dir
+
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
@@ -132,6 +147,7 @@ def main():
 
     image_paths = [image.strip() for image in args.input_image.split(',')]
     for image_path in image_paths:
+        # Check that each image exists and is readable
         logging.info(f"Checking if image '{image_path}' exists and is readable...")
         check_image_exists(image_path)
         if not is_nifti(image_path):
@@ -177,6 +193,8 @@ def main():
         logging.error(f"Unknown normalization type: {import_norm_str}")
         sys.exit(1) 
 
+    set_determinism(seed=0)  
+
     pre_transforms = Compose([
         LoadImaged(keys=["image"], image_only=False),
         EnsureChannelFirstd(keys=["image"]),
@@ -192,29 +210,28 @@ def main():
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
+        to_tensor=False, device="cpu"  # Use CPU to avoid OOM during inverse transforms
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
 
     test_files = [{"image": image} for image in image_paths]
-
-    if args.region == 'wholebody':
-        post_transforms.extend([
-            RemapLabels(keys=["pred"], id_map=inv_id_map)])
-    
-    post_transforms = Compose(post_transforms)
-
     model = UNet(
         spatial_dims=spatial_dims,
         in_channels=in_channels,
         out_channels=out_channels,
         channels=channels,
+        act=act,
         strides=strides,
         num_res_units=num_res_units,
         norm=import_norm,
-        act=act
     ).to(device)
+
+    if args.region == 'wholebody':
+        post_transforms.extend([
+        RemapLabels(keys=["pred"], id_map=inv_id_map)])
+    
+    post_transforms = Compose(post_transforms)
   
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
@@ -229,23 +246,21 @@ def main():
         try:
             logging.info("Compiling model with torch.compile for CPU optimization...")
             model = torch.compile(model, mode='max-autotune')
+            logging.info("Model compilation successful")
         except Exception as e:
             logging.warning(f"torch.compile not available or failed: {e}. Continuing without compilation.")
 
-    # Determine if any fast mode is enabled
-    any_fast_mode = args.fast or args.fast_memory or args.fast_transform
-    
-    # Apply overlap settings
-    if any_fast_mode and args.overlap != 75:
-        # User specified custom --overlap with a fast mode, use custom value
+    # Apply fast mode settings
+    if args.fast and args.overlap != 50:
+        # User specified both --fast and custom --overlap, use custom value
         overlap_inference = args.overlap / 100
         logging.info(f"Fast mode enabled with custom overlap: {args.overlap}%")
-    elif any_fast_mode:
+    elif args.fast:
         # Fast mode with default overlap, use 50%
         overlap_inference = 0.50
         logging.info("Fast mode enabled: using 50% overlap")
     else:
-        # Normal mode, use specified overlap (default 75%)
+        # Normal mode, use specified overlap
         overlap_inference = args.overlap / 100
     
     # Create SliceInferer (2D model)
@@ -266,7 +281,7 @@ def main():
             img_shape = img_nii.header.get_data_shape()
             del img_nii  # Free memory
             
-            use_fp16 = (device.type == 'cuda' and hasattr(amp_context, 'fast_dtype') and amp_context.fast_dtype == torch.float16)
+            use_fp16 = (device.type == 'cuda' and amp_context.fast_dtype == torch.float16)
             chunk_size = estimate_chunk_size(
                 device=device,
                 roi_size=roi_size,
@@ -276,61 +291,79 @@ def main():
                 spatial_window_batch_size=spatial_window_batch_size,
                 overlap=overlap_inference,
                 use_fp16=use_fp16,
-                image_shape=img_shape,
-                verbose=args.verbose
+                image_shape=img_shape
             )
         else:
             chunk_size = int(chunk_size_arg)
         
+        # Initialize wandb if --wandb flag is set
+        wandb_run = None
+        if args.wandb:
+            precision = 'float16' if (device.type == 'cuda' and amp_context.fast_dtype == torch.float16) else 'float32'
+            wandb_run = _init_wandb(
+                test["image"],
+                device,
+                chunk_size,
+                overlap_inference,
+                precision,
+                args.region
+            )
+
         try:
             # Create CPU fallback device for automatic OOM handling (for both CUDA and MPS)
             fallback_device = torch.device('cpu') if device.type in ['cuda', 'mps'] else None
             
-            # Determine which optimizations to use:
-            # --fast: Both optimizations (in-memory chunking AND early argmax) - fastest
-            # --fast_memory: Only in-memory chunking (preprocess once, chunk in RAM)
-            # --fast_transform: Only early argmax (disk-based chunking with early argmax)
-            use_memory_chunking = args.fast or args.fast_memory
-            use_early_argmax = args.fast or args.fast_transform
-            
-            # Run inference with appropriate optimizations
-            run_inference(
-                test["image"], 
-                output_dir, 
-                pre_transforms, 
-                post_transforms, 
-                amp_context, 
-                chunk_size, 
-                device, 
-                inferer, 
-                model, 
-                verbose=args.verbose,
-                fallback_device=fallback_device,
-                use_memory_chunking=use_memory_chunking,
-                use_early_argmax=use_early_argmax
-            )
-            
-            # Determine method description for logging
+            # Use fast inference mode if --fast flag is set
             if args.fast:
-                method = "fast mode (memory+argmax)"
-            elif args.fast_memory:
-                method = "fast memory mode"
-            elif args.fast_transform:
-                method = "fast transform mode"
+                run_inference_fast(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    fallback_device=fallback_device
+                )
+                method = "fast mode"
             else:
+                run_inference(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
                 method = "disk-based chunking" if chunk_size else "full volume"
             
             inference_time = perf_counter()-t0
             logging.info(f"Inference of {test['image']} finished in {inference_time:.2f}s ({method})")
-
+            
+            # Log to wandb if initialized
+            if wandb_run:
+                wandb_run.log({
+                    'inference_time_s': round(inference_time, 2),
+                    'method': method
+                })
+                wandb_run.finish()
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}")
             errors_occurred = True
-            
+            if wandb_run:
+                wandb_run.finish()
+            continue
+    
     if not errors_occurred:
-        logging.info("Inference completed. All outputs saved.")        
+        logging.info("Inference completed. All outputs saved.")
 
 #%%
 if __name__ == "__main__":
     main()
-
