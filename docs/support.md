@@ -30,7 +30,7 @@ And it will help push the limits of human endurance and performance in the most 
   align-items: center;
   gap: 0.5rem;
   background-color: #f6b3c8; /* zacht roze */
-  color: #000;
+  color: #fff;              /* wit */
   font-weight: 600;
   padding: 0.75rem 1.25rem;
   border-radius: 8px;

@@ -48,7 +48,7 @@ This command:
 
 ## 2. Required inputs
 
-### 2.1 `-i` — input image
+### 2.1 `-i` — Input image
 
 The MRI/CT image from which metrics are extracted:
 
@@ -56,21 +56,21 @@ The MRI/CT image from which metrics are extracted:
 mm_extract_metrics -i sub-01_T2w.nii.gz
 ```
 
-### 2.2 `-s` — segmentation labelmap
+### 2.2 `-s` — Muscle segmentation labelmap
 
-The labelmap produced by `mm_segment`:
+The muscle segmentation labelmap produced by `mm_segment` or from manual segmentation:
 
 ```bash
 mm_extract_metrics -s sub-01_dseg.nii.gz
 ```
 
-The segmentation must contain the same dimensions and orientation as the input image.
-
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
-    If the segmentation does not match the input image dimensions, metrics cannot be computed.  
-    Ensure you use the segmentation produced for that exact image.
+The segmentation must contain the same dimensions and orientation as the input image.
 </div>
+
+### 2.3 `-o` — Output directory
+Output directory to save the results from `mm_extract_metrics`. If not specified, the results are saved in the same directory as the input image.
 
 ---
 
@@ -81,20 +81,20 @@ The `-m` flag determines how fat fraction / composition metrics are computed.
 Supported values:
 
 
-### **1. `Dixon` — Fat–water–based metrics **  
+### 1. `Dixon` — Fat–water–based metrics
 Uses Dixon-based fat and water separation to compute voxel-wise fat fraction and derive muscle composition metrics within the muscle segmentation.
 
 ```bash
 mm_extract_metrics -m dixon -i img.nii.gz -s img_dseg.nii.gz 
 ```
 
-### **2. `gmm` — Gaussian Mixture Model (MRI)**  
-Uses a Gaussian Mixture Model to separate tissue intensities into classes (e.g., fat vs. muscle).
+### 2. `gmm` — Gaussian Mixture Model (MRI) 
+Uses a Gaussian Mixture Model (GMM) to separate tissue types by fitting multiple Gaussian distributions to the intensity histogram and classifying voxels based on their intensity-derived probabilities.
 
 ```bash
 mm_extract_metrics -m gmm -i img.nii.gz -s img_dseg.nii.gz 
 ```
-### **3. `kmeans` — Kmeans clustering (MRI)**  
+### 3. `kmeans` — Kmeans clustering (MRI) 
 Uses k-means clustering to partition voxels into intensity-based clusters by minimizing within-cluster variance, assigning each voxel to the nearest cluster centroid (e.g., fat vs. muscle) based on its intensity.
 
 ```bash
@@ -105,7 +105,7 @@ mm_extract_metrics -m kmeans -i img.nii.gz -s img_dseg.nii.gz
    Use GMM and/or K-means clustering on T1-weighted or T2-weighted MRI only.
 </div>
 
-### **4. `average` — Density metrics**  
+### 4. `average` — Density metrics 
 An averaging-based method to quantify muscle density by computing the mean voxel signal intensity within the muscle region..
 
 ```bash
@@ -140,15 +140,16 @@ Regions correspond to MuscleMap's anatomical label groups.
 
 <div class="callout callout-note">
   <strong>Note</strong><br>
-  Region definitions are based on the 
-  <a href="/anatomy/">MuscleMap atlas</a> and segmentation model.
+  Region definitions are based on the
+  <a href="{{ site.baseurl }}/anatomy/">MuscleMap atlas</a>
+  and segmentation model.
 </div>
 
 ---
 
 ## 5. Number of clusters (`-c`)
 
-Used only with **GMM** or **Kmeans** and T1- or T2-weighted MRI.
+Used only with GMM or Kmeans and T1- or T2-weighted MRI.
 
 Example for 3 clusters:
 
@@ -158,8 +159,8 @@ mm_extract_metrics -c 3
 
 Typical choice:
 
-- **2 clusters:** fat vs. muscle  
-- **3 clusters:** fat, muscle, intermediate tissue  
+- 2 clusters: fat vs. muscle  
+- 3 clusters: fat, muscle, intermediate tissue  
 
 <div class="callout callout-note">
   <strong>Note</strong><br>
@@ -172,14 +173,14 @@ Intermediate reflects a voxel with intermediate voxel signal not clearly corresp
 
 `mm_extract_metrics` typically produces:
 
-### **1. CSV file with summary statistics**
+### 1. CSV file with summary statistics
 Contains per-muscle metrics, dependent on the arguments, such as:
 
 - muscle volume  
 - fat fraction  
 - average density (e.g., for CT)  
 
-### **2. Voxel-wise metric maps (optional depending on method)**
+### 2. Voxel-wise metric maps (optional depending on method)
 
 Examples:
 
