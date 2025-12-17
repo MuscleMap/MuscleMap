@@ -76,48 +76,46 @@ The segmentation must contain the same dimensions and orientation as the input i
 
 ## 3. Metric computation methods (`-m`)
 
-The `-m` flag determines **how fat fraction / composition metrics are computed**.
+The `-m` flag determines how fat fraction / composition metrics are computed.
 
 Supported values:
 
-### **1. `gmm` — Gaussian Mixture Model (MRI)**  
+
+### **1. `Dixon` — Fat–water–based metrics **  
+Uses Dixon-based fat and water separation to compute voxel-wise fat fraction and derive muscle composition metrics within the muscle segmentation.
+
+```bash
+mm_extract_metrics -m dixon -i img.nii.gz -s img_dseg.nii.gz 
+```
+
+### **2. `gmm` — Gaussian Mixture Model (MRI)**  
 Uses a Gaussian Mixture Model to separate tissue intensities into classes (e.g., fat vs. muscle).
 
 ```bash
-mm_extract_metrics -m gmm -i img.nii.gz -s img_dseg.nii.gz -c 3
+mm_extract_metrics -m gmm -i img.nii.gz -s img_dseg.nii.gz 
 ```
-
-Use this for:
-
-- T1-weighted MRI  
-- T2-weighted MRI  
-- Dixon MRI (if not using raw water/fat channels)
-
-### **2. `Kmeans` — Kmeans clustering (MRI)**  
-Automatically selects intensity thresholds to separate tissues.
+### **3. `kmeans` — Kmeans clustering (MRI)**  
+Uses k-means clustering to partition voxels into intensity-based clusters by minimizing within-cluster variance, assigning each voxel to the nearest cluster centroid (e.g., fat vs. muscle) based on its intensity.
 
 ```bash
 mm_extract_metrics -m kmeans -i img.nii.gz -s img_dseg.nii.gz
 ```
-Useful for quick processing or low-contrast MRI.
+<div class="callout callout-warning">
+  <strong>Warning</strong><br>
+   Use GMM and/or K-means clustering on T1-weighted or T2-weighted MRI only.
+</div>
 
-### **3. `hu` — Hounsfield Unit metrics (CT)**  
-For CT images, muscle density is derived from Hounsfield Units.
+### **4. `average` — Density metrics**  
+An averaging-based method to quantify muscle density by computing the mean voxel signal intensity within the muscle region..
 
 ```bash
-mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz
+mm_extract_metrics -m average -i ct_img.nii.gz -s ct_dseg.nii.gz
 ```
-
-Outputs metrics such as:
-
-- mean HU per muscle  
-- low-attenuation muscle area  
 
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
-    Use `hu` metrics only for CT. MRI intensities do **not** reflect physical density.
+    Use `average` metrics preferably for CT. MRI intensities do not reflect physical density.
 </div>
-
 ---
 
 ## 4. Region selection (`-r`)
@@ -142,8 +140,10 @@ Regions correspond to MuscleMap's anatomical label groups.
 
 <div class="callout callout-note">
   <strong>Note</strong><br>
-Region definitions are based on the MuscleMap atlas and segmentation model.
+  Region definitions are based on the 
+  <a href="/anatomy/">MuscleMap atlas</a> and segmentation model.
 </div>
+
 ---
 
 ## 5. Number of clusters (`-c`)
@@ -173,11 +173,11 @@ Intermediate reflects a voxel with intermediate voxel signal not clearly corresp
 `mm_extract_metrics` typically produces:
 
 ### **1. CSV file with summary statistics**
-Contains per-muscle metrics such as:
+Contains per-muscle metrics, dependent on the arguments, such as:
 
 - muscle volume  
 - fat fraction  
-- HU mean (for CT)  
+- average density (e.g., for CT)  
 
 ### **2. Voxel-wise metric maps (optional depending on method)**
 
@@ -185,7 +185,10 @@ Examples:
 
 - Thresholding maps for either GMM or Kmeans and two or three clusters
 
-### **3. Optional NIfTI files for debugging or visualization**
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+The thresholding maps can be loaded as a segmentation to visually check thresholding accuracy
+</div>
 
 ---
 
