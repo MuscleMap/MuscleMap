@@ -591,16 +591,14 @@
   width: auto !important;
   display: block;
 }
-
 .site-nav
   .nav-list-item > .nav-list-link[href*="key-features"]
   + .nav-list
   .nav-list-link {
-  font-style: italic;
+  color: #7a7a7a;
+  font-size: 0.85em;
   font-weight: 400 !important;
-  opacity: 0.95;
 }
-
 /* Sidebar subtiele achtergrond */
 .site-nav {
   background-color: #fafafa;   /* warm lichtgrijs */
@@ -665,7 +663,7 @@
 .main-content td,
 .main-content th {
   color: #000000 !important;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   opacity: 0.9;
 }
 
