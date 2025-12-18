@@ -35,10 +35,10 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="monai")
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
+    from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference, run_inference_fast, run_inference_fast_transforms, run_inference_fast_memory, is_nifti, estimate_chunk_size, _init_wandb
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, is_nifti, estimate_chunk_size, _init_wandb
+    from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference, run_inference_fast, run_inference_fast_transforms, run_inference_fast_memory, is_nifti, estimate_chunk_size, _init_wandb
 import torch
 
 #naming not functional
@@ -74,6 +74,12 @@ def get_parser():
     
     optional.add_argument("--fast", action='store_true',
                     help="Enable fast mode: reduces overlap to 50%% and uses optimized inference without verbose tracking. Prioritizes speed over accuracy.")
+    
+    optional.add_argument("--fast_transforms", action='store_true',
+                    help="Use disk-based chunking (like default) but apply early argmax before Invertd (like --fast). Reduces memory during inverse transforms.")
+    
+    optional.add_argument("--fast_memory", action='store_true',
+                    help="Use in-memory chunking (like --fast) but keep full probability-based processing. Faster I/O but same accuracy as default.")
     
     optional.add_argument("-v", '--verbose', action='store_true',
                     help="Enable verbose logging (shapes, memory usage, preprocessing details). Default is off.")
@@ -329,6 +335,35 @@ def main():
                     fallback_device=fallback_device
                 )
                 method = "fast mode"
+            elif args.fast_transforms:
+                run_inference_fast_transforms(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    verbose=args.verbose,
+                    fallback_device=fallback_device
+                )
+                method = "fast_transforms mode (disk-based with early argmax)"
+            elif args.fast_memory:
+                run_inference_fast_memory(
+                    test["image"], 
+                    output_dir, 
+                    pre_transforms, 
+                    post_transforms, 
+                    amp_context, 
+                    chunk_size, 
+                    device, 
+                    inferer, 
+                    model, 
+                    fallback_device=fallback_device
+                )
+                method = "fast_memory mode (in-memory chunking)"
             else:
                 run_inference(
                     test["image"], 
