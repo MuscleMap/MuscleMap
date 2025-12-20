@@ -37,7 +37,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/segmentation/' | relative_url }}">
+             href="{{ '/muscle-segmentation/' | relative_url }}">
             View mm_segment 
           </a>
         </div>
