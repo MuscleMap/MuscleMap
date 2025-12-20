@@ -141,7 +141,7 @@ Regions correspond to MuscleMap's anatomical label groups.
 <div class="callout callout-note">
   <strong>Note</strong><br>
   Region definitions are based on the
-  <a href="{{ site.baseurl }}/anatomy/">MuscleMap atlas</a>
+  <a href="{{ site.baseurl }}/muscle-anatomy/">MuscleMap atlas</a>
   and segmentation model.
 </div>
 
