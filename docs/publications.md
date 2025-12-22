@@ -13,7 +13,7 @@ parent: Overview
 1. Years
 {:toc}
 
-## 2025
+### 2025
 * Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clinics in Geriatric Medicine, In Press. [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Masnoon2025MuscleComposition'); return false;" }
 
@@ -38,7 +38,7 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2025BedRest'); return false;" }
 
 
-## 2024
+### 2024
 * Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. *Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach.* J Cachexia Sarcopenia Muscle, 2024;15(6):2642–2650.  
   [https://doi.org/10.1002/jcsm.13608](https://doi.org/10.1002/jcsm.13608)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Stewart2024HipPain'); return false;" }
@@ -64,13 +64,13 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Snodgrass2024CervicalRecovery'); return false;" }
 
 
-## 2023
+#### 2023
 * Wesselink EO, Pool JJM, Mollema J, Weber KA 2nd, Elliott JM, Coppieters MW, Pool-Goudzwaard AL. *Is fatty infiltration in paraspinal muscles reversible with exercise in people with low back pain? A systematic review.* Eur Spine J. 2023;32(3):787–796.  
   [https://doi.org/10.1007/s00586-022-07471-w](https://doi.org/10.1007/s00586-022-07471-w)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2023SystematicReview'); return false;" }
 
 
-## 2022
+### 2022
 * Wesselink EO, Elliott JM, Coppieters MW, Hancock MJ, Cronin B, Pool-Goudzwaard A, Weber II KA. *Convolutional neural networks for automatic segmentation of lumbar paraspinal muscles in people with low back pain.* Sci Rep. 2022;12:13485.  
   [https://doi.org/10.1038/s41598-022-16710-5](https://doi.org/10.1038/s41598-022-16710-5)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2022CNNLumbar'); return false;" }
@@ -92,7 +92,7 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Perraton2022LateralHipROIs'); return false;" }
 
 
-## 2021
+### 2021
 * Paliwal M, Weber KA 2nd, Smith AC, Elliott JM, Muhammad F, Dahdaleh NS, Bodurka J, Dhaher Y, Parrish TB, Mackey S, Smith ZA. *Fatty infiltration in cervical flexors and extensors in degenerative cervical myelopathy.* PLoS One. 2021;16:e0253863.  
   [https://doi.org/10.1371/journal.pone.0253863](https://doi.org/10.1371/journal.pone.0253863)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Paliwal2021DCM'); return false;" }
@@ -102,7 +102,7 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Weber2021MultiMuscleSeg'); return false;" }
 
 
-## 2020
+### 2020
 * Elliott JM, Smith AC, Hoggarth MA, Albin SR, Weber KA, Haager M, Fundaun J, Wasielewski M, Courtney DM, Parrish TB. *Muscle fat infiltration following whiplash: CT vs MRI comparison.* PLoS One. 2020;15:e0234061.  
   [https://doi.org/10.1371/journal.pone.0234061](https://doi.org/10.1371/journal.pone.0234061)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Elliott2020WhiplashCTMRI'); return false;" }
@@ -112,13 +112,13 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Franettovich2020FEET'); return false;" }
 
 
-## 2019
+### 2019
 * Weber KA, Smith AC, Wasielewski M, Eghtesad K, Upadhyayula PA, Wintermark M, Hastie TJ, Parrish TB, Mackey S, Elliott JM. *Deep learning CNNs for automatic quantification of muscle fat infiltration following whiplash injury.* Sci Rep. 2019;9:7973.  
   [https://doi.org/10.1038/s41598-019-44416-8](https://doi.org/10.1038/s41598-019-44416-8)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Weber2019WhiplashDL'); return false;" }
 
 
-## 2017
+### 2017
 * Smith AC, Weber KA, Parrish TB, Hornby TG, Tysseling VM, McPherson JG, Wasielewski M, Elliott JM. *Ambulatory function in motor incomplete spinal cord injury: MRI of spinal cord edema and lower-extremity muscle morphometry.* Spinal Cord. 2017;55:672–678.  
   [https://doi.org/10.1038/sc.2017.18](https://doi.org/10.1038/sc.2017.18)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2017SpinalCordSCI'); return false;" }
