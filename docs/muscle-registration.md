@@ -8,7 +8,7 @@ permalink: /muscle-registration/
 ---
 
 
-# Template-based muscle registration for voxel-wise muscle analysis
+## Template-based muscle registration for voxel-wise muscle analysis
 
 `mm_register_to_template` registers an input image and its segmentation to a predefined **MuscleMap anatomical template**.  
 This enables **standardized voxel-wise analyses**, such as spatial parametric mapping of intramuscular fat, across subjects.
@@ -17,7 +17,7 @@ This step is typically performed **after segmentation** with `mm_segment`.
 
 ---
 
-## 1. Basic usage
+### 1. Basic usage
 
 ```bash
 mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
@@ -38,7 +38,7 @@ This command:
 
 ---
 
-## 2. Requirements
+### 2. Requirements
 
 ### 2.1 Spinal Cord Toolbox
 
@@ -61,7 +61,7 @@ export SCT_DIR=/path/to/spinalcordtoolbox
 
 ---
 
-## 3. How the registration works
+### 3. How the registration works
 
 For each label in the segmentation (each muscle or structure with label > 0), the following steps are performed:
 
@@ -84,7 +84,7 @@ For each label in the segmentation (each muscle or structure with label > 0), th
 
 ---
 
-## 4. Outputs
+### 4. Outputs
 
 For each label, the following files are generated (naming simplified):
 
@@ -98,7 +98,7 @@ For each label, the following files are generated (naming simplified):
 
 ---
 
-## 5. Quality control
+### 5. Quality control
 
 Always visually inspect registration quality:
 
@@ -120,7 +120,7 @@ Check for:
 
 ---
 
-## 6. Voxel-wise correlation analysis (Randomise example)
+### 6. Voxel-wise correlation analysis (Randomise example)
 
 After registration, template-space metric maps can be analysed voxel-wise.
 

@@ -29,13 +29,13 @@ This page explains:
 
 ### 1. Basic usage
 
-#### 1.1 Activate the MuscleMap environment
+### 1.1 Activate the MuscleMap environment
 
 ```bash
 conda activate MuscleMap
 ```
 
-#### 1.2 Run `mm_segment` on a single NIfTI image
+### 1.2 Run `mm_segment` on a single NIfTI image
 
 First, navigate to the directory containing your input image (or provide the full path to the file):
 
@@ -66,7 +66,7 @@ This command:
 
 ### 2. Input requirements
 
-#### 2.1 Supported image types
+### 2.1 Supported image types
 
 - **Modality:** Axial MRI of any contrast (T1w, T2w, Dixon water/fat/in-phase) or CT  
 - **Format:** NIfTI (`.nii`, `.nii.gz`)  
@@ -74,7 +74,7 @@ This command:
 
 MuscleMap recommends storing data in **BIDS format** with **JSON sidecars** from `dcm2niix`.
 
-#### 2.2 Processing single images vs. datasets
+### 2.2 Processing single images vs. datasets
 
 `mm_segment` processes **one image at a time**.
 
@@ -102,7 +102,7 @@ Visualise results in:
 ---
 ### 4. Models and regions
 
-#### 4.1 Whole-body model (default)
+### 4.1 Whole-body model (default)
 
 ```bash
 mm_segment -i image.nii.gz
@@ -117,7 +117,7 @@ Segments:
 - neck muscles  
 - selected bones  
 
-#### 4.2 Legacy regional models
+### 4.2 Legacy regional models
 
 Available:
 
@@ -142,13 +142,13 @@ Active development and state-of-the-art performance are provided exclusively by 
 
 ### 5. Command-line options
 
-#### 5.1 `-i` — input image (required)
+### 5.1 `-i` — input image (required)
 
 ```bash
 mm_segment -i /path/to/image.nii.gz
 ```
 
-#### 5.2 `-s` — sliding-window overlap
+### 5.2 `-s` — sliding-window overlap
 
 Controls tile overlap.
 
@@ -164,13 +164,13 @@ Lower sliding-window overlap increases inference speed but may reduce segmentati
 Higher overlap improves robustness at the cost of longer runtimes.
 </div>
 
-#### 5.3 `-r` — region model
+### 5.3 `-r` — region model
 
 ```bash
 mm_segment -i image.nii.gz -r thigh
 ```
 
-#### 5.4 `-g` — GPU/CPU selection
+### 5.4 `-g` — GPU/CPU selection
 
 Controls whether inference is performed on the GPU or CPU.
 
@@ -187,7 +187,7 @@ Use `-g N` to explicitly force CPU-based inference.
 </div>
 
 
-#### 5.5 `-h` — help
+### 5.5 `-h` — help
 
 ```bash
 mm_segment -h
@@ -197,25 +197,25 @@ mm_segment -h
 
 ### 6. Example workflows
 
-#### 6.1 Whole-body segmentation
+### 6.1 Whole-body segmentation
 
 ```bash
 mm_segment -i sub-01_water.nii.gz
 ```
 
-#### 6.2 Faster inference
+### 6.2 Faster inference
 
 ```bash
 mm_segment -i sub-02_T2w.nii.gz -s 50
 ```
 
-#### 6.3 Using a regional model
+### 6.3 Using a regional model
 
 ```bash
 mm_segment -i sub-03_T2w.nii.gz -r abdomen
 ```
 
-#### 6.4 Full pipeline with metrics
+### 6.4 Full pipeline with metrics
 
 ```bash
 mm_segment -i image.nii.gz

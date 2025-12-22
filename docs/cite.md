@@ -5,9 +5,9 @@ description: "Instructions how to cite MuscleMap when utilizing the open-source 
 parent: User section
 ---
 
-# Citing MuscleMap
+## Citing MuscleMap
 
-## Main reference
+### Main reference
 
 When citing **MuscleMap**, please cite the following article:
 
@@ -36,7 +36,7 @@ When citing **MuscleMap**, please cite the following article:
 </div>
 ---
 
-## Citing the MuscleMap Toolbox
+### Citing the MuscleMap Toolbox
 
 When using specific components of the **MuscleMap Toolbox**, please cite the relevant methods papers below.
 
