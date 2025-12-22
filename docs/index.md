@@ -91,7 +91,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/graphical-user-interface/' | relative_url }}">
+             href="{{ '/slicer-extension/' | relative_url }}">
             View mm_gui
           </a>
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
