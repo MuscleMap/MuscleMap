@@ -7,7 +7,7 @@ nav_order: 1
 permalink: /muscle-segmentation/
 ---
 
-# Automated whole-body muscle segmentation
+## Automated whole-body muscle segmentation
 
 The segmentation is performed using a deep learning–based, contrast-agnostic whole-body model trained for robust muscle and bone segmentation across MRI and CT modalities.
 
@@ -27,15 +27,15 @@ This page explains:
 
 ---
 
-## 1. Basic usage
+### 1. Basic usage
 
-### 1.1 Activate the MuscleMap environment
+#### 1.1 Activate the MuscleMap environment
 
 ```bash
 conda activate MuscleMap
 ```
 
-### 1.2 Run `mm_segment` on a single NIfTI image
+#### 1.2 Run `mm_segment` on a single NIfTI image
 
 First, navigate to the directory containing your input image (or provide the full path to the file):
 
@@ -64,9 +64,9 @@ This command:
 
 ---
 
-## 2. Input requirements
+### 2. Input requirements
 
-### 2.1 Supported image types
+#### 2.1 Supported image types
 
 - **Modality:** Axial MRI of any contrast (T1w, T2w, Dixon water/fat/in-phase) or CT  
 - **Format:** NIfTI (`.nii`, `.nii.gz`)  
@@ -74,7 +74,7 @@ This command:
 
 MuscleMap recommends storing data in **BIDS format** with **JSON sidecars** from `dcm2niix`.
 
-### 2.2 Processing single images vs. datasets
+#### 2.2 Processing single images vs. datasets
 
 `mm_segment` processes **one image at a time**.
 
@@ -85,7 +85,7 @@ For multiple images:
 
 ---
 
-## 3. Output
+### 3. Output
 
 `mm_segment` generates deep learning–based whole-body muscle segmentation outputs, including:
 
@@ -100,9 +100,9 @@ Visualise results in:
 - [FSLeyes](https://open.oxcin.ox.ac.uk/pages/fslcourse/practicals/intro1/index.html)
 
 ---
-## 4. Models and regions
+### 4. Models and regions
 
-### 4.1 Whole-body model (default)
+#### 4.1 Whole-body model (default)
 
 ```bash
 mm_segment -i image.nii.gz
@@ -117,7 +117,7 @@ Segments:
 - neck muscles  
 - selected bones  
 
-### 4.2 Legacy regional models
+#### 4.2 Legacy regional models
 
 Available:
 
@@ -140,15 +140,15 @@ Active development and state-of-the-art performance are provided exclusively by 
 
 ---
 
-## 5. Command-line options
+### 5. Command-line options
 
-### 5.1 `-i` — input image (required)
+#### 5.1 `-i` — input image (required)
 
 ```bash
 mm_segment -i /path/to/image.nii.gz
 ```
 
-### 5.2 `-s` — sliding-window overlap
+#### 5.2 `-s` — sliding-window overlap
 
 Controls tile overlap.
 
@@ -164,13 +164,13 @@ Lower sliding-window overlap increases inference speed but may reduce segmentati
 Higher overlap improves robustness at the cost of longer runtimes.
 </div>
 
-### 5.3 `-r` — region model
+#### 5.3 `-r` — region model
 
 ```bash
 mm_segment -i image.nii.gz -r thigh
 ```
 
-### 5.4 `-g` — GPU/CPU selection
+#### 5.4 `-g` — GPU/CPU selection
 
 Controls whether inference is performed on the GPU or CPU.
 
@@ -187,7 +187,7 @@ Use `-g N` to explicitly force CPU-based inference.
 </div>
 
 
-### 5.5 `-h` — help
+#### 5.5 `-h` — help
 
 ```bash
 mm_segment -h
@@ -195,27 +195,27 @@ mm_segment -h
 
 ---
 
-## 6. Example workflows
+### 6. Example workflows
 
-### 6.1 Whole-body segmentation
+#### 6.1 Whole-body segmentation
 
 ```bash
 mm_segment -i sub-01_water.nii.gz
 ```
 
-### 6.2 Faster inference
+#### 6.2 Faster inference
 
 ```bash
 mm_segment -i sub-02_T2w.nii.gz -s 50
 ```
 
-### 6.3 Using a regional model
+#### 6.3 Using a regional model
 
 ```bash
 mm_segment -i sub-03_T2w.nii.gz -r abdomen
 ```
 
-### 6.4 Full pipeline with metrics
+#### 6.4 Full pipeline with metrics
 
 ```bash
 mm_segment -i image.nii.gz
@@ -225,7 +225,7 @@ mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
 
 See the [Muscle quantification and metric extraction](../muscle-quantification/) page for details on muscle volume and fat infiltration analysis.
 
-## 7. Best practices & troubleshooting
+### 7. Best practices & troubleshooting
 
 - Always visually inspect segmentations  
 - Poor image quality reduces accuracy  

@@ -5,13 +5,13 @@ parent: User section
 permalink: /installation/
 ---
 
-# Musclemap installation
+## Installation
 
 This guide explains how to install MuscleMap and its dependencies for automated muscle segmentation and quantification from MRI and CT scans.
 
 ---
 
-## Dependencies
+### Dependencies
 
 - **Python:** 3.9.23  
 - **Operating system:** Linux, macOS, or Windows  
@@ -21,7 +21,7 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 ---
 
-## 1. Install Python (Conda recommended)
+### 1. Install Python (Conda recommended)
 
 We recommend installing **Miniconda** or **Anaconda** through the following links:
 
@@ -30,7 +30,7 @@ We recommend installing **Miniconda** or **Anaconda** through the following link
 
 ---
 
-## 2. Create and activate a conda environment
+### 2. Create and activate a conda environment
 
 ```bash
 conda create --name MuscleMap python=3.9.23
@@ -38,7 +38,7 @@ conda activate MuscleMap
 ```
 ---
 
-## 3. Download the MuscleMap repository
+### 3. Download the MuscleMap repository
 
 ### Option A — Using Git
 
@@ -47,7 +47,7 @@ git clone https://github.com/MuscleMap/MuscleMap.git
 cd MuscleMap
 ```
 
-### Option B — Download ZIP
+#### Option B — Download ZIP
 
 1. Open https://github.com/MuscleMap/MuscleMap  
 2. Click the green **<> Code ▼** button  
@@ -61,7 +61,7 @@ cd MuscleMap
 
 ---
 
-## 4. Install MuscleMap in editable mode
+### 4. Install MuscleMap in editable mode
 
 ```bash
 pip install -e .
@@ -76,7 +76,7 @@ This installs all required Python dependencies and registers the command-line to
 
 ---
 
-## 5. (Optional) Install PyTorch with GPU support
+### 5. (Optional) Install PyTorch with GPU support
 
 If you plan to run MuscleMap **on CPU only**, you may skip this step.
 
@@ -85,7 +85,7 @@ To use a GPU, you need one of the following:
 - **NVIDIA GPU** with a compatible CUDA runtime  
 - **AMD GPU** with ROCm support  
 
-### Step 5.1 — Check if CUDA is already available
+#### Step 5.1 — Check if CUDA is already available
 
 Open a Python console:
 
@@ -99,7 +99,7 @@ print("Is CUDA available?:", torch.cuda.is_available())
 
 ---
 
-### Step 5.2 — Check your system GPU runtime
+#### Step 5.2 — Check your system GPU runtime
 
 In a terminal, run:
 
@@ -117,7 +117,7 @@ This tells you which CUDA or ROCm version your system supports.
 
 ---
 
-### Step 5.3 — Install a compatible PyTorch version
+#### Step 5.3 — Install a compatible PyTorch version
 
 Install **PyTorch 2.4.0** matching your system configuration.
 We recommend using `pip` and following the official PyTorch instructions:
@@ -137,7 +137,7 @@ pip install torch==2.4.0 torchvision torchaudio --index-url https://download.pyt
 
 ---
 
-## 6. Verify the installation
+### 6. Verify the installation
 
 Run:
 

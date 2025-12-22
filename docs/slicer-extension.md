@@ -7,7 +7,7 @@ nav_order: 4
 permalink: /slicer-extension/
 ---
 
-# 3D Slicer extension for nuscle segmentation
+# 3D Slicer extension for muscle segmentation
 
 MuscleMap is implemented as a dedicated 3D Slicer extension that enables fully automated whole-body muscle segmentation directly within the Slicer environment. This interface is designed for researchers, clinicians, and imaging scientists who want to apply MuscleMap models without writing code.
 
@@ -42,7 +42,7 @@ The GUI provides an end-to-end workflow: from loading CT or MRI data, installing
 - Export-ready segmentation labels for quantitative analysis
 
 ---
-## Installing the MuscleMap extension in 3D Slicer
+## Installation
 
 ### Step 1 – Install 3D Slicer
 Download and install the latest version of 3D Slicer (≥ 5.2) from:  
@@ -93,7 +93,7 @@ After restarting, the module is available under the MuscleMap category.
 
 ---
 
-## Using the MuscleMap GUI
+## Using SlicerMuscleMap
 
 ### 1. Open the MuscleMap module
 Go to:  
@@ -156,22 +156,17 @@ After segmentation:
 
 The 3D Slicer extension is open-source and actively developed.
 
-**Slicer extension repository:**  
-https://github.com/Eddowesselink/SlicerMuscleMap
-
-<a href=https://github.com/Eddowesselink/SlicerMuscleMap"
+<a href="https://github.com/Eddowesselink/SlicerMuscleMap"
    class="mm-btn mm-btn-ghost"
    target="_blank" rel="noopener">
   View SlicerMuscleMap code
 </a>
+
 ---
 
 ## Reporting issues and requesting features
 
 If you encounter an error, unexpected behaviour, or have a feature request, please open an issue on GitHub.
-
-**MuscleMap issue tracker:**  
-https://github.com/MuscleMap/MuscleMap/issues
 
 <a href="https://github.com/MuscleMap/MuscleMap/issues"
    class="mm-btn mm-btn-ghost"

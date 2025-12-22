@@ -6,7 +6,7 @@ nav_order: 2
 permalink: /why-musclemap/
 ---
 
-## ## AI-driven muscle segmentation and quantification for early disease detection
+## AI-driven muscle segmentation and quantification for early disease detection
 
 Musculoskeletal and neurological conditions affect billions of people worldwide and are a leading cause of disability. Quantitative muscle imaging, including automated muscle segmentation and intramuscular fat quantification from MRI and CT, offers a powerful but underused opportunity to detect disease earlier.
 
