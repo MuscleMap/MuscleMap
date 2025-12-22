@@ -1,5 +1,5 @@
 ---
-title: MuscleMap anatomical Labels
+title:  Anatomical Labels
 nav_order: 3
 description: "MuscleMap anatomical structures for automated muscle and bone segmentation and quantification"
 parent: User section
