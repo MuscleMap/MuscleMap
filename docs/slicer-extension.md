@@ -1,9 +1,10 @@
 ---
 title: Graphical user interface
 parent: Key features
+description:
 grand_parent: User section
 nav_order: 4
-permalink: /graphical-user-interface/
+permalink: /slicer-extension/
 ---
 
 # 3D Slicer extension for nuscle segmentation
