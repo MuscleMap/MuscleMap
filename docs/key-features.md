@@ -8,7 +8,7 @@ permalink: /key-features/
 toc: false
 ---
 
-# Key features 
+## Key features 
 
 MuscleMap provides four command-line tools: `mm_segment` for generating whole-body muscle and bone segmentations, `mm_extract_metrics` for computing region-wise quantitative metrics for muscle volume and intramuscular fat, `mm_register_to_template` to conduct standardized analysis for the 3D spatial distribution of intramuscular fat,  and `mm_gui` for visual inspection and quality control. A video demonstration is provided below.
 
