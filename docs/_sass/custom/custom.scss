@@ -680,3 +680,19 @@
 .support-button {
   color: #ffffff !important;
 }
+
+.mm-card-with-media.mm-card-media-wide {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.mm-card-with-media.mm-card-media-wide .mm-card-media {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.mm-card-with-media.mm-card-media-wide .mm-card-media img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
