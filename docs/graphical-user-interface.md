@@ -17,6 +17,16 @@ The GUI provides an end-to-end workflow: from loading CT or MRI data, installing
     <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}"
          alt="MuscleMap 3D Slicer Interface">
   </div>
+
+  <div class="mm-card-text">
+    <div class="mm-card-actions">
+      <a class="mm-btn mm-btn-primary"
+         href="https://github.com/Eddowesselink/SlicerMuscleMap"
+         target="_blank" rel="noopener">
+        View SlicerMuscleMap code
+      </a>
+    </div>
+  </div>
 </div>
 
 ---
@@ -145,11 +155,13 @@ After segmentation:
 
 The 3D Slicer extension is open-source and actively developed.
 
-👉 **Slicer extension repository:**  
+**Slicer extension repository:**  
 https://github.com/Eddowesselink/SlicerMuscleMap
 
-<a href="https://github.com/Eddowesselink/SlicerMuscleMap" class="btn btn-primary" target="_blank">
-  Open SlicerMuscleMap on GitHub
+<a href="https://github.com/Eddowesselink/SlicerMuscleMap"
+   class="mm-btn mm-btn-primary"
+   target="_blank" rel="noopener">
+  View SlicerMuscleMap code
 </a>
 
 ---
@@ -158,10 +170,12 @@ https://github.com/Eddowesselink/SlicerMuscleMap
 
 If you encounter an error, unexpected behaviour, or have a feature request, please open an issue on GitHub.
 
-👉 **MuscleMap issue tracker:**  
+**MuscleMap issue tracker:**  
 https://github.com/MuscleMap/MuscleMap/issues
 
-<a href="https://github.com/MuscleMap/MuscleMap/issues" class="btn btn-outline" target="_blank">
+<a href="https://github.com/MuscleMap/MuscleMap/issues"
+   class="mm-btn mm-btn-ghost"
+   target="_blank" rel="noopener">
   Report an issue
 </a>
 
