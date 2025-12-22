@@ -7,8 +7,7 @@ permalink: /installation/
 
 # Musclemap installation
 
-Below we describe a typical setup using `conda` and an editable install of MuscleMap.
-Adapt paths and Python versions as needed.
+This guide explains how to install MuscleMap and its dependencies for automated muscle segmentation and quantification from MRI and CT scans.
 
 ---
 
@@ -24,7 +23,7 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 ## 1. Install Python (Conda recommended)
 
-We recommend installing **Miniconda** or **Anaconda**:
+We recommend installing **Miniconda** or **Anaconda** through the following links:
 
 - https://docs.conda.io/en/latest/miniconda.html  
 - https://www.anaconda.com/download  
@@ -37,7 +36,6 @@ We recommend installing **Miniconda** or **Anaconda**:
 conda create --name MuscleMap python=3.9.23
 conda activate MuscleMap
 ```
-
 ---
 
 ## 3. Download the MuscleMap repository

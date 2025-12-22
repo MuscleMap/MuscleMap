@@ -73,7 +73,7 @@ parent: Overview
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
-             href="{{ '/spatial-fat-distribution/' | relative_url }}">
+             href="{{ '/muscle-registration/' | relative_url }}">
             View mm_register_to_template
           </a>
         </div>

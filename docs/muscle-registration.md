@@ -1,14 +1,14 @@
 ---
-title: Registration
+title: Muscle registration
 parent: Key features
 description: "MuscleMap's mm_register_to_template performs anatomical registration of MRI and CT scans to a standard template, enabling spatial normalisation, group comparisons, and voxelwise muscle analysis"
 grand_parent: User section
 nav_order: 3
-permalink: /spatial-fat-distribution/
+permalink: /muscle-registration/
 ---
 
 
-# Register to template (`mm_register_to_template`)
+# Template-based muscle registration for voxel-wise muscle analysis
 
 `mm_register_to_template` registers an input image and its segmentation to a predefined **MuscleMap anatomical template**.  
 This enables **standardized voxel-wise analyses**, such as spatial parametric mapping of intramuscular fat, across subjects.

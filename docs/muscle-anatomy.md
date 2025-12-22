@@ -1,9 +1,12 @@
 ---
-title: Anatomical Labels
+title: MuscleMap anatomical Labels
 nav_order: 3
+description: "MuscleMap anatomical structures for automated muscle and bone segmentation and quantification"
 parent: User section
-permalink: /anatomy/
+permalink: /muscle-anatomy/
 ---
+
+## MuscleMap anatomical labels for automated muscle segmentation and quantification
 
 MuscleMap provides automated segmentation and quantfication (muscle volume, intramuscular fat and/or intensity) of 89 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and leg.
 
