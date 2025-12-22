@@ -17,7 +17,7 @@ parent: Overview
         <a class="mm-btn mm-btn-ghost" href="https://github.com/MuscleMap/MuscleMap" target="_blank" rel="noopener"> View code</a>
       </div>
       <p class="mm-hero-footnote">
-        Built for researchers, clinicians, and data scientists working with whole-body MRI and CT.
+        Built for researchers, clinicians, and data scientists working with MRI and CT.
       </p>
     </div>
     <div class="mm-hero-banner">
@@ -32,7 +32,7 @@ parent: Overview
       <div class="mm-card-text">
         <h3>Whole-body muscle segmentation</h3>
         <p>
-          Designed for whole-body imaging with consistent labelling
+          Designed for whole-body and clinical imaging with consistent labelling
           across muscles and bones, enabling large-scale, multi-region analyses.
         </p>
         <div class="mm-card-actions">
@@ -50,8 +50,8 @@ parent: Overview
       <div class="mm-card-text">
         <h3>Automated muscle quantification from MRI and CT</h3>
         <p>
-          Extract muscle-specific metrics such as volumes, intensity,
-          or intramuscular fat across multiple MRI contrasts and CT.
+          Extract muscle-specific metrics such as volumes or
+          or intramuscular fat percentage across multiple MRI contrasts and CT.
         </p>
         <div class="mm-card-actions">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
@@ -87,7 +87,7 @@ parent: Overview
         <h3>Integrated in pipelines</h3>
         <p>
           Includes a graphical user interface and a Slicer extension to make MuscleMap easy 
-          to run and to inspect individual cases for quality control.
+          to run and inspect individual cases for quality control.
         </p>
         <div class="mm-card-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <a class="mm-btn mm-btn-ghost mm-btn-sm"
