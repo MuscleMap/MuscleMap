@@ -6,24 +6,29 @@ nav_order: 4
 permalink: /graphical-user-interface/
 ---
 
-# SlicerMuscleMap| 3D Slicer Extension for Muscle Segmentation
+# 3D Slicer Extension for Muscle Segmentation
 
 MuscleMap is implemented as a dedicated 3D Slicer extension that enables fully automated whole-body muscle segmentation directly within the Slicer environment. This interface is designed for researchers, clinicians, and imaging scientists who want to apply MuscleMap models without writing code.
 
 The GUI provides an end-to-end workflow: from loading CT or MRI data, installing dependencies, running segmentation, to interactive 3D visualisation of muscle labels.
 
-![MuscleMap 3D Slicer Interface](assets/images/MuscleMap_Slicer3D.png)
+<div class="mm-card mm-card-with-media">
+  <div class="mm-card-media">
+    <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}"
+         alt="MuscleMap 3D Slicer Interface">
+  </div>
+</div>
 
 ---
 
 ## Why use the MuscleMap 3D Slicer extension?
 
-- ✅ No programming required  
-- ✅ Fully integrated into 3D Slicer  
-- ✅ Supports **CT and MRI**
-- ✅ Automated whole-body muscle segmentation
-- ✅ Interactive 2D and 3D visualisation
-- ✅ Export-ready segmentation labels for quantitative analysis
+- No programming required  
+- Fully integrated into 3D Slicer  
+- Supports CT and MRI
+- Automated whole-body muscle segmentation
+- Interactive 2D and 3D visualisation
+- Export-ready segmentation labels for quantitative analysis
 
 ---
 ## Installing the MuscleMap extension in 3D Slicer
@@ -143,8 +148,8 @@ The 3D Slicer extension is open-source and actively developed.
 👉 **Slicer extension repository:**  
 https://github.com/Eddowesselink/SlicerMuscleMap
 
-<a href="https://github.com/Eddowesselink/SlicerMuscleMap" target="_blank">
-  <button>Open SlicerMuscleMap on GitHub</button>
+<a href="https://github.com/Eddowesselink/SlicerMuscleMap" class="btn btn-primary" target="_blank">
+  Open SlicerMuscleMap on GitHub
 </a>
 
 ---
@@ -156,8 +161,8 @@ If you encounter an error, unexpected behaviour, or have a feature request, plea
 👉 **MuscleMap issue tracker:**  
 https://github.com/MuscleMap/MuscleMap/issues
 
-<a href="https://github.com/MuscleMap/MuscleMap/issues" target="_blank">
-  <button>Report an issue</button>
+<a href="https://github.com/MuscleMap/MuscleMap/issues" class="btn btn-outline" target="_blank">
+  Report an issue
 </a>
 
 Providing the following information helps us resolve issues faster:
