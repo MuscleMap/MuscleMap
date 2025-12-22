@@ -12,15 +12,16 @@ MuscleMap is implemented as a dedicated 3D Slicer extension that enables fully a
 
 The GUI provides an end-to-end workflow: from loading CT or MRI data, installing dependencies, running segmentation, to interactive 3D visualisation of muscle labels.
 
-<div class="mm-card mm-card-with-media">
-  <div class="mm-card-media">
+<div class="mm-card mm-card-with-media" style="max-width: 100%;">
+  <div class="mm-card-media" style="width: 100%;">
     <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}"
-         alt="MuscleMap 3D Slicer Interface">
+         alt="MuscleMap 3D Slicer Interface"
+         style="width: 100%; height: auto;">
   </div>
 
   <div class="mm-card-text">
     <div class="mm-card-actions">
-      <a class="mm-btn mm-btn-primary"
+      <a class="mm-btn mm-btn-ghost"
          href="https://github.com/Eddowesselink/SlicerMuscleMap"
          target="_blank" rel="noopener">
         View SlicerMuscleMap code
@@ -158,12 +159,11 @@ The 3D Slicer extension is open-source and actively developed.
 **Slicer extension repository:**  
 https://github.com/Eddowesselink/SlicerMuscleMap
 
-<a href="https://github.com/Eddowesselink/SlicerMuscleMap"
-   class="mm-btn mm-btn-primary"
+<a href=https://github.com/Eddowesselink/SlicerMuscleMap"
+   class="mm-btn mm-btn-ghost"
    target="_blank" rel="noopener">
   View SlicerMuscleMap code
 </a>
-
 ---
 
 ## Reporting issues and requesting features
