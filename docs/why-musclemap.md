@@ -1,16 +1,16 @@
 ---
 title: Why Musclemap?
 parent: Overview
-description: "MuscleMap,Navigating to the root of debilitating disease"
+description:  "MuscleMap is an open-source AI platform for whole-body muscle segmentation, muscle quantification, and intramuscular fat analysis from MRI and CT."
 nav_order: 2
 permalink: /why-musclemap/
 ---
 
-## Navigating to the root of debilitating disease
+## ## AI-driven muscle segmentation and quantification for early disease detection
 
-Musculoskeletal and neurological conditions affect billions of people worldwide and consistently rank among the top 10 contributors to the global burden of disease. Despite their enormous impact on quality of life, independence, and healthcare systems, these conditions are often detected late, when symptoms are already advanced and treatment options are limited.
+Musculoskeletal and neurological conditions affect billions of people worldwide and are a leading cause of disability. Quantitative muscle imaging, including automated muscle segmentation and intramuscular fat quantification from MRI and CT, offers a powerful but underused opportunity to detect disease earlier.
 
-MuscleMap was created to address this gap. It is a transformative, open-source initiative—comparable in ambition to the Human Genome Project—focused on systematically mapping skeletal muscle health across the entire human body. By doing so, MuscleMap aims to become a foundational clinical and research resource for the early detection, monitoring, and treatment of debilitating disease.
+MuscleMap was created to close this gap. It is an open-source, platform for whole-body muscle segmentation, muscle quantification, and intramuscular fat analysis, enabling scalable and standardised assessment of skeletal muscle health across populations.
 
 ---
 
