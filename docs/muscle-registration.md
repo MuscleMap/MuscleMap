@@ -1,5 +1,5 @@
 ---
-title: Muscle registration
+title: Registration
 parent: Key features
 description: "MuscleMap's mm_register_to_template performs anatomical registration of MRI and CT scans to a standard template, enabling spatial normalisation, group comparisons, and voxelwise muscle analysis"
 grand_parent: User section
