@@ -5,7 +5,7 @@ description: "Change log for MuscleMap code as released in main Github page"
 parent: Developer section
 ---
 
-# Change log and model updates
+## Change log and model updates
 
 Segmentation models in MuscleMap are periodically retrained on expanded and more diverse datasets to optimise performance, robustness, and cross-site generalisability.
 

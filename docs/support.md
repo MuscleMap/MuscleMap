@@ -6,7 +6,7 @@ nav_order: 4
 permalink: /support/
 ---
 
-# Support the MuscleMap project
+## Support the MuscleMap project
 
 Your support of MuscleMap will facilitate breakthroughs that both save and transform the lives of children and adults living with debilitating pain and disability. Though MuscleMap has significant potential to reduce the massive economic burden of musculoskeletal and neurological conditions, we have received no federal funding for this project to date. Only by providing MuscleMap with appropriate infrastructure will we be able to serve the billions of people around the world who stand to benefit directly from its application, in multiple ways.
 

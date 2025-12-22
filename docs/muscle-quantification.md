@@ -7,7 +7,7 @@ nav_order: 2
 permalink: /muscle-quantification/
 ---
 
-# Muscle quantification from MRI and CT 
+## Muscle quantification from MRI and CT 
 
 `mm_extract_metrics` is the MuscleMap command-line tool for **quantitative muscle analysis**, enabling automated estimation of **muscle volume**, **cross-sectional area (CSA)**, **intramuscular fat infiltration**, and **muscle density** from **MRI and CT images** from **deep learning–based whole-body muscle segmentation**.
 
@@ -28,7 +28,7 @@ This page explains:
 
 ---
 
-## 1. Basic usage
+### 1. Basic usage
 
 After generating a segmentation with `mm_segment`, run:
 
@@ -45,7 +45,7 @@ This command:
 - outputs CSV + NIfTI metric maps (depending on options)
 ---
 
-## 2. Required inputs
+### 2. Required inputs
 
 ### 2.1 `-i` — Input image
 
@@ -73,7 +73,7 @@ Output directory to save the results from `mm_extract_metrics`. If not specified
 
 ---
 
-## 3. Metric computation methods (`-m`)
+### 3. Metric computation methods (`-m`)
 
 The `-m` flag determines how fat fraction / composition metrics are computed.
 
@@ -117,7 +117,7 @@ mm_extract_metrics -m average -i ct_img.nii.gz -s ct_dseg.nii.gz
 </div>
 ---
 
-## 4. Region selection (`-r`)
+### 4. Region selection (`-r`)
 
 Choose which muscle regions to extract metrics for.
 
@@ -146,7 +146,7 @@ Regions correspond to MuscleMap's anatomical label groups.
 
 ---
 
-## 5. Number of clusters (`-c`)
+### 5. Number of clusters (`-c`)
 
 Used only with GMM or Kmeans and T1- or T2-weighted MRI.
 
@@ -168,7 +168,7 @@ Intermediate reflects a voxel with intermediate voxel signal not clearly corresp
 
 ---
 
-## 6. Output files
+### 6. Output files
 
 `mm_extract_metrics` typically produces:
 
@@ -192,7 +192,7 @@ The thresholding maps can be loaded as a segmentation to visually check threshol
 
 ---
 
-## 7. Example workflows
+### 7. Example workflows
 
 ### 7.1 MRI (T1/T2) using GMM
 
@@ -215,7 +215,7 @@ mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
 
 ---
 
-## 8. Best practices & troubleshooting
+### 8. Best practices & troubleshooting
 
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
@@ -224,7 +224,7 @@ Always **visually inspect both segmentation and metric outputs** before analysis
 
 ---
 
-## 9. Summary
+### 9. Summary
 
 `mm_extract_metrics` is the quantitative analysis backbone of MuscleMap:
 

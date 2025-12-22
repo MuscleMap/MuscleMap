@@ -4,7 +4,7 @@ nav_order: 3
 parent: Overview
 ---
 
-# Publications
+## Publications
 {: .no_toc }
 
 ## Table of contents
