@@ -69,7 +69,8 @@ def get_parser():
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
-
+    optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N'],
+                          help="If Y, will use a memory-efficient postprocessing workflow for inference at the expense of decreased accuracy.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -167,15 +168,30 @@ def main():
         EnsureTyped(keys=["image"]),
     ])
     
-    post_transforms = [
-    Invertd(
-        keys="pred", transform= pre_transforms, orig_keys="image",
-        meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
-    ),
-    AsDiscreted(keys="pred", argmax=True),
-    SqueezeTransform(keys=["pred"])]
+    if args.low_res == 'Y':
+        low_res = True
+        post_transforms = [
+                Invertd(
+                keys="pred", transform= pre_transforms, orig_keys="image",
+                meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict", nearest_interp=False,
+                to_tensor=False, device="cpu" # push to CPU to save GPU VRAM
+            ),
+            AsDiscreted(keys="pred", argmax=True),
+            SqueezeTransform(keys=["pred"])
+        ]
+    else:
+        low_res = False
+        post_transforms = [
+            Invertd(
+                keys="pred", transform= pre_transforms, orig_keys="image",
+                meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict", nearest_interp=False,
+                to_tensor=True, device=device
+            ),
+            AsDiscreted(keys="pred", argmax=True),
+            SqueezeTransform(keys=["pred"])
+        ]
 
     test_files = [{"image": image} for image in image_paths]
 
@@ -209,7 +225,7 @@ def main():
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
+            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res)
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
