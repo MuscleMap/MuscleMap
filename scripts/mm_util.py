@@ -725,10 +725,13 @@ def run_inference(
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
 
-        # Early argmax to improve memory efficiency
-        pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16) 
+        if low_res:
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+        else:
+            # keep the channel dimension (classes) intact for downstream AsDiscreted
+            pred_metatensor = MetaTensor(pred.squeeze(0).cpu(), meta=stored_meta_dict)
 
-        pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
         pred_metatensor.applied_operations = stored_applied_operations
 
         invertd = Invertd(
@@ -768,7 +771,12 @@ def run_inference(
             full_seg    = connected_chunks(seg_np)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         
-        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
+        del seg_np, tensor, pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
+        try:
+            del seg_np, tensor, pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
+        except NameError:
+            # some variables may not exist depending on if low_res
+            pass
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -812,10 +820,13 @@ def run_inference(
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
 
-        # Early argmax to improve memory efficiency
-        pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
-        
-        pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+        # Only perform early argmax when low_res mode is Y
+        if low_res:
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+        else:
+            pred_metatensor = MetaTensor(pred.squeeze(0).cpu(), meta=stored_meta_dict)
+
         pred_metatensor.applied_operations = stored_applied_operations
         
         invertd = Invertd(
@@ -862,8 +873,11 @@ def run_inference(
 
             s, e = entry["start"], entry["end"]
             full_seg[..., s:e] = seg_np
-            del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor 
-    
+            try:
+                del seg_np, tensor, pred, post_in, post_out, seg_tensor
+            except NameError:
+                pass
+
             full_seg = connected_chunks(full_seg)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
