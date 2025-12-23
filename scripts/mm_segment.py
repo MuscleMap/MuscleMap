@@ -63,13 +63,11 @@ def get_parser():
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
-    
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
-
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
-    optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N'],
+    optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N', 'y', 'n'],
                           help="If Y, will use a memory-efficient postprocessing workflow for inference at the expense of decreased accuracy.")
     return parser
 
@@ -168,7 +166,8 @@ def main():
         EnsureTyped(keys=["image"]),
     ])
     
-    if args.low_res == 'Y':
+    # Accept lowercase variants as well and make decision case-insensitive
+    if str(args.low_res).upper() == 'Y':
         low_res = True
         post_transforms = [
                 Invertd(
