@@ -858,7 +858,14 @@ def run_inference(
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
             seg_np = seg_tensor.numpy().squeeze()
             
-            # Save chunk segmentation to disk
+            # Place chunk into the full segmentation volume
+            s, e = entry["start"], entry["end"]
+            try:
+                full_seg[..., s:e] = seg_np.astype(np.int16)
+            except Exception:
+                pass
+
+            # Save per-chunk segmentation for debugging/inspection (optional)
             seg_path = os.path.join(
                 temp_dir,
                 f"seg_{entry['start']}_{entry['end']}.nii.gz"
@@ -881,8 +888,19 @@ def run_inference(
             full_seg = connected_chunks(full_seg)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
+    # If low_res was used, we assembled the full_seg during chunk processing. Save it now.
+    if low_res:
+        try:
+            full_seg = connected_chunks(full_seg)
+            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        except Exception:
+            logging.exception("Failed to finalize low_res stitched segmentation")
+
     # final cleanup
-    del full_seg
+    try:
+        del full_seg
+    except NameError:
+        pass
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
