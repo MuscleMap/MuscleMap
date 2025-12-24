@@ -18,6 +18,8 @@ tagline: "Whole-body muscle segmentation and quantitative muscle analysis"
 aux_links:
   "MuscleMap on GitHub":
     - "https://github.com/MuscleMap/MuscleMap"
+    
+aux_links_new_tab: true
 
 # SEO default metadata
 defaults:
