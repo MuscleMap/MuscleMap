@@ -771,12 +771,12 @@ def run_inference(
             full_seg    = connected_chunks(seg_np)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         
-        del seg_np, tensor, pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
-        try:
-            del seg_np, tensor, pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
-        except NameError:
-            # some variables may not exist depending on if low_res
-            pass
+        # Safely delete local variables if they exist
+        for _n in ("seg_np", "tensor", "pred", "post_in", "post_out", "seg_tensor", "full_seg", "img_data", "img_nii"):
+            try:
+                exec(f"del {_n}")
+            except NameError:
+                pass
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -858,43 +858,43 @@ def run_inference(
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
             seg_np = seg_tensor.numpy().squeeze()
             
-            # Place chunk into the full segmentation volume
-            s, e = entry["start"], entry["end"]
-            try:
-                full_seg[..., s:e] = seg_np.astype(np.int16)
-            except Exception:
-                pass
-
-            # Save per-chunk segmentation for debugging/inspection (optional)
-            seg_path = os.path.join(
-                temp_dir,
-                f"seg_{entry['start']}_{entry['end']}.nii.gz"
-            )
-            # Load the original chunk to get proper affine for this chunk
+            # Save per-chunk segmentation to disk (do not stitch in memory)
+            seg_path = os.path.join(temp_dir, f"seg_{entry['start']}_{entry['end']}.nii.gz")
             chunk_nii = nib.load(entry["image"])
             nib.save(nib.Nifti1Image(seg_np, chunk_nii.affine, chunk_nii.header), seg_path)
             entry["seg"] = seg_path
+            del seg_np, seg_tensor, chunk_nii
         else:
             post_out = post_transforms(post_in)
             seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
 
             s, e = entry["start"], entry["end"]
             full_seg[..., s:e] = seg_np
-            try:
-                del seg_np, tensor, pred, post_in, post_out, seg_tensor
-            except NameError:
-                pass
+            # Safely delete per-chunk temporary variables
+            for _n in ("seg_np", "tensor", "pred", "post_in", "post_out", "seg_tensor"):
+                try:
+                    exec(f"del {_n}")
+                except NameError:
+                    pass
 
-            full_seg = connected_chunks(full_seg)
-            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-    # If low_res was used, we assembled the full_seg during chunk processing. Save it now.
+    # If low_res was used, assemble final segmentation from per-chunk files
     if low_res:
         try:
+            for entry in chunk_files:
+                sp = entry.get("seg")
+                if sp and os.path.exists(sp):
+                    vol_seg = nib.load(sp).get_fdata().astype(np.int16)
+                    s, e = entry["start"], entry["end"]
+                    full_seg[..., s:e] = vol_seg
+                    del vol_seg
             full_seg = connected_chunks(full_seg)
             nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
         except Exception:
             logging.exception("Failed to finalize low_res stitched segmentation")
+    else:
+        # Original fast path: stitch in memory then run connected component filtering once
+        full_seg = connected_chunks(full_seg)
+        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
 
     # final cleanup
     try:
