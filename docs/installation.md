@@ -16,7 +16,7 @@ This guide explains how to install MuscleMap and its dependencies for automated 
 - **Python:** 3.9.23  
 - **Operating system:** Linux, macOS, or Windows  
 
-The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially better with GPU acceleration.
+The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially faster with GPU acceleration.
 
 ---
 
