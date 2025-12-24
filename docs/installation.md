@@ -15,7 +15,6 @@ This guide explains how to install MuscleMap and its dependencies for automated 
 
 - **Python:** 3.9.23  
 - **Operating system:** Linux, macOS, or Windows  
-- **Optional (recommended):** GPU with CUDA (NVIDIA) or ROCm (AMD)
 
 The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially better with GPU acceleration.
 
@@ -125,7 +124,7 @@ Install **PyTorch 2.4.0** matching your system configuration.
 
 We recommend using `pip` and following the official PyTorch instructions.
 
-Find the Pytorch 2.4.0 installation [here](https://pytorch.org/get-started/previous-versions/)
+Find the Pytorch 2.4.0 installation <a href="https://pytorch.org/get-started/previous-versions/" target="_blank" rel="noopener noreferrer">here</a>  
 
 Example (CUDA, adjust version as needed):
 
