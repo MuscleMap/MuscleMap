@@ -13,7 +13,7 @@ MuscleMap segmentation is performed using a deep learning–based, contrast-agno
 
 <div class="mm-video-container">
   <iframe
-    src="https://www.youtube.com/embed/H_uRhQ6O4F0"
+    src="https://www.youtube.com/embed/noTPN8ewFYc"
     title="MuscleMap segmentation tutorial"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
