@@ -64,7 +64,7 @@ parent: Overview
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Snodgrass2024CervicalRecovery'); return false;" }
 
 
-#### 2023
+### 2023
 * Wesselink EO, Pool JJM, Mollema J, Weber KA 2nd, Elliott JM, Coppieters MW, Pool-Goudzwaard AL. *Is fatty infiltration in paraspinal muscles reversible with exercise in people with low back pain? A systematic review.* Eur Spine J. 2023;32(3):787–796.  
   [https://doi.org/10.1007/s00586-022-07471-w](https://doi.org/10.1007/s00586-022-07471-w)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2023SystematicReview'); return false;" }

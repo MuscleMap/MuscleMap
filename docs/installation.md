@@ -47,7 +47,7 @@ git clone https://github.com/MuscleMap/MuscleMap.git
 cd MuscleMap
 ```
 
-#### Option B — Download ZIP
+### Option B — Download ZIP
 
 1. Open https://github.com/MuscleMap/MuscleMap  
 2. Click the green **<> Code ▼** button  
@@ -85,7 +85,7 @@ To use a GPU, you need one of the following:
 - **NVIDIA GPU** with a compatible CUDA runtime  
 - **AMD GPU** with ROCm support  
 
-#### Step 5.1 — Check if CUDA is already available
+### Step 5.1 — Check if CUDA is already available
 
 Open a Python console:
 
@@ -99,7 +99,7 @@ print("Is CUDA available?:", torch.cuda.is_available())
 
 ---
 
-#### Step 5.2 — Check your system GPU runtime
+### Step 5.2 — Check your system GPU runtime
 
 In a terminal, run:
 
@@ -117,7 +117,7 @@ This tells you which CUDA or ROCm version your system supports.
 
 ---
 
-#### Step 5.3 — Install a compatible PyTorch version
+### Step 5.3 — Install a compatible PyTorch version
 
 Install **PyTorch 2.4.0** matching your system configuration.
 We recommend using `pip` and following the official PyTorch instructions:
