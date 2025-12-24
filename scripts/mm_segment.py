@@ -31,6 +31,8 @@ from monai.transforms import (
 )
 from monai.networks.layers import Norm
 from time import perf_counter
+import math
+import nibabel as nib
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
@@ -69,6 +71,9 @@ def get_parser():
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
     optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N', 'y', 'n'],
                           help="If Y, will use a memory-efficient postprocessing workflow for inference at the expense of decreased accuracy.")
+    # Verbose timing flag: when set, timing log will also include seconds per voxel using total voxels of the input image
+    optional.add_argument('-v', '--verbose', action='store_true',
+                          help="If set, include seconds-per-voxel in the inference timing log.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -225,7 +230,19 @@ def main():
         t0 = perf_counter()
         try:
             run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res)
-            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
+            elapsed = perf_counter() - t0
+            if getattr(args, 'verbose', False):
+                try:
+                    dims = nib.load(test["image"]).header.get_data_shape()
+                    # Use first three spatial dimensions for voxel count
+                    spatial_dims_tuple = tuple(dims[:3]) if len(dims) >= 3 else tuple(dims)
+                    total_voxels = int(math.prod(spatial_dims_tuple)) if spatial_dims_tuple else 0
+                except Exception:
+                    total_voxels = 0
+                s_per_voxel = (elapsed / total_voxels) if total_voxels > 0 else float('nan')
+                logging.info(f"Inference of {test} finished in {elapsed:.2f}s ({s_per_voxel:.6e}s/voxel over {total_voxels} voxels)")
+            else:
+                logging.info(f"Inference of {test} finished in {elapsed:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
