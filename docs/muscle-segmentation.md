@@ -61,7 +61,6 @@ This command:
   If the package was installed using <code>pip install .</code>, it may be preferable to run the script directly using <code>python mm_segment.py</code>.
 </div>
 
-
 ---
 
 ### 2. Input requirements
@@ -135,7 +134,7 @@ mm_segment -i image.nii.gz -r abdomen
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
 The legacy regional models are maintained for backward compatibility only.  
-Active development and state-of-the-art performance are provided exclusively by the **whole-body model**, which achieves robust performance across all anatomical regions.
+Active development and state-of-the-art performance are provided exclusively by the whole-body model, which achieves robust performance across all anatomical regions.
 </div>
 
 ---
