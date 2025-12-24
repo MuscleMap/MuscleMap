@@ -11,12 +11,12 @@ This guide explains how to install MuscleMap and its dependencies for automated 
 
 <div class="mm-video-container">
   <iframe
-    src="https://youtu.be/4XwBHa5lqf4?si=bt-WtwLivhYgoVpG"
+    src="https://www.youtube.com/embed/4XwBHa5lqf4?start=289"
     title="MuscleMap installation"
     frameborder="0"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen
-  ></iframe>
+    allowfullscreen>
+  </iframe>
 </div>
 
 ---
