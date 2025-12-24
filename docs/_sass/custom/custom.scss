@@ -562,9 +562,7 @@
 .site-nav-toggle[aria-expanded="true"] .icon {
   color: #f97316 !important;
 }
-/* ===== Header logo: groter + perfect gecentreerd ===== */
 
-/* Container van logo */
 .site-title {
   display: flex;
   align-items: center;      /* verticaal centreren */
@@ -572,9 +570,8 @@
   padding: 0.6rem 0;
 }
 
-/* Het logo zelf */
 .site-logo {
-  width: 48px !important;   /* ← groter (probeer 40–56) */
+  width: 48px !important;   
   height: 48px !important;
   max-width: none !important;
   max-height: none !important;
@@ -620,19 +617,17 @@
   text-decoration: underline;
 }
 
-/* Hover */
 .main-content a:hover {
-  color: #ea580c !important;     /* iets donkerder oranje */
+  color: #ea580c !important;     
   text-decoration: underline;
 }
 
-/* Focus (toegankelijkheid) */
 .main-content a:focus-visible {
   outline: 2px solid #f97316;
   outline-offset: 2px;
 }
 .mm-btn-primary {
-  color: #ffffff !important;   /* wit */
+  color: #ffffff !important;  
 }
 
 .mm-btn.mm-btn-ghost {
@@ -643,12 +638,10 @@
 .mm-btn.mm-btn-ghost:hover {
   color: #111 !important;
 }
-/* Primary button: altijd wit */
 .mm-btn.mm-btn-primary {
   color: #ffffff !important;
 }
 
-/* Ghost buttons: altijd zwart */
 .mm-btn.mm-btn-ghost {
   color: #111 !important;
 }
@@ -657,7 +650,6 @@
   color: #111 !important;
 }
 
-/* Body-tekst overal kleiner */
 .main-content p,
 .main-content li,
 .main-content td,
@@ -667,9 +659,8 @@
   opacity: 0.9;
 }
 
-/* HERO blijft precies zoals jij hem definieert */
 .mm-hero p {
-  font-size: inherit;  /* of specifieker hieronder */
+  font-size: inherit;  
   opacity: 1;
 }
 
@@ -695,4 +686,15 @@
   width: 100%;
   max-width: 100%;
   height: auto;
+}
+
+.site-nav .nav-list-link:hover,
+.site-nav .nav-list-link:focus,
+.site-nav .nav-list-link:focus-visible {
+  background-color: #ffedd5 !important;  /* licht oranje */
+  text-decoration: none !important;
+}
+
+.site-nav .nav-list-link.active {
+  background-color: #ffedd5 !important;
 }
