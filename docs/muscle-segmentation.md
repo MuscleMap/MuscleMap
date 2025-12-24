@@ -22,7 +22,7 @@ This page explains:
 > **Tip:** For the most up-to-date list of options in your installation, run:
 >
 > ```bash
-> mm_segment -h
+> mm_segment --help
 > ```
 
 ---
@@ -51,7 +51,7 @@ mm_segment -i image.nii.gz
 This command:
 
 - loads the input image  
-- applies the default **whole-body segmentation model**  
+- applies the default whole-body segmentation model
 - writes a segmentation labelmap (NIfTI) next to the input file  
 - prints output paths and logs to the terminal  
 

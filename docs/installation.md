@@ -25,17 +25,17 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 We recommend installing **Miniconda** or **Anaconda** through the following links:
 
-- https://docs.conda.io/en/latest/miniconda.html  
-- https://www.anaconda.com/download  
+- [anaconda](https://www.anaconda.com/download)
+- [miniconda](https://docs.conda.io/en/latest/miniconda.html)
 
 ---
-
 ### 2. Create and activate a conda environment
 
 ```bash
 conda create --name MuscleMap python=3.9.23
 conda activate MuscleMap
 ```
+
 ---
 
 ### 3. Download the MuscleMap repository
@@ -58,7 +58,6 @@ cd MuscleMap
 ```bash
 cd MuscleMap
 ```
-
 ---
 
 ### 4. Install MuscleMap in editable mode
@@ -73,6 +72,11 @@ This installs all required Python dependencies and registers the command-line to
 - `mm_extract_metrics`
 - `mm_register_to_template`
 - `mm_gui`
+
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+Installing MuscleMap includes a default CPU-only installation of PyTorch. If you want to use a GPU for faster inference, please proceed to Step 5.
+</div>
 
 ---
 
@@ -98,7 +102,6 @@ print("Is CUDA available?:", torch.cuda.is_available())
 - `False` → continue with the steps below
 
 ---
-
 ### Step 5.2 — Check your system GPU runtime
 
 In a terminal, run:
@@ -114,15 +117,15 @@ rocm-smi
 ```
 
 This tells you which CUDA or ROCm version your system supports.
-
 ---
 
 ### Step 5.3 — Install a compatible PyTorch version
 
 Install **PyTorch 2.4.0** matching your system configuration.
-We recommend using `pip` and following the official PyTorch instructions:
 
-https://pytorch.org/get-started/locally/
+We recommend using `pip` and following the official PyTorch instructions.
+
+Find your Pytorch installation - [here](https://pytorch.org/get-started/locally/)
 
 Example (CUDA, adjust version as needed):
 
