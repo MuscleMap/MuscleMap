@@ -24,8 +24,8 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 We recommend installing **Miniconda** or **Anaconda** through the following links:
 
-<a href="https://docs.conda.io/en/latest/miniconda.html" target="_blank" rel="noopener noreferrer">Miniconda</a>  
-<a href="https://www.anaconda.com/download" target="_blank" rel="noopener noreferrer">Anaconda</a>
+- <a href="https://docs.conda.io/en/latest/miniconda.html" target="_blank" rel="noopener noreferrer">Miniconda</a>  
+- <a href="https://www.anaconda.com/download" target="_blank" rel="noopener noreferrer">Anaconda</a>
 
 ---
 ### 2. Create and activate a conda environment
