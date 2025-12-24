@@ -120,11 +120,11 @@ This tells you which CUDA or ROCm version your system supports.
 
 ### Step 5.3 — Install a compatible PyTorch version
 
-Install **PyTorch 2.4.0** matching your system configuration.
+Install **PyTorch** matching your system configuration.
 
 We recommend using `pip` and following the official PyTorch instructions.
 
-Find the Pytorch 2.4.0 installation <a href="https://pytorch.org/get-started/previous-versions/" target="_blank" rel="noopener noreferrer">here</a>  
+Find the Pytorch installation <a href="https://pytorch.org/get-started/locally/" target="_blank" rel="noopener noreferrer">here</a>  
 
 Example (CUDA, adjust version as needed):
 
