@@ -20,7 +20,7 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 ---
 
-### 1. Install Python (Conda recommended)
+### 1. Install Anaconda 
 
 We recommend installing **Miniconda** or **Anaconda** through the following links:
 
@@ -36,7 +36,6 @@ conda activate MuscleMap
 ```
 
 ---
-
 ### 3. Download the MuscleMap repository
 
 ### Option A — Using Git
