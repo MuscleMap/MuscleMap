@@ -64,7 +64,7 @@ cd MuscleMap
 pip install -e .
 ```
 
-This installs all required Python dependencies and registers the command-line tools:
+This installs all required packages and registers the command-line tools:
 
 - `mm_segment`
 - `mm_extract_metrics`
