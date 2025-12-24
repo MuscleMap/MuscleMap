@@ -25,8 +25,8 @@ The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially
 
 We recommend installing **Miniconda** or **Anaconda** through the following links:
 
-- [anaconda](https://www.anaconda.com/download)
-- [miniconda](https://docs.conda.io/en/latest/miniconda.html)
+- [Anaconda](https://www.anaconda.com/download)
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
 
 ---
 ### 2. Create and activate a conda environment
@@ -125,7 +125,7 @@ Install **PyTorch 2.4.0** matching your system configuration.
 
 We recommend using `pip` and following the official PyTorch instructions.
 
-Find your Pytorch installation - [here](https://pytorch.org/get-started/locally/)
+Find the Pytorch 2.4.0 installation [here](https://pytorch.org/get-started/previous-versions/)
 
 Example (CUDA, adjust version as needed):
 
@@ -135,7 +135,7 @@ pip install torch==2.4.0 torchvision torchaudio --index-url https://download.pyt
 
 <div class="callout callout-note">
   <strong>Note</strong><br>
-  Make sure the CUDA version of PyTorch matches the CUDA runtime reported by <code>nvidia-smi</code>.
+  Make sure the CUDA version of PyTorch matches the CUDA runtime reported by <code>nvidia-smi</code>. Also, we recommend to install Pytorch using the wheel. 
 </div>
 
 ---
