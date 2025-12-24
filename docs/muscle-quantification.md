@@ -23,7 +23,7 @@ This page explains:
 
 > **Tip:** For the most up-to-date options in your installed version, run:
 > ```bash
-> mm_extract_metrics -h
+> mm_extract_metrics --help
 > ```
 
 ---
