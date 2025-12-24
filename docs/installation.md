@@ -115,6 +115,7 @@ rocm-smi
 ```
 
 This tells you which CUDA or ROCm version your system supports.
+
 ---
 
 ### Step 5.3 — Install a compatible PyTorch version
@@ -149,6 +150,6 @@ mm_register_to_template --help
 mm_gui --help
 ```
 
-If these commands print a help message instead of an error, the installation was successful.
+If these commands print a help message instead of an error, the installation was successful. If you still find problems with installation, please open a [GitHub issue](https://github.com/MuscleMap/MuscleMap/issues) with an example.  
 
 ---
