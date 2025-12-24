@@ -234,13 +234,17 @@ def main():
             if getattr(args, 'verbose', False):
                 try:
                     dims = nib.load(test["image"]).header.get_data_shape()
-                    # Use first three spatial dimensions for voxel count
+                    # Use first three spatial dimensions for image matrix display
                     spatial_dims_tuple = tuple(dims[:3]) if len(dims) >= 3 else tuple(dims)
                     total_voxels = int(math.prod(spatial_dims_tuple)) if spatial_dims_tuple else 0
                 except Exception:
+                    spatial_dims_tuple = ()
                     total_voxels = 0
-                s_per_voxel = (elapsed / total_voxels) if total_voxels > 0 else float('nan')
-                logging.info(f"Inference of {test} finished in {elapsed:.2f}s ({s_per_voxel:.6e}s/voxel over {total_voxels} voxels)")
+                # report seconds per 1,000,000 voxels to give a human-friendly number (typically between 1 and 100)
+                s_per_million = (elapsed * 1e6 / total_voxels) if total_voxels > 0 else float('nan')
+                logging.info(
+                    f"Inference of {test} finished in {elapsed:.2f}s ({s_per_million:.3f}s per 1M voxels, image matrix {spatial_dims_tuple})"
+                )
             else:
                 logging.info(f"Inference of {test} finished in {elapsed:.2f}s")
         except Exception as e:
