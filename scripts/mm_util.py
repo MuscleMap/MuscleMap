@@ -696,7 +696,8 @@ def run_inference(
     device=None,
     inferer=None,
     model=None,
-    low_res=False
+    low_res=False,
+    remap_dict: Optional[Dict[int, int]] = None,
 ):
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
@@ -762,14 +763,22 @@ def run_inference(
         if low_res:
             post_out = invertd(post_in)
             seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
+            # Remap sequential class ids back to original label integers if mapping provided
+            if remap_dict:
+                remapped = np.zeros_like(seg_np, dtype=np.uint16)
+                for src, tgt in remap_dict.items():
+                    remapped[seg_np == src] = tgt
+                seg_np = remapped
             full_seg    = connected_chunks(seg_np)
-            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
         else:
             post_out = post_transforms(post_in)
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
             seg_np = seg_tensor.numpy().squeeze()
             full_seg    = connected_chunks(seg_np)
-            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
         
         # Safely delete local variables if they exist
         for _n in ("seg_np", "tensor", "pred", "post_in", "post_out", "seg_tensor", "full_seg", "img_data", "img_nii"):
@@ -857,17 +866,21 @@ def run_inference(
             post_out = invertd(post_in)
             seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
             seg_np = seg_tensor.numpy().squeeze()
-            
-            # Save per-chunk segmentation to disk (do not stitch in memory)
+            # Remap per-chunk sequential ids to original labels if mapping provided
+            if remap_dict:
+                remapped_chunk = np.zeros_like(seg_np, dtype=np.uint16)
+                for src, tgt in remap_dict.items():
+                    remapped_chunk[seg_np == src] = tgt
+                seg_np = remapped_chunk
             seg_path = os.path.join(temp_dir, f"seg_{entry['start']}_{entry['end']}.nii.gz")
             chunk_nii = nib.load(entry["image"])
-            nib.save(nib.Nifti1Image(seg_np, chunk_nii.affine, chunk_nii.header), seg_path)
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(seg_np.astype(np.uint16), chunk_nii.affine, chunk_nii.header), seg_path)
             entry["seg"] = seg_path
             del seg_np, seg_tensor, chunk_nii
         else:
             post_out = post_transforms(post_in)
             seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
-
             s, e = entry["start"], entry["end"]
             full_seg[..., s:e] = seg_np
             # Safely delete per-chunk temporary variables
@@ -888,13 +901,12 @@ def run_inference(
                     full_seg[..., s:e] = vol_seg
                     del vol_seg
             full_seg = connected_chunks(full_seg)
-            nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
         except Exception:
             logging.exception("Failed to finalize low_res stitched segmentation")
     else:
-        # Original fast path: stitch in memory then run connected component filtering once
         full_seg = connected_chunks(full_seg)
-        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
 
     # final cleanup
     try:

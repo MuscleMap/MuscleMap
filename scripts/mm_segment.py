@@ -229,7 +229,10 @@ def main():
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res)
+            if low_res:
+                run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res, remap_dict=inv_id_map)
+            else:
+                run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res)
             elapsed = perf_counter() - t0
             if getattr(args, 'verbose', False):
                 try:
