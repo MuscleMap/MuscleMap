@@ -22,7 +22,7 @@
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/anatomy/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/muscle-anatomy/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -42,7 +42,7 @@
 
   <!-- Commands -->
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/segmentation/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/muscle-segmentation/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.95</priority>
   </url>
@@ -54,13 +54,13 @@
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/spatial-distribution/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/muscle-registration/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>
 
   <url>
-    <loc>https://musclemap.github.io/MuscleMap/graphical-user-interface/</loc>
+    <loc>https://musclemap.github.io/MuscleMap/slicer-extension/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.85</priority>
   </url>

@@ -2,6 +2,7 @@
 title: Home
 nav_order: 1
 parent: Overview
+permalink: /index/
 ---
 
 <div class="mm-hero">
