@@ -3,6 +3,7 @@ title: Change log
 nav_order: 1
 description: "Change log for MuscleMap code as released in main Github page" 
 parent: Developer section
+permalink: /change-log/
 ---
 
 ## Change log and model updates

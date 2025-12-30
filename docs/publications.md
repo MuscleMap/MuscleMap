@@ -2,6 +2,7 @@
 title: Studies using MuscleMap
 nav_order: 3
 parent: Overview
+permalink: /publications/
 ---
 
 ## Publications
