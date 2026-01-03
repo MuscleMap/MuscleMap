@@ -27,14 +27,13 @@ parent: Overview
     </div>
   </div>
 </div>
-
 <div class="mm-section">
   <h2>Features</h2>
   <div class="mm-grid">
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-primary"
+          <a class="mm-btn mm-btn-ghost"
              href="{{ '/muscle-segmentation/' | relative_url }}">
             Whole-body muscle segmentation
           </a>
@@ -51,7 +50,7 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-primary"
+          <a class="mm-btn mm-btn-ghost"
              href="{{ '/muscle-quantification/' | relative_url }}">
             Automated muscle quantification 
           </a>
@@ -68,7 +67,7 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-primary"
+          <a class="mm-btn mm-btn-ghost"
              href="{{ '/muscle-registration/' | relative_url }}">
             Three-dimensional spatial parametric mapping
           </a>
@@ -85,7 +84,7 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-primary"
+          <a class="mm-btn mm-btn-ghost"
              href="{{ '/slicer-extension/' | relative_url }}">
             3D Slicer extension
           </a>
