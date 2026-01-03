@@ -9,6 +9,8 @@ permalink: /installation/
 
 This guide explains how to install MuscleMap and its dependencies for automated muscle segmentation and quantification from MRI and CT scans.
 
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+
 <div class="mm-video-container">
   <iframe
     src="https://www.youtube.com/embed/9MZ0Zq5Yfj4"
