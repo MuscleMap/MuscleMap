@@ -1,5 +1,5 @@
 ---
-title: Graphical user interface
+title: 3D Slicer extension
 parent: Key features
 description:
 grand_parent: User section

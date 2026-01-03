@@ -698,3 +698,31 @@
 .site-nav .nav-list-link.active {
   background-color: #ffedd5 !important;
 }
+
+/* ===== Features: 1 buitenkader + dividers tussen cards ===== */
+
+/* Maak de hele Features-sectie een "container" met zwarte rand zoals de hero */
+.mm-section {
+  border: 1px solid #000000;
+  border-radius: 0.75rem;   /* zelfde als .mm-hero */
+  background: #ffffff;
+  padding: 2rem 1.5rem;
+}
+
+/* Haal de losse card-randen weg, zodat het één geheel voelt */
+.mm-section .mm-card,
+.mm-section .mm-link-card {
+  border: none;
+  border-radius: 0;         /* geen aparte afgeronde hoeken per card */
+  padding: 1.75rem 0;       /* ruimte binnen de container */
+}
+
+/* Lichte lijn tussen de cards */
+.mm-section .mm-card + .mm-card {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Grid gap uitzetten, anders krijg je ruimte tussen de divider-lines */
+.mm-section .mm-grid {
+  gap: 0;
+}
