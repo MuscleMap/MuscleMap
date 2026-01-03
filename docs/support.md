@@ -47,3 +47,5 @@ And it will help push the limits of human endurance and performance in the most 
   font-size: 1.1rem;
 }
 </style>
+
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>

@@ -12,6 +12,8 @@ MuscleMap provides automated segmentation and quantfication (muscle volume, intr
 
 The table below lists all anatomical structures included in the latest version of MuscleMap, together with their label values and laterality. These labels are consistent across all MuscleMap tools (mm_segment, mm_extract_metrics, mm_register_to_template and mm_gui). 
 
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+
 
 | Region   | Anatomy                               | Side       | Value |
 |----------|----------------------------------------|------------|-------|

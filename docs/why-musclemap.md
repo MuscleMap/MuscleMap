@@ -57,3 +57,5 @@ MuscleMap is open source and freely accessible. Over the past five years, it has
 By combining large-scale imaging data with transparent methods and collaborative governance, MuscleMap aims to accelerate discovery, improve clinical decision-making, and ultimately reduce the burden of debilitating disease.
 
 ---
+
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
