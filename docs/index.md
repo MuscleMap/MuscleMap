@@ -30,12 +30,11 @@ parent: Overview
 
 <div class="mm-section">
   <h2>Features</h2>
-
   <div class="mm-grid">
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-ghost"
+          <a class="mm-btn mm-btn-primary"
              href="{{ '/muscle-segmentation/' | relative_url }}">
             Whole-body muscle segmentation
           </a>
@@ -52,9 +51,9 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-ghost"
+          <a class="mm-btn mm-btn-primary"
              href="{{ '/muscle-quantification/' | relative_url }}">
-            Automated muscle quantification from MRI and CT
+            Automated muscle quantification 
           </a>
         </h3>
         <p>
@@ -69,7 +68,7 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-ghost"
+          <a class="mm-btn mm-btn-primary"
              href="{{ '/muscle-registration/' | relative_url }}">
             Three-dimensional spatial parametric mapping
           </a>
@@ -86,13 +85,13 @@ parent: Overview
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
-          <a class="mm-btn mm-btn-ghost"
+          <a class="mm-btn mm-btn-primary"
              href="{{ '/slicer-extension/' | relative_url }}">
-            Integrated in pipelines
+            3D Slicer extension
           </a>
         </h3>
         <p>
-          Includes a graphical user interface and a Slicer extension to make MuscleMap easy
+          Includes a 3D Slicer extension to make MuscleMap easy
           to run and inspect individual cases for quality control.
         </p>
       </div>
