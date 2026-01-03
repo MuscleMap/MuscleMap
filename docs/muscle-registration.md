@@ -15,6 +15,8 @@ This enables **standardized voxel-wise analyses**, such as spatial parametric ma
 
 This step is typically performed **after segmentation** with `mm_segment`.
 
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+
 ---
 
 ### 1. Basic usage

@@ -35,6 +35,9 @@ When citing **MuscleMap**, please cite the following article:
      Download BibTeX
   </a>
 </div>
+
+<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+
 ---
 
 ### Citing the MuscleMap Toolbox
