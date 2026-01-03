@@ -41,9 +41,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
   <li>Trained whole-body model on a more diverse dataset to improve generalizability</li>
   <li>Now using foreground cropping to improve inference efficiency</li>
 </ul>
-
 </div>
-
 
 <!-- ===== VERSION 1.0 ===== -->
 <p align="left" style="margin-bottom: 4px;">
