@@ -698,3 +698,35 @@
 .site-nav .nav-list-link.active {
   background-color: #ffedd5 !important;
 }
+
+/* ===== Fix code blocks / Python layout ===== */
+
+.main-content pre,
+.main-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+               "Liberation Mono", "Courier New", monospace !important;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #111827;
+}
+
+/* Code blocks */
+.main-content pre {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+
+/* Inline code */
+.main-content code {
+  background: #f3f4f6;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+}
+
+/* Zorg dat callouts code netjes tonen */
+.callout pre {
+  margin-top: 0.5rem;
+}
