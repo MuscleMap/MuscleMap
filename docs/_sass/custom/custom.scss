@@ -728,8 +728,51 @@
   overflow-x: auto;
 }
 
-/* Inline code only */
-.main-content :not(pre) > code {
+/* ===== MuscleMap code (final) ===== */
+
+/* 1) font blijft */
+.main-content pre,
+.main-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+               "Liberation Mono", "Courier New", monospace !important;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #111827;
+}
+
+/* 2) code blocks (wrapper) */
+.main-content .highlight,
+.main-content .highlighter-rouge,
+.main-content figure.highlight {
+  background: #f9fafb;
+  border-radius: 0.75rem;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+  border-left: 4px solid #f97316;
+  margin: 0.8rem 0;
+}
+
+/* 3) code blocks (inner) */
+.main-content .highlight pre,
+.main-content .highlighter-rouge pre,
+.main-content figure.highlight pre {
+  background: transparent !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0.85rem 1rem !important;
+  overflow-x: auto;
+}
+
+/* 4) BELANGRIJK: geen inline "pill" in code blocks */
+.main-content pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* 5) inline code alleen in tekst */
+.main-content p > code,
+.main-content li > code,
+.main-content td > code {
   background: #f1f5f9;
   padding: 0.15rem 0.35rem;
   border-radius: 0.35rem;
