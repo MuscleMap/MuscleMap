@@ -48,4 +48,8 @@ And it will help push the limits of human endurance and performance in the most 
 }
 </style>
 
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+

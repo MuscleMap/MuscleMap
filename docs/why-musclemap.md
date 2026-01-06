@@ -12,6 +12,11 @@ Musculoskeletal and neurological conditions affect billions of people worldwide 
 
 MuscleMap was created to close this gap. It is an open-source, platform for whole-body muscle segmentation, muscle quantification, and intramuscular fat analysis, enabling scalable and standardised assessment of skeletal muscle health across populations.
 
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+
 ---
 
 ### Why muscle matters
