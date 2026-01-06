@@ -11,7 +11,10 @@ permalink: /muscle-quantification/
 
 MuscleMap's `mm_extract_metrics` is the command-line tool for quantitative muscle analysis, enabling automated estimation of muscle volume, cross-sectional area (CSA), intramuscular fat infiltration, and muscle density from MRI and CT images from deep learning–based whole-body muscle segmentation.
 
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
 
 It supports Gaussian Mixture Models (GMM), K-means clustering for T1 and T2-weighted MRI, fat fraction for Dixon MRI and HU‑based fat quantification for CT in customizable (.csv) output formats.
 
@@ -27,8 +30,6 @@ This page explains:
 > ```bash
 > mm_extract_metrics --help
 > ```
-
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
 
 ---
 
@@ -47,6 +48,7 @@ This command:
 - applies the chosen metric method (`-m`)  
 - computes fat/water composition or tissue-specific statistics  
 - outputs CSV + NIfTI metric maps (depending on options)
+
 ---
 
 ### 2. Required inputs

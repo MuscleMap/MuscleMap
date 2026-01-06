@@ -36,7 +36,10 @@ When citing **MuscleMap**, please cite the following article:
   </a>
 </div>
 
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
 
 ---
 
