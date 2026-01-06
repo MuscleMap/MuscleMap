@@ -778,3 +778,14 @@
   border-radius: 0.35rem;
   font-size: 0.85em;
 }
+
+/* Kill any inner rounded box from theme */
+.main-content .highlight pre,
+.main-content .highlight code,
+.main-content .highlighter-rouge pre,
+.main-content .highlighter-rouge code {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
