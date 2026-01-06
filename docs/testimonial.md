@@ -1,14 +1,14 @@
 ---
-title: Who is using MuscleMap?
+title: People using MuscleMap
 parent: Overview
 description:  "MuscleMap testimonial for muscle segmentation and quantification."
-nav_order: 99
+nav_order: 3
 permalink: /testimonial/
 ---
 
 ## Share your MuscleMap experience
 
-Do you also use **MuscleMap** and would like to share your experience with the community?  
+Do you also use *MuscleMap* and would like to share your experience with the community?  
 We warmly invite you to contribute a testimonial and tell us how MuscleMap supports your research or clinical work.
 
 👉 **Add your testimonial by [clicking here](https://forms.office.com/r/DKMn18WHby).**
@@ -19,3 +19,4 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
    href="{{ '/' | relative_url }}">
   ← Back to MuscleMap overview
 </a>
+
