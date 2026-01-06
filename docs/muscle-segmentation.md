@@ -34,11 +34,11 @@ This page explains:
 - recommended workflows
 - troubleshooting tips
 
-> **Tip:** For the most up-to-date list of options in your installation, run:
->
-> ```bash
-> mm_segment --help
-> ```
+**Tip:** For the most up-to-date list of options in your installation, run:
+
+ ```bash
+ mm_segment --help
+ ```
 
 ---
 
