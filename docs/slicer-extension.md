@@ -11,6 +11,12 @@ permalink: /slicer-extension/
 
 MuscleMap is implemented as a dedicated 3D Slicer extension that enables fully automated whole-body muscle segmentation directly within the Slicer environment. This interface is designed for researchers, clinicians, and imaging scientists who want to apply MuscleMap models without writing code.
 
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+
+
 The GUI provides an end-to-end workflow: from loading CT or MRI data, installing dependencies, running segmentation, to interactive 3D visualisation of muscle labels.
 
 <div class="mm-card mm-card-with-media mm-card-media-wide">

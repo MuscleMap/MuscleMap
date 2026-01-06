@@ -14,7 +14,11 @@ permalink: /publications/
 1. Years
 {:toc}
 
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+
 
 ### 2025
 * Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clinics in Geriatric Medicine, In Press. [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  

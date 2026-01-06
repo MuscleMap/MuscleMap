@@ -16,6 +16,12 @@ MuscleMap provides four command-line tools:
 * `mm_register_to_template` to conduct standardized analysis for the 3D spatial distribution of intramuscular fat,  
 * `mm_gui` for visual inspection and quality control. 
 
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+
+
 A video demonstration is provided below.
 
 <div class="mm-video-container">

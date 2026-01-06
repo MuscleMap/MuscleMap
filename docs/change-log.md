@@ -13,7 +13,10 @@ Segmentation models in MuscleMap are periodically retrained on expanded and more
 All notable changes to **MuscleMap** are listed below.  
 Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
-<p><a href="{{ '/' | relative_url }}">← Back to MuscleMap overview</a></p>
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
 
 <!-- ===== VERSION 1.1 ===== -->
 <p align="left" style="margin-bottom: 4px;">

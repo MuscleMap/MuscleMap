@@ -710,23 +710,28 @@
   color: #111827;
 }
 
-/* Code blocks */
-.main-content pre {
+/* Code blocks (theme wrapper) */
+.main-content .highlight {
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+  border-left: 4px solid #f97316;
+  margin: 0.8rem 0;
+}
+
+/* Inner code */
+.main-content .highlight pre {
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0.85rem 1rem;
   overflow-x: auto;
 }
 
-/* Inline code */
-.main-content code {
-  background: #f3f4f6;
+/* Inline code only */
+.main-content :not(pre) > code {
+  background: #f1f5f9;
   padding: 0.15rem 0.35rem;
   border-radius: 0.35rem;
-}
-
-/* Zorg dat callouts code netjes tonen */
-.callout pre {
-  margin-top: 0.5rem;
+  font-size: 0.85em;
 }
