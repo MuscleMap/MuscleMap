@@ -10,16 +10,15 @@ permalink: /muscle-registration/
 
 ## Template-based muscle registration for voxel-wise muscle analysis
 
-`mm_register_to_template` registers an input image and its segmentation to a predefined **MuscleMap anatomical template**.  
-This enables **standardized voxel-wise analyses**, such as spatial parametric mapping of intramuscular fat, across subjects.
+`mm_register_to_template` registers an input image and its segmentation to a predefined MuscleMap anatomical template.  
+This enables standardized voxel-wise analyses, such as spatial parametric mapping of intramuscular fat, across subjects.
 
-This step is typically performed **after segmentation** with `mm_segment`.
+This step is typically performed after segmentation with `mm_segment`.
 
 <a class="mm-btn mm-btn-ghost mm-btn-back"
    href="{{ '/' | relative_url }}">
   ← Back to MuscleMap overview
 </a>
-
 
 ---
 
@@ -48,9 +47,9 @@ This command:
 
 ### 2.1 Spinal Cord Toolbox
 
-This tool depends on **Spinal Cord Toolbox (SCT)** and expects:
+This tool depends on Spinal Cord Toolbox (SCT) and expects:
 
-- **SCT version 6.5**
+- SCT version 6.5
 
 <div class="callout callout-warning">
   <strong>Warning</strong><br>
@@ -71,21 +70,21 @@ export SCT_DIR=/path/to/spinalcordtoolbox
 
 For each label in the segmentation (each muscle or structure with label > 0), the following steps are performed:
 
-1. **Label extraction**  
+1. Label extraction
    A binary mask is created for the current label.
 
-2. **Centerline estimation**  
+2. Centerline estimation
    A slice-wise center-of-mass is computed to estimate a label-specific centerline.
 
-3. **Initial affine alignment**  
+3. Initial affine alignment
    Three landmark points (≈10%, 50%, 90% along the centerline) are used to compute a constrained affine transform, which is applied to:
    - the input image (linear interpolation)
    - the label mask (nearest-neighbour interpolation)
 
-4. **Nonlinear registration to the template**  
+4. Nonlinear registration to the template
    Using `sct_register_multimodal`, the affine-initialized image and label are nonlinearly registered to the template.
 
-5. **Warp concatenation and application**  
+5. Warp concatenation and application 
    Final transformation fields are concatenated and applied to generate outputs in template space.
 
 ---
