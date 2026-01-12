@@ -819,16 +819,27 @@
 }
 
 @media (max-width: 900px){
-
   .mm-seg-hero{
+    display: flex;
     flex-direction: column;
     gap: 0;                 /* zet flex-gap UIT */
   }
+
+  .mm-seg-hero .mm-btn-back{
+    margin-bottom: 6px;
+  }
+
   .mm-seg-hero .mm-hero-text{
     margin-bottom: 8px;     /* kleine, gecontroleerde ruimte */
   }
+
   .mm-seg-hero .mm-hero-media{
     margin-top: 0;          /* trek GIF omhoog */
     max-width: 240px;       /* iets kleiner op mobiel */
+  }
+
+  .mm-seg-hero .mm-hero-media img{
+    width: 100%;
+    height: auto;
   }
 }
