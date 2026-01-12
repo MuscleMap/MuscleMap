@@ -789,3 +789,42 @@
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+
+/* Segmentation page hero (isolated) */
+.mm-seg-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
+  margin: 12px 0 18px 0;
+}
+
+.mm-seg-hero .mm-hero-text{
+  flex: 1 1 520px;
+  min-width: 280px;
+}
+
+.mm-seg-hero .mm-hero-media{
+  flex: 0 0 320px;
+  max-width: 360px;
+}
+
+.mm-seg-hero .mm-hero-media img{
+  width:100%;
+  height:auto;
+  display:block;
+  border-radius: 12px;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}
+
+/* Mobile */
+@media (max-width: 900px){
+  .mm-seg-hero{
+    flex-direction:column;
+  }
+
+  .mm-seg-hero .mm-hero-media{
+    max-width: 520px;
+  }
+}
