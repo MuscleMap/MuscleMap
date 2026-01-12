@@ -7,51 +7,39 @@ nav_order: 1
 permalink: /muscle-segmentation/
 ---
 
-## Automated whole-body muscle segmentation {: #segmentation-title .mm-hide-title }
-
-<div class="mm-seg-hero">
-
-  <div class="mm-hero-text">
-    <h2 class="mm-seg-hero-title">
-      Automated whole-body muscle segmentation
-    </h2>
-    <p class="mm-seg-hero-subtitle">
-      MuscleMap segmentation is performed using a deep learning–based,
-      contrast-agnostic whole-body model trained for robust muscle and bone
-      segmentation across MRI and CT modalities.
-    </p>
-    <div class="mm-hero-actions">
-      <a class="mm-btn mm-btn-ghost mm-btn-back"
-         href="{{ '/' | relative_url }}">
-        ← Back to MuscleMap overview
-      </a>
-      <a class="mm-btn mm-btn-segvideo"
-         href="https://www.youtube.com/embed/noTPN8ewFYc"
-         target="_blank" rel="noopener">
-        ▶ View tutorial video
-      </a>
+<div class="mm-hero">
+  <div class="mm-hero-inner">
+    <div class="mm-hero-text">
+      <p class="mm-eyebrow">Key feature</p>
+      <h1>Automated whole-body muscle segmentation</h1>
+      <p class="mm-subtitle">
+        MuscleMap segmentation is performed using a deep learning–based, contrast-agnostic whole-body model trained for robust muscle and bone segmentation across MRI and CT modalities.
+      </p>
+      <div class="mm-hero-actions">
+        <a class="mm-btn mm-btn-primary"
+           href="https://www.youtube.com/watch?v=noTPN8ewFYc"
+           target="_blank" rel="noopener">
+          View tutorial
+        </a>
+        <a class="mm-btn mm-btn-ghost"
+           href="https://github.com/MuscleMap/MuscleMap"
+           target="_blank" rel="noopener">
+          View code
+        </a>
+        <a class="mm-btn mm-btn-ghost mm-btn-back"
+           href="{{ '/' | relative_url }}">
+          ← Back to MuscleMap overview
+        </a>
+      </div>
+      <p class="mm-hero-footnote">
+        Run segmentation from the command line with <code>mm_segment</code>, producing NIfTI labelmaps ready for QC in ITK-SNAP or 3D Slicer.
+      </p>
+    </div>
+    <div class="mm-hero-banner">
+      <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
+           alt="Animated example of MuscleMap whole-body muscle segmentation">
     </div>
   </div>
-
-  <div class="mm-hero-media">
-    <img
-      src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
-      alt="Animated example of whole-body muscle segmentation with MuscleMap"
-      loading="lazy"
-    />
-  </div>
-
-</div>
-
-
-<div class="mm-video-container">
-  <iframe
-    src="https://www.youtube.com/embed/noTPN8ewFYc"
-    title="MuscleMap segmentation tutorial"
-    frameborder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen>
-  </iframe>
 </div>
 
 This page explains:
