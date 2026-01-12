@@ -20,3 +20,20 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
   ← Back to MuscleMap overview
 </a>
 
+
+<div class="mm-testimonials">
+
+  <div class="mm-testimonial">
+    <div class="mm-testimonial-header">
+      <span class="mm-testimonial-name">
+        Sarah Glastras, PhD | Department of Diabetes, Endocrinology & Metabolism, Royal North Shore Hospital, Sydney, Australia;  Kolling Institute, University of Sydney, Australia
+      </span>
+    </div>
+    <div class="mm-testimonial-body">
+      <p>
+        My research explores the effects of metabolic benefits from weight loss therapies, and my research team is particularly interested in the relationship between adipose tissue (fat), muscle and cardiovascular health. The MuscleMap is being used in our current study investigating the effects of weight reduction with tirzepatide on muscle composition, and muscle function. The MuscleMap consortium is collaborative, invested in discovering new evidence, and forward thinking in using the most novel and innovative technologies.
+      </p>
+    </div>
+  </div>
+</div>
+
