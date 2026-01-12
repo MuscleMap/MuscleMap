@@ -7,18 +7,30 @@ nav_order: 1
 permalink: /muscle-segmentation/
 ---
 
-## Automated whole-body muscle segmentation
+## Automated whole-body muscle segmentation {: #segmentation-title .mm-hide-title }
 
 <div class="mm-seg-hero">
-  <div class="mm-hero-text">
-    <p>
-      MuscleMap segmentation is performed using a deep learning–based, contrast-agnostic whole-body model trained for robust muscle and bone segmentation across MRI and CT modalities.
-    </p>
 
-    <a class="mm-btn mm-btn-ghost mm-btn-back"
-       href="{{ '/' | relative_url }}">
-      ← Back to MuscleMap overview
-    </a>
+  <div class="mm-hero-text">
+    <h2 class="mm-seg-hero-title">
+      Automated whole-body muscle segmentation
+    </h2>
+    <p class="mm-seg-hero-subtitle">
+      MuscleMap segmentation is performed using a deep learning–based,
+      contrast-agnostic whole-body model trained for robust muscle and bone
+      segmentation across MRI and CT modalities.
+    </p>
+    <div class="mm-hero-actions">
+      <a class="mm-btn mm-btn-ghost mm-btn-back"
+         href="{{ '/' | relative_url }}">
+        ← Back to MuscleMap overview
+      </a>
+      <a class="mm-btn mm-btn-segvideo"
+         href="https://www.youtube.com/embed/noTPN8ewFYc"
+         target="_blank" rel="noopener">
+        ▶ View tutorial video
+      </a>
+    </div>
   </div>
 
   <div class="mm-hero-media">
@@ -28,6 +40,7 @@ permalink: /muscle-segmentation/
       loading="lazy"
     />
   </div>
+
 </div>
 
 
