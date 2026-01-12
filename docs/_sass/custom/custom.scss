@@ -790,13 +790,19 @@
   box-shadow: none !important;
 }
 
-/* Segmentation page hero (isolated) */
 .mm-seg-hero{
   display:flex;
   align-items:flex-start;
   justify-content:space-between;
   gap:24px;
-  margin: 12px 0 18px 0;
+
+  /* zelfde omlijning als .mm-hero */
+  margin: 0 0 2rem;
+  padding: 2rem 1.5rem;          /* iets compacter dan index, mag ook 2.5rem */
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #000000;
+  border-radius: 0.75rem;
 }
 
 .mm-seg-hero .mm-hero-text{
@@ -845,5 +851,45 @@
   .mm-seg-hero .mm-hero-media img{
     width: 100%;
     height: auto;
+  }
+}
+
+.mm-testimonials{
+  margin: 1.5rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mm-testimonial{
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 6px solid #f97316;   /* MuscleMap oranje accent */
+  border-radius: 0.75rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.mm-testimonial-header{
+  margin-bottom: 0.4rem;
+}
+
+.mm-testimonial-name{
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mm-testimonial-body p{
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #000000;
+  opacity: 0.9;
+}
+
+/* Mobile iets compacter */
+@media (max-width: 768px){
+  .mm-testimonial{
+    padding: 0.8rem 0.9rem;
   }
 }
