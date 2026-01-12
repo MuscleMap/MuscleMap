@@ -19,7 +19,7 @@ permalink: /muscle-segmentation/
         <a class="mm-btn mm-btn-primary"
            href="https://www.youtube.com/watch?v=noTPN8ewFYc"
            target="_blank" rel="noopener">
-          View tutorial
+          View tutorial video
         </a>
         <a class="mm-btn mm-btn-ghost"
            href="https://github.com/MuscleMap/MuscleMap"
