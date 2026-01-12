@@ -819,13 +819,16 @@
 }
 
 @media (max-width: 900px){
-  .mm-seg-hero{
-    flex-direction:column;
-    gap: 12px;              /* minder ruimte tussen tekst & GIF */
-  }
 
+  .mm-seg-hero{
+    flex-direction: column;
+    gap: 0;                 /* zet flex-gap UIT */
+  }
+  .mm-seg-hero .mm-hero-text{
+    margin-bottom: 8px;     /* kleine, gecontroleerde ruimte */
+  }
   .mm-seg-hero .mm-hero-media{
-    max-width: 260px;       /* klein houden op mobiel */
-    margin-top: 4px;        /* bijna tegen de knop aan */
+    margin-top: 0;          /* trek GIF omhoog */
+    max-width: 240px;       /* iets kleiner op mobiel */
   }
 }
