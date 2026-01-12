@@ -805,8 +805,8 @@
 }
 
 .mm-seg-hero .mm-hero-media{
-  flex: 0 0 320px;
-  max-width: 360px;
+  flex: 0 0 260px;   /* kleiner */
+  max-width: 280px;
 }
 
 .mm-seg-hero .mm-hero-media img{
@@ -818,13 +818,14 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.10);
 }
 
-/* Mobile */
 @media (max-width: 900px){
   .mm-seg-hero{
     flex-direction:column;
+    gap: 12px;              /* minder ruimte tussen tekst & GIF */
   }
 
   .mm-seg-hero .mm-hero-media{
-    max-width: 520px;
+    max-width: 260px;       /* klein houden op mobiel */
+    margin-top: 4px;        /* bijna tegen de knop aan */
   }
 }
