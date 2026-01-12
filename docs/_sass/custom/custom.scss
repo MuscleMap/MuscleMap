@@ -893,3 +893,64 @@
     padding: 0.8rem 0.9rem;
   }
 }
+
+
+
+/* Segmentation hero title */
+.mm-seg-hero-title{
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+  color: #000000;
+}
+
+/* Subtitle */
+.mm-seg-hero-subtitle{
+  font-size: 1.0rem;
+  max-width: 36rem;
+  margin-bottom: 1.2rem;
+  opacity: 0.95;
+}
+
+/* Hero actions */
+.mm-seg-hero .mm-hero-actions{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* === Special orange video button === */
+.mm-btn-segvideo{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+
+  background: #f97316;
+  color: #ffffff !important;
+  border: 2px solid #f97316;
+  border-radius: 999px;
+
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+/* Hover */
+.mm-btn-segvideo:hover{
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff !important;
+  transition: 0.15s ease;
+}
+
+/* Mobile tweaks */
+@media (max-width: 900px){
+  .mm-seg-hero-title{
+    font-size: 1.8rem;
+  }
+}
+
+.mm-hide-title{
+  display: none;
+}
