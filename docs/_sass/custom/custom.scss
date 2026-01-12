@@ -951,6 +951,8 @@
   }
 }
 
-.mm-hide-title{
-  display: none;
+.mm-hero .mm-hero-banner img[src*="musclemap_scroll"]{
+  max-width: 260px;   /* probeer 240–300 */
+  width: 100%;
+  height: auto;
 }

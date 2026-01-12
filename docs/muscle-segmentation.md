@@ -26,14 +26,7 @@ permalink: /muscle-segmentation/
            target="_blank" rel="noopener">
           View code
         </a>
-        <a class="mm-btn mm-btn-ghost mm-btn-back"
-           href="{{ '/' | relative_url }}">
-          ← Back to MuscleMap overview
-        </a>
       </div>
-      <p class="mm-hero-footnote">
-        Run segmentation from the command line with <code>mm_segment</code>, producing NIfTI labelmaps ready for QC in ITK-SNAP or 3D Slicer.
-      </p>
     </div>
     <div class="mm-hero-banner">
       <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
