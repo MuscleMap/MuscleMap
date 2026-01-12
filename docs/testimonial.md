@@ -16,7 +16,6 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
 *Submitted testimonials will be featured on this page. Thank you for helping us grow and improve MuscleMap.*
 
 <div class="mm-testimonials">
-
   <div class="mm-testimonial">
     <div class="mm-testimonial-header">
       <span class="mm-testimonial-name">
@@ -30,7 +29,6 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
     </div>
   </div>
 </div>
-
 
 <a class="mm-btn mm-btn-ghost mm-btn-back"
    href="{{ '/' | relative_url }}">

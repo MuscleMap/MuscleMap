@@ -14,20 +14,17 @@ permalink: /publications/
 1. Years
 {:toc}
 
-<a class="mm-btn mm-btn-ghost mm-btn-back"
-   href="{{ '/' | relative_url }}">
-  ← Back to MuscleMap overview
-</a>
+### 2026
+* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up. European Spine Journal, 2026; published online January 5, 2026. [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3)
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('vanAmstel2026EpimuscularFat'); return false;" }
 
+* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up. Spine (Phila Pa 1976), 2026;51(1):25–33. [https://doi.org/10.1097/brs.0000000000005408](https://doi.org/10.1097/brs.0000000000005408)  
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2026LumbarMultifidus'); return false;" }
+
+* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clin Geriatr Med, 2026;42(1):61–73. [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Masnoon2026MuscleComposition'); return false;" }
 
 ### 2025
-* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clinics in Geriatric Medicine, In Press. [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  
-  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Masnoon2025MuscleComposition'); return false;" }
-
-* Wesselink EO, Verheijen E, Djuric N, Coppieters M, Elliott J, Weber KA 2nd, Wouter M, Vleggeert-Lankamp C, Pool-Goudzwaard A. *Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis.* Spine, In Press.  
-  [https://doi.org/10.1097/brs.0000000000005408](https://doi.org/10.1097/brs.0000000000005408)  
-  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2025LumbarMultifidus'); return false;" }
-
 * Smith AC, Muñoz Laguna J, Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM, Weber II KA. *Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI.* J Cachexia Sarcopenia Muscle, 2025;16(1):e13735.  
   [https://doi.org/10.1002/jcsm.13735](https://doi.org/10.1002/jcsm.13735)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2025LegMuscleVolume'); return false;" }
@@ -43,7 +40,6 @@ permalink: /publications/
 * Wesselink EO, Hides J, Elliott JM, Hoggarth M, Weber KA 2nd, Salomoni SE, Tran V, Lindsay K, Hughes L, Weber T, Scott J, Hodges PW, Caplan N, De Martino E. *New insights into the impact of bed rest on lumbopelvic muscles: A computer-vision model approach.* J Appl Physiol, 2025;138(1):157–168.  
   [https://doi.org/10.1152/japplphysiol.00502.2024](https://doi.org/10.1152/japplphysiol.00502.2024)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2025BedRest'); return false;" }
-
 
 ### 2024
 * Stewart C, Wesselink EO, Perraton Z, Weber KA 2nd, King MG, Kemp JL, Mentiplay BF, Crossley KM, Elliott JM, Heerey JJ, Scholes MJ, Lawrenson PR, Calabrese C, Semciw AI. *Muscle Fat and Volume Differences in People With Hip-Related Pain Compared With Controls: A Machine Learning Approach.* J Cachexia Sarcopenia Muscle, 2024;15(6):2642–2650.  
@@ -135,3 +131,8 @@ permalink: /publications/
   window.MUSCLEMAP_BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
 </script>
 <script src="{{ '/assets/js/bibtex-download.js' | relative_url }}"></script>
+
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
