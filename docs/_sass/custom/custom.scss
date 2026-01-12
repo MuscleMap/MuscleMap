@@ -956,3 +956,25 @@
   width: 100%;
   height: auto;
 }
+
+.mm-hero .mm-hero-banner img[src*="thresholding_scroll"]{
+  max-width: 260px;   /* probeer 240–300 */
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px){
+  .mm-hero .mm-hero-banner img[src*="musclemap_scroll"]{
+    max-width: 180px;   /* speel met 160–200 */
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px){
+  .mm-hero .mm-hero-banner img[src*="thresholding_scroll"]{
+    max-width: 180px;   /* speel met 160–200 */
+    width: 100%;
+    height: auto;
+  }
+}
