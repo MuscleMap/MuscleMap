@@ -18,9 +18,13 @@ The GUI provides an end-to-end workflow: from loading CT or MRI data, installing
     <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}"
          alt="MuscleMap 3D Slicer Interface">
   </div>
-
   <div class="mm-card-text">
     <div class="mm-card-actions">
+      <a class="mm-btn mm-btn-primary"
+           href="https://youtu.be/aAXxopcMeKI"
+           target="_blank" rel="noopener">
+          View tutorial video
+      </a>
       <a class="mm-btn mm-btn-ghost"
          href="https://github.com/Eddowesselink/SlicerMuscleMap"
          target="_blank" rel="noopener">
