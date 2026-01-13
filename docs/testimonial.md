@@ -29,7 +29,6 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
     </div>
   </div>
 </div>
-
 <div class="mm-testimonials">
   <div class="mm-testimonial">
     <div class="mm-testimonial-header">
