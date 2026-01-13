@@ -15,11 +15,6 @@ This enables standardized voxel-wise analyses, such as spatial parametric mappin
 
 This step is typically performed after segmentation with `mm_segment`.
 
-<a class="mm-btn mm-btn-ghost mm-btn-back"
-   href="{{ '/' | relative_url }}">
-  ← Back to MuscleMap overview
-</a>
-
 ---
 
 ### 1. Basic usage
@@ -151,3 +146,8 @@ randomise   -i all_subjects_metric_4D.nii.gz   -o stats_metric_corr   -m mask_bi
   <strong>Note</strong><br>
   Intermediate reflects a voxel with intermediate voxel signal not clearly corresponding to either fat or muscle.
 </div>
+
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>

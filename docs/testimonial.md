@@ -9,11 +9,11 @@ permalink: /testimonial/
 ## Share your MuscleMap experience
 
 Do you also use *MuscleMap* and would like to share your experience with the community?  
-We warmly invite you to contribute a testimonial and tell us how MuscleMap supports your research or clinical work.
-
-👉 **Add your testimonial by [clicking here](https://forms.office.com/r/DKMn18WHby).**
+We warmly invite you to contribute a testimonial and tell us how MuscleMap supports your research or clinical work. Add your testimonial by [clicking here](https://forms.office.com/r/DKMn18WHby).
 
 *Submitted testimonials will be featured on this page. Thank you for helping us grow and improve MuscleMap.*
+
+---
 
 <div class="mm-testimonials">
   <div class="mm-testimonial">
