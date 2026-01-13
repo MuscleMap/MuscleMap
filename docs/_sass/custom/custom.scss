@@ -988,7 +988,7 @@
   border: 1px solid #fed7aa;              /* light orange border */
   border-left: 5px solid #f97316;         /* MuscleMap orange accent */
   border-radius: 12px;
-  background: #fff7ed;                    /* orange-tinted background */
+  background: #ffffff;                    /* orange-tinted background */
 }
 
 .pub-year-chart h4 {
@@ -1057,5 +1057,13 @@
 
 /* Hide TOC list on this page (still keeps headings for anchors) */
 .toc, #toc, nav[aria-label="Table of contents"], .table-of-contents {
+  display: none !important;
+}
+
+/* Hide publication list links on Publications page */
+.page-publications nav[aria-label="Table of contents"],
+.page-publications #toc,
+.page-publications .toc,
+.page-publications .table-of-contents {
   display: none !important;
 }
