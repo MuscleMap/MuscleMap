@@ -15,19 +15,31 @@ permalink: /publications/
 {:toc}
 
 ### 2026
-* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up. European Spine Journal, 2026; published online January 5, 2026.<br> 
+* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. *Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up.* European Spine Journal, 2026; published online January 5, 2026.<br> 
   [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3)<br> 
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('vanAmstel2026EpimuscularFat'); return false;" }
 
-* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up. Spine (Phila Pa 1976), 2026;51(1):25–33.<br> 
+* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. *Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up.* Spine (Phila Pa 1976), 2026;51(1):25–33.<br> 
   [https://doi.org/10.1097/brs.0000000000005408](https://doi.org/10.1097/brs.0000000000005408)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2026LumbarMultifidus'); return false;" }
 
-* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clin Geriatr Med, 2026;42(1):61–73. 
-  [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  
+* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clin Geriatr Med, 2026;42(1):61–73. <br>
+  [https://doi.org/10.1016/j.cger.2025.08.012](https://doi.org/10.1016/j.cger.2025.08.012)  <br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Masnoon2026MuscleComposition'); return false;" }
 
 ### 2025
+* Nim C, Weber II KA, O’Neill S, Paulsen RT, Culmsee-Holm L, Wesselink EO, Sun Y-L, Jun P, Breen A, Kawchuk GN. *The relation between bulk (external) and internal measures of spinal stiffness.* Chiropractic & Manual Therapies. 2025;33(1):52. <br>
+  [https://doi.org/10.1186/s12998-025-00615-x](https://doi.org/10.1186/s12998-025-00615-x)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Nim2025SpinalStiffness'); return false;" }
+
+* Smulligan KL, Smith AC, Weber KA, Carry P, Esopenko C, Baugh CM, Elliott J, Snodgrass S, Wesselink EO, Wilson J, Howell DL. *A Magnetic Resonance Imaging (MRI) Investigation of Cervical Spine Muscle Characteristics After Concussion: Identifying Return-to-Play Clearance and Subsequent Injury Prognosis.* Journal of Child Neurology. 2025; published online November 6, 2025. <br>
+  [https://doi.org/10.1177/08830738251392519](https://doi.org/10.1177/08830738251392519)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smulligan2025CervicalMRI'); return false;" }
+
+* Fundaun J, Oliva V, Bédard S, Wesselink EO, Lynn BP, Pai S A, Pfyffer D, Kaptan M, Berhe N, Ratliff J, Hu SS, Smith ZA, Hastie TJ, Mackey S, McKay MJ, Elliott JM, Delp SL, Chaudhari AS, Law CSW, … Weber KA. *Automated Segmentation of Forearm Muscles: Clinical Associations With Hand Function, Muscle Volume and Intramuscular Fat. JCSM Communications.* 2025;8(2):e70015.<br>
+  [https://doi.org/10.1002/rco2.70015](https://doi.org/10.1002/rco2.70015)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Fundaun2025ForearmSegmentation'); return false;" }
+
 * Smith AC, Muñoz Laguna J, Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM, Weber II KA. *Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI.* J Cachexia Sarcopenia Muscle, 2025;16(1):e13735.  
   [https://doi.org/10.1002/jcsm.13735](https://doi.org/10.1002/jcsm.13735)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2025LegMuscleVolume'); return false;" }
