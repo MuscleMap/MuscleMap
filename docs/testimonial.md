@@ -30,6 +30,21 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
   </div>
 </div>
 
+<div class="mm-testimonials">
+  <div class="mm-testimonial">
+    <div class="mm-testimonial-header">
+      <span class="mm-testimonial-name">
+        Enrico De Martino, PhD | Department of Health Technology and Medicine, Aalborg University, Denmark
+      </span>
+    </div>
+    <div class="mm-testimonial-body">
+      <p>
+        My research examines the effects of human deconditioning. In particular, I investigate lumbopelvic deconditioning and low back pain using a range of methodologies, including magnetic resonance imaging, electromyography, kinematic analysis, and functional tasks. MuscleMap is currently used in my ongoing studies investigating the effects of spaceflight and bed rest as a spaceflight analogue. The platform provides a robust and innovative framework for quantitative muscle and fat analysis, which is essential for addressing our research questions. The MuscleMap consortium is highly collaborative, strongly committed to generating new scientific evidence, and forward-thinking in its adoption of novel, cutting-edge technologies. I see MuscleMap as a valuable and evolving tool for musculoskeletal research in both clinical and spaceflight contexts.
+      </p>
+    </div>
+  </div>
+</div>
+
 <a class="mm-btn mm-btn-ghost mm-btn-back"
    href="{{ '/' | relative_url }}">
   ← Back to MuscleMap overview
