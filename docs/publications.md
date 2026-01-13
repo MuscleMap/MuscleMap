@@ -15,7 +15,6 @@ permalink: /publications/
 
 <div id="pub-year-chart" class="pub-year-chart" aria-label="Publications per year chart"></div>
 
-
 ### 2026
 * van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. *Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up.* European Spine Journal, 2026; published online January 5, 2026.<br> 
   [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3)<br> 
@@ -143,17 +142,7 @@ permalink: /publications/
   [https://doi.org/10.1038/sc.2017.18](https://doi.org/10.1038/sc.2017.18)  
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smith2017SpinalCordSCI'); return false;" }
 
-<script>
-  // Jekyll zet hier het juiste pad naar je .bib in (inclusief baseurl)
-  window.MUSCLEMAP_BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
-</script>
-<script src="{{ '/assets/js/bibtex-download.js' | relative_url }}"></script>
-
-<a class="mm-btn mm-btn-ghost mm-btn-back"
-   href="{{ '/' | relative_url }}">
-  ← Back to MuscleMap overview
-</a>
-
+  
 <script>
 (function () {
   function isYearHeading(el) {
@@ -167,18 +156,21 @@ permalink: /publications/
     let node = startHeading.nextElementSibling;
 
     while (node && node !== endHeading) {
-      // tel alle li's die in dit stuk zitten
-      const lis = node.querySelectorAll ? node.querySelectorAll('li') : [];
-      count += lis.length;
+      if (node.querySelectorAll) count += node.querySelectorAll('li').length;
       node = node.nextElementSibling;
     }
     return count;
   }
 
   function findTOCElement() {
-    // Veel voorkomende TOC selectors in Jekyll themes
-    return document.querySelector(
-      'nav.toc, nav#toc, nav[aria-label="Table of contents"], .toc, #table-of-contents, .table-of-contents'
+    return (
+      document.querySelector('#toc') ||
+      document.querySelector('nav[aria-label="Table of contents"]') ||
+      document.querySelector('.js-toc') ||
+      document.querySelector('.toc') ||
+      document.querySelector('.table-of-contents') ||
+      document.querySelector('#table-of-contents') ||
+      null
     );
   }
 
@@ -188,46 +180,59 @@ permalink: /publications/
 
     const max = Math.max(1, ...data.map(d => d.count));
 
-    chart.innerHTML = '<h4>Publications per year</h4>' + data.map(d => {
-      const pct = Math.round((d.count / max) * 100);
-      return `
-        <div class="pub-year-row">
-          <div class="pub-year-label">${d.year}</div>
-          <div class="pub-year-bar"><span style="width:${pct}%"></span></div>
-          <div class="pub-year-value">${d.count}</div>
-        </div>
-      `;
-    }).join('');
+    chart.innerHTML =
+      '<h4>Publications per year</h4>' +
+      data.map(d => {
+        const pct = Math.round((d.count / max) * 100);
+        return `
+          <div class="pub-year-row">
+            <div class="pub-year-label">${d.year}</div>
+            <div class="pub-year-bar"><span style="width:${pct}%"></span></div>
+            <div class="pub-year-value">${d.count}</div>
+          </div>
+        `;
+      }).join('');
+  }
+
+  function ensureWrapper(tocEl, chartEl) {
+    if (tocEl.parentElement && tocEl.parentElement.classList.contains('pub-toc-wrap')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'pub-toc-wrap';
+
+    tocEl.parentNode.insertBefore(wrap, tocEl);
+
+    wrap.appendChild(tocEl);
+    wrap.appendChild(chartEl);
+  }
+
+  function init() {
+    const chart = document.getElementById('pub-year-chart');
+    if (!chart) return;
+
+    // 1) Year headings
+    const headings = Array.from(document.querySelectorAll('h3')).filter(isYearHeading);
+    if (!headings.length) {
+      chart.innerHTML = '<h4>Publications per year</h4><div style="opacity:.7;font-size:.9rem;">No year headings found (h3 with 4 digits).</div>';
+      return;
+    }
+
+    const data = headings.map((h, i) => {
+      const next = headings[i + 1] || null;
+      return { year: (h.textContent || '').trim(), count: countListItemsBetween(h, next) };
+    });
+
+    buildChart(data);
+    const toc = findTOCElement();
+    if (toc) {
+      ensureWrapper(toc, chart);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // 1) Verzamel jaar headings (### 2026 => h3)
-    const headings = Array.from(document.querySelectorAll('h3')).filter(isYearHeading);
-    if (!headings.length) return;
-
-    // 2) Tel publicaties per jaar (li's tussen jaar-koppen)
-    const data = headings.map((h, i) => {
-      const next = headings[i + 1] || null;
-      const count = countListItemsBetween(h, next);
-      return { year: (h.textContent || '').trim(), count };
-    });
-
-    // 3) Render chart
-    buildChart(data);
-
-    // 4) Plaats chart rechts van TOC (als TOC gevonden wordt)
-    const toc = findTOCElement();
-    const chart = document.getElementById('pub-year-chart');
-    if (toc && chart) {
-      // wrap toc + chart in een flex container
-      const wrap = document.createElement('div');
-      wrap.className = 'pub-toc-wrap';
-
-      // vervang toc door wrapper(toc + chart)
-      toc.parentNode.insertBefore(wrap, toc);
-      wrap.appendChild(toc);
-      wrap.appendChild(chart);
-    }
+    init();
+    setTimeout(init, 250);
+    setTimeout(init, 1000);
   });
 })();
 </script>
