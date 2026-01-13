@@ -13,9 +13,14 @@ permalink: /muscle-quantification/
       <p class="mm-eyebrow">Key feature</p>
       <h1>Automated muscle quantification </h1>
       <p class="mm-subtitle">
-        MuscleMap's `mm_extract_metrics` is the command-line tool for quantitative muscle analysis, enabling automated estimation of muscle volume, cross-sectional area (CSA), intramuscular fat infiltration, and muscle density from MRI and CT images from deep learning–based whole-body muscle segmentation.
+        MuscleMap's `mm_extract_metrics` is the command-line tool for quantitative muscle analysis, enabling automated estimation of muscle volume, cross-sectional area (CSA), intramuscular fat infiltration, and muscle density from MRI and CT images. 
       </p>
       <div class="mm-hero-actions">
+        <a class="mm-btn mm-btn-primary"
+           href="https://www.youtube.com/watch?v=KO2uLcreFs4"
+           target="_blank" rel="noopener">
+          View tutorial video
+        </a>
         <a class="mm-btn mm-btn-ghost"
            href="https://github.com/MuscleMap/MuscleMap"
            target="_blank" rel="noopener">
@@ -104,7 +109,7 @@ Supported values:
 Uses Dixon-based fat and water separation to compute voxel-wise fat fraction and derive muscle composition metrics within the muscle segmentation.
 
 ```bash
-mm_extract_metrics -m dixon -i img.nii.gz -s img_dseg.nii.gz 
+mm_extract_metrics -m dixon -f fat.nii.gz -w water.nii.gz -s img_dseg.nii.gz 
 ```
 
 ### 2. `gmm` — Gaussian Mixture Model (MRI) 
