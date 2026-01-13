@@ -15,12 +15,12 @@ permalink: /publications/
 {:toc}
 
 ### 2026
-* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up. European Spine Journal, 2026; published online January 5, 2026. 
-  [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3) 
+* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up. European Spine Journal, 2026; published online January 5, 2026.<br> 
+  [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3)<br> 
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('vanAmstel2026EpimuscularFat'); return false;" }
 
-* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up. Spine (Phila Pa 1976), 2026;51(1):25–33. 
-  [https://doi.org/10.1097/brs.0000000000005408](https://doi.org/10.1097/brs.0000000000005408)  
+* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up. Spine (Phila Pa 1976), 2026;51(1):25–33.<br> 
+  [https://doi.org/10.1097/brs.0000000000005408](https://doi.org/10.1097/brs.0000000000005408)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Wesselink2026LumbarMultifidus'); return false;" }
 
 * Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. *Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia.* Clin Geriatr Med, 2026;42(1):61–73. 
