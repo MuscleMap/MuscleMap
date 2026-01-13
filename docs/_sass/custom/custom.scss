@@ -978,3 +978,61 @@
     height: auto;
   }
 }
+
+/* Probeer de TOC + chart naast elkaar te zetten */
+.pub-toc-wrap {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+/* Als je TOC container in je theme anders heet, maakt dit niet uit;
+   we plaatsen de chart via JS "naast" de TOC. */
+.pub-year-chart {
+  min-width: 260px;
+  max-width: 360px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
+
+.pub-year-chart h4 {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.95rem;
+}
+
+.pub-year-row {
+  display: grid;
+  grid-template-columns: 54px 1fr 34px;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.35rem 0;
+}
+
+.pub-year-label {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
+.pub-year-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.pub-year-bar > span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: rgba(0,0,0,0.55);
+  border-radius: 999px;
+}
+
+.pub-year-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
