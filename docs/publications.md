@@ -10,9 +10,6 @@ permalink: /publications/
 
 {: .no_toc .text-delta }
 
-1. Years
-{:toc}
-
 <div id="pub-year-chart" class="pub-year-chart" aria-label="Publications per year chart"></div>
 
 ### 2026
