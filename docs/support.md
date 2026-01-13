@@ -29,8 +29,8 @@ And it will help push the limits of human endurance and performance in the most 
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #f6b3c8; /* zacht roze */
-  color: #fff;              /* wit */
+  background-color: #ff5e00; /* zacht roze */
+  color: #ffffff;              /* wit */
   font-weight: 600;
   padding: 0.75rem 1.25rem;
   border-radius: 8px;

@@ -36,11 +36,6 @@ When citing **MuscleMap**, please cite the following article:
   </a>
 </div>
 
-<a class="mm-btn mm-btn-ghost mm-btn-back"
-   href="{{ '/' | relative_url }}">
-  ← Back to MuscleMap overview
-</a>
-
 ---
 
 ### Citing the MuscleMap Toolbox
@@ -266,8 +261,14 @@ When using specific components of the **MuscleMap Toolbox**, please cite the rel
 
 ---
 
+<a class="mm-btn mm-btn-ghost mm-btn-back"
+   href="{{ '/' | relative_url }}">
+  ← Back to MuscleMap overview
+</a>
+
 <script>
   // Zorgt dat deze pagina ook de juiste .bib gebruikt
   window.MUSCLEMAP_BIB_URL = "{{ '/musclemap_publications.bib' | relative_url }}";
 </script>
 <script src="{{ '/assets/js/bibtex-download.js' | relative_url }}"></script>
+
