@@ -19,6 +19,27 @@ We warmly invite you to contribute a testimonial and tell us how MuscleMap suppo
   <div class="mm-testimonial">
     <div class="mm-testimonial-header">
       <span class="mm-testimonial-name">
+        <a href="https://www.concordia.ca/faculty/maryse-fortin.html" 
+           target="_blank" 
+           rel="noopener noreferrer">
+          Maryse Fortin, PhD
+        </a>
+        | Department of Health, Kinesiology & Applied Physiology, 
+        Concordia University, Montreal, Canada
+      </span>
+    </div>
+    <div class="mm-testimonial-body">
+      <p>
+         My research focuses on understanding how muscle morphology and quality relate to pain, function, and recovery across a range of clinical and athletic populations. MuscleMap has been an integral tool in several of my projects to date. I have used the platform to quantify changes in paraspinal and gluteal muscle morphology following exercise interventions in individuals with chronic low back pain, to investigate the relationship between paraspinal muscle strength and muscle structure, and to characterize cervical muscle morphology in athletes with and without concussion. MuscleMap has provided consistent, high-quality, and reproducible measures that have strengthened the scientific rigor of these studies. I am also planning to use the platform in an upcoming project examining leg muscle morphology in individuals with COPD. The MuscleMap consortium is collaborative, innovative, and deeply committed to advancing musculoskeletal research through cutting-edge imaging analysis methods. MuscleMap is a valuable asset to my work and catalyst for new scientific insight.  
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="mm-testimonials">
+  <div class="mm-testimonial">
+    <div class="mm-testimonial-header">
+      <span class="mm-testimonial-name">
         Sarah Glastras, PhD | Department of Diabetes, Endocrinology & Metabolism, Royal North Shore Hospital, Sydney, Australia;  Kolling Institute, University of Sydney, Australia
       </span>
     </div>
