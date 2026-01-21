@@ -69,7 +69,7 @@ def get_parser():
 
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
-
+    
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
