@@ -1,7 +1,7 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
 <p align="center">
-   <img width="100%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+   <img width="100%" src="logo.png">
 </p>
 
 ## MuscleMap Toolbox
