@@ -81,7 +81,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         rocm-smi
         ```
     
-        You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
+    You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
     7.2. Step 2 — Open a Python console and run:
 
