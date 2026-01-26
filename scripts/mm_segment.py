@@ -71,9 +71,6 @@ def get_parser():
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
     optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N', 'y', 'n'],
                           help="If Y, will use a memory-efficient postprocessing workflow for inference at the expense of decreased accuracy.")
-    # Verbose timing flag: when set, timing log will also include seconds per voxel using total voxels of the input image
-    optional.add_argument('-v', '--verbose', action='store_true',
-                          help="If set, include seconds-per-voxel in the inference timing log.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
