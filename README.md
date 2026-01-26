@@ -18,22 +18,26 @@ Step 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
 
 Step 2. Create python environment:
+    
     ~~~
     conda create --name MuscleMap python=3.9.23
     ~~~
 
 Step 3. Activate python environment:
+
     ~~~
     conda activate MuscleMap
     ~~~
 
 Step 4. Download MuscleMap repository:
-    1. Using the git command line tool:
+
+    Step 4.1. Using the git command line tool:
+
         ~~~
         git clone https://github.com/MuscleMap/MuscleMap
         ~~~
     
-    2. From your browser:
+    Step 4.2. From your browser:
     
         1. Open https://github.com/MuscleMap/MuscleMap in your browser
 
@@ -98,6 +102,7 @@ Step 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](http
 ### Usage
 
 Step 1. Activate python environment:
+
     ~~~
     conda activate MuscleMap
     ~~~
@@ -109,6 +114,7 @@ Step 2. To run mm_segment:
     ~~~
 
     * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 89 muscles and bones.
+       
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
       
@@ -214,10 +220,13 @@ Step 2. To run mm_segment:
             Right Fibula 8162
           ```
        </details>
-    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
+
+    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 75%:
+
        ~~~
-       mm_segment -i image.nii.gz -s 50
+       mm_segment -i image.nii.gz -s 75
        ~~~
+
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
