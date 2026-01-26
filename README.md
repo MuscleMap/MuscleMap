@@ -164,8 +164,8 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Obturator Internus 6202
             Left Obturator Externus 6211
             Right Obturator Externus 6212
-            Left Gemelli and Quadratus 6221
-            Right Gemelli and Quadratus 6222
+            Left Gemelli and Quadratus Femoris 6221
+            Right Gemelli and Quadratus Femoris 6222
             Left Vastus Lateralis 7101
             Right Vastus Lateralis 7102
             Left Vastus Intermedius 7111
