@@ -225,31 +225,13 @@ def main():
     overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     chunk_size = args.chunk_size
+    
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         try:
-            if low_res:
-                run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res, remap_dict=inv_id_map)
-            else:
-                run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model, low_res)
-            elapsed = perf_counter() - t0
-            if getattr(args, 'verbose', False):
-                try:
-                    dims = nib.load(test["image"]).header.get_data_shape()
-                    # Use first three spatial dimensions for image matrix display
-                    spatial_dims_tuple = tuple(dims[:3]) if len(dims) >= 3 else tuple(dims)
-                    total_voxels = int(math.prod(spatial_dims_tuple)) if spatial_dims_tuple else 0
-                except Exception:
-                    spatial_dims_tuple = ()
-                    total_voxels = 0
-                # report seconds per 1,000,000 voxels to give a human-friendly number (typically between 1 and 100)
-                s_per_million = (elapsed * 1e6 / total_voxels) if total_voxels > 0 else float('nan')
-                logging.info(
-                    f"Inference of {test} finished in {elapsed:.2f}s ({s_per_million:.3f}s per 1M voxels, image matrix {spatial_dims_tuple})"
-                )
-            else:
-                logging.info(f"Inference of {test} finished in {elapsed:.2f}s")
+            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
+            logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
