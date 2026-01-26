@@ -61,7 +61,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
     The default installation of the MuscleMap dependencies (from Step 6) uses a CPU-only build of PyTorch. **To use a GPU**, you must manually install a GPU-enabled build of PyTorch. Proceed with Step 7.1 or Step 7.2 below, depending on your hardware:
     - NVIDIA GPU with a compatible **CUDA** runtime, or  
-    - AMD GPU with ROCm support.(Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU.)
+    - AMD GPU with ROCm support (Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU).
     
     7.1. Step 1 — Open a Python console and run:
 
