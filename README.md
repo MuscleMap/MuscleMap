@@ -68,16 +68,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
      
     7.1. Step 1 — Check your system CUDA version 
 
-       Open a terminal and run one of the following commands:
+    Open a terminal and run one of the following commands:
 
-       For an **NVIDIA GPU** with **CUDA** runtime:
+    For an **NVIDIA GPU** with **CUDA** runtime:
 
         ```
         nvidia-smi
         ```
 
-       For an **AMD GPU** with **ROCm support**:
-       ```
+    For an **AMD GPU** with **ROCm support**:
+        ```
         rocm-smi
         ```
     
