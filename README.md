@@ -77,6 +77,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
         ```
 
     For an **AMD GPU** with **ROCm support**:
+    
         ```
         rocm-smi
         ```
