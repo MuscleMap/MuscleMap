@@ -31,6 +31,8 @@ from monai.transforms import (
 )
 from monai.networks.layers import Norm
 from time import perf_counter
+import math
+import nibabel as nib
 try:
     # Attempt to import as if it is a part of a package
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
@@ -63,13 +65,12 @@ def get_parser():
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
-    
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
-
     optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
                     help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
-
+    optional.add_argument('--low_res', required=False, default='N', type=str, choices=['Y', 'N', 'y', 'n'],
+                          help="If Y, will use a memory-efficient postprocessing workflow for inference at the expense of decreased accuracy.")
     return parser
 
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
@@ -167,15 +168,31 @@ def main():
         EnsureTyped(keys=["image"]),
     ])
     
-    post_transforms = [
-    Invertd(
-        keys="pred", transform= pre_transforms, orig_keys="image",
-        meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
-        meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
-    ),
-    AsDiscreted(keys="pred", argmax=True),
-    SqueezeTransform(keys=["pred"])]
+    # Accept lowercase variants as well and make decision case-insensitive
+    if str(args.low_res).upper() == 'Y':
+        low_res = True
+        post_transforms = [
+                Invertd(
+                keys="pred", transform= pre_transforms, orig_keys="image",
+                meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict", nearest_interp=False,
+                to_tensor=False, device="cpu" # push to CPU to save GPU VRAM
+            ),
+            AsDiscreted(keys="pred", argmax=True),
+            SqueezeTransform(keys=["pred"])
+        ]
+    else:
+        low_res = False
+        post_transforms = [
+            Invertd(
+                keys="pred", transform= pre_transforms, orig_keys="image",
+                meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
+                meta_key_postfix="meta_dict", nearest_interp=False,
+                to_tensor=True, device=device
+            ),
+            AsDiscreted(keys="pred", argmax=True),
+            SqueezeTransform(keys=["pred"])
+        ]
 
     test_files = [{"image": image} for image in image_paths]
 
@@ -205,6 +222,7 @@ def main():
     overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     chunk_size = args.chunk_size
+    
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()

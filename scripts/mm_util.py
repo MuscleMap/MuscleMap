@@ -6,7 +6,8 @@ import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
-from monai.transforms import (MapTransform)
+from monai.transforms import (MapTransform, Invertd)
+from monai.data import MetaTensor
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
@@ -695,6 +696,8 @@ def run_inference(
     device=None,
     inferer=None,
     model=None,
+    low_res=False,
+    remap_dict: Optional[Dict[int, int]] = None,
 ):
     out_path = _make_out_path(image_path, output_dir, "_dseg")
     img_nii  = nib.load(image_path)
@@ -703,35 +706,86 @@ def run_inference(
     img_data = img_nii.get_fdata().astype(np.float32)
     D        = img_data.shape[-1]
     
-    # ----- KLEINE VOLUME-TAK -----
+    # Chunk ignored if image is smaller than chunk size
     if D <= chunk_size:
-        data   = {"image": image_path}
-        data   = pre_transforms(data)
+        # Extract metadata before converting to ndarray to allow resaving later
+        data = {"image": image_path}
+        data = pre_transforms(data)
         tensor = data["image"]
+
+        original_image_tensor = data["image"]
+        stored_meta_dict = dict(original_image_tensor.meta) if hasattr(original_image_tensor, 'meta') else data.get("image_meta_dict", {})
+        stored_applied_operations = list(original_image_tensor.applied_operations) if hasattr(original_image_tensor, 'applied_operations') else []
+    
         if device.type == "cpu":
             tensor = tensor.float()
         if tensor.ndim == 4:
             tensor = tensor.unsqueeze(0)              
         tensor = tensor.to(device, non_blocking=True)
-
+    
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
 
-        single_pred = pred.squeeze(0).squeeze(0)     
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data
-        post_out    = post_transforms(post_in)
-        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np      = seg_tensor.numpy()
-        full_seg    = connected_chunks(seg_np)
-        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        if low_res:
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+        else:
+            # keep the channel dimension (classes) intact for downstream AsDiscreted
+            pred_metatensor = MetaTensor(pred.squeeze(0).cpu(), meta=stored_meta_dict)
 
-        # opruimen
-        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
+        pred_metatensor.applied_operations = stored_applied_operations
+
+        invertd = Invertd(
+                    keys="pred",
+                    transform=pre_transforms,
+                    orig_keys="image",
+                    meta_keys="pred_meta_dict",
+                    orig_meta_keys="image_meta_dict",
+                    meta_key_postfix="meta_dict",
+                    nearest_interp=True,
+                    to_tensor=True,
+                    device="cpu",
+                )
+        
+        img_array = original_image_tensor.cpu().numpy()
+        if img_array.ndim == 4 and img_array.shape[0] == 1:
+            img_array = img_array[0]
+
+        post_in = {
+            "pred": pred_metatensor,
+            "image": torch.from_numpy(img_array),
+            "image_meta_dict": stored_meta_dict,
+            "image_transforms": stored_applied_operations
+        }
+
+        del data
+
+        if low_res:
+            post_out = invertd(post_in)
+            seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy().squeeze()
+            # Remap sequential class ids back to original label integers if mapping provided
+            if remap_dict:
+                remapped = np.zeros_like(seg_np, dtype=np.uint16)
+                for src, tgt in remap_dict.items():
+                    remapped[seg_np == src] = tgt
+                seg_np = remapped
+            full_seg    = connected_chunks(seg_np)
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
+        else:
+            post_out = post_transforms(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy().squeeze()
+            full_seg    = connected_chunks(seg_np)
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
+        
+        # Safely delete local variables if they exist
+        for _n in ("seg_np", "tensor", "pred", "post_in", "post_out", "seg_tensor", "full_seg", "img_data", "img_nii"):
+            try:
+                exec(f"del {_n}")
+            except NameError:
+                pass
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -760,6 +814,12 @@ def run_inference(
         data   = {"image": entry["image"]}
         data   = pre_transforms(data)
         tensor = data["image"]
+        
+        # Store metadata for Invertd
+        original_image_tensor = data["image"]
+        stored_meta_dict = dict(original_image_tensor.meta) if hasattr(original_image_tensor, 'meta') else data.get("image_meta_dict", {})
+        stored_applied_operations = list(original_image_tensor.applied_operations) if hasattr(original_image_tensor, 'applied_operations') else []
+
         if device.type == "cpu":
             tensor = tensor.float()
         if tensor.ndim == 4:
@@ -769,26 +829,90 @@ def run_inference(
         with amp_context, torch.inference_mode():
             pred = inferer(tensor, model)
 
-        single_pred = pred.squeeze(0).squeeze(0)
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data  
-        post_out   = post_transforms(post_in)
-        seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np     = seg_tensor.numpy()
+        # Only perform early argmax when low_res mode is Y
+        if low_res:
+            pred_discrete = torch.argmax(pred.squeeze(0), dim=0).cpu().to(torch.int16)
+            pred_metatensor = MetaTensor(pred_discrete.unsqueeze(0), meta=stored_meta_dict)
+        else:
+            pred_metatensor = MetaTensor(pred.squeeze(0).cpu(), meta=stored_meta_dict)
 
-        s, e = entry["start"], entry["end"]
-        full_seg[..., s:e] = seg_np
-        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor 
-    
-    full_seg = connected_chunks(full_seg)
-    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        pred_metatensor.applied_operations = stored_applied_operations
+        
+        invertd = Invertd(
+                    keys="pred",
+                    transform=pre_transforms,
+                    orig_keys="image",
+                    meta_keys="pred_meta_dict",
+                    orig_meta_keys="image_meta_dict",
+                    meta_key_postfix="meta_dict",
+                    nearest_interp=True,
+                    to_tensor=True,
+                    device="cpu",
+                )
+                
+        # Get the preprocessed image array for Invertd
+        img_array = original_image_tensor.cpu().numpy()
+        if img_array.ndim == 4 and img_array.shape[0] == 1:
+            img_array = img_array[0]
+
+        post_in = {
+            "pred": pred_metatensor,
+            "image": torch.from_numpy(img_array),
+            "image_meta_dict": stored_meta_dict,
+            "image_transforms": stored_applied_operations,
+        }
+
+        if low_res:
+            post_out = invertd(post_in)
+            seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+            seg_np = seg_tensor.numpy().squeeze()
+            # Remap per-chunk sequential ids to original labels if mapping provided
+            if remap_dict:
+                remapped_chunk = np.zeros_like(seg_np, dtype=np.uint16)
+                for src, tgt in remap_dict.items():
+                    remapped_chunk[seg_np == src] = tgt
+                seg_np = remapped_chunk
+            seg_path = os.path.join(temp_dir, f"seg_{entry['start']}_{entry['end']}.nii.gz")
+            chunk_nii = nib.load(entry["image"])
+            # Ensure uint16 before saving
+            nib.save(nib.Nifti1Image(seg_np.astype(np.uint16), chunk_nii.affine, chunk_nii.header), seg_path)
+            entry["seg"] = seg_path
+            del seg_np, seg_tensor, chunk_nii
+        else:
+            post_out = post_transforms(post_in)
+            seg_np = post_out["pred"].detach().cpu().to(torch.int16).numpy()
+            s, e = entry["start"], entry["end"]
+            full_seg[..., s:e] = seg_np
+            # Safely delete per-chunk temporary variables
+            for _n in ("seg_np", "tensor", "pred", "post_in", "post_out", "seg_tensor"):
+                try:
+                    exec(f"del {_n}")
+                except NameError:
+                    pass
+
+    # If low_res was used, assemble final segmentation from per-chunk files
+    if low_res:
+        try:
+            for entry in chunk_files:
+                sp = entry.get("seg")
+                if sp and os.path.exists(sp):
+                    vol_seg = nib.load(sp).get_fdata().astype(np.int16)
+                    s, e = entry["start"], entry["end"]
+                    full_seg[..., s:e] = vol_seg
+                    del vol_seg
+            full_seg = connected_chunks(full_seg)
+            nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
+        except Exception:
+            logging.exception("Failed to finalize low_res stitched segmentation")
+    else:
+        full_seg = connected_chunks(full_seg)
+        nib.save(nib.Nifti1Image(full_seg.astype(np.uint16), affine, header), out_path)
 
     # final cleanup
-    del full_seg
+    try:
+        del full_seg
+    except NameError:
+        pass
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
