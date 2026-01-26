@@ -59,20 +59,19 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
   
     The MuscleMap Toolbox works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use the MuscleMap Toolbox with CPU only, skip Step 7.
 
-    **To use a GPU** you need either:
-    - An NVIDIA GPU with a compatible **CUDA** runtime, or  
-    - An AMD GPU with **ROCm** support.
+    The default installation of the MuscleMap dependencies (from Step 6) uses a CPU-only build of PyTorch. **To use a GPU**, you must manually install a GPU-enabled build of PyTorch. Proceed with Step 7.1 or Step 7.2 below, depending on your hardware:
+    - NVIDIA GPU with a compatible **CUDA** runtime, or  
+    - AMD GPU with ROCm support.(Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU.)
     
-    1. Step 1 — Open a Python console and run:
+    7.1. Step 1 — Open a Python console and run:
 
         ```python
         import torch
         print("Is CUDA available?:", torch.cuda.is_available())
         ```
-        
-    If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (Step 2). 
+    If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
      
-    2. Step 2 — Check your system CUDA version (terminal)
+    7.2. Step 2 — Check your system CUDA version (terminal)
 
        Open a terminal and run one of the following commands:
 
