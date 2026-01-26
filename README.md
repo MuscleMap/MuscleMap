@@ -19,24 +19,24 @@ Step 1. Install python:
 
 Step 2. Create python environment:
     
-    ~~~
-    conda create --name MuscleMap python=3.9.23
-    ~~~
+~~~
+conda create --name MuscleMap python=3.9.23
+~~~
 
 Step 3. Activate python environment:
 
-    ~~~
-    conda activate MuscleMap
-    ~~~
+~~~
+conda activate MuscleMap
+~~~
 
 Step 4. Download MuscleMap repository:
 
     Step 4.1. Using the git command line tool:
 
-        ~~~
-        git clone https://github.com/MuscleMap/MuscleMap
-        ~~~
-    
+    ~~~
+    git clone https://github.com/MuscleMap/MuscleMap
+    ~~~
+
     Step 4.2. From your browser:
     
         1. Open https://github.com/MuscleMap/MuscleMap in your browser
@@ -49,15 +49,15 @@ Step 4. Download MuscleMap repository:
 
 Step 5. Navigate to MuscleMap repository:
 
-   ~~~
-   cd ./MuscleMap
-   ~~~
+~~~
+cd ./MuscleMap
+~~~
 
 Step 6. Install python packages:
     
-   ~~~
-   pip install -e .
-   ~~~
+~~~
+pip install -e .
+~~~
 
 Step 7.  Install PyTorch with the correct CUDA Version for GPU support.
   
