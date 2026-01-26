@@ -14,30 +14,26 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
-* Step 1. Install python:
+1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
 
-* Step 2. Create python environment:
+2. Create python environment:
+    ~~~
+    conda create --name MuscleMap python=3.9.23
+    ~~~
+
+3. Activate python environment:
+    ~~~
+    conda activate MuscleMap
+    ~~~
+
+4. Download MuscleMap repository:
+    1. Using the git command line tool:
+        ~~~
+        git clone https://github.com/MuscleMap/MuscleMap
+        ~~~
     
-```bash
-conda create --name MuscleMap python=3.9.23
-```
-
-* Step 3. Activate python environment:
-
-```bash
-conda activate MuscleMap
-```
-
-* Step 4. Download MuscleMap repository:
-
-    * Step 4.1. Using the git command line tool:
-
-    ```bash
-    git clone https://github.com/MuscleMap/MuscleMap
-    ```
-    
-    * Step 4.2. From your browser:
+    2. From your browser:
     
         1. Open https://github.com/MuscleMap/MuscleMap in your browser
 
@@ -47,74 +43,66 @@ conda activate MuscleMap
 
         4. Unzip the MuscleMap repository
 
-Step 5. Navigate to MuscleMap repository:
+5. Navigate to MuscleMap repository:
 
-~~~
-cd ./MuscleMap
-~~~
+   ~~~
+   cd ./MuscleMap
+   ~~~
 
-Step 6. Install python packages:
+6. Install python packages:
     
-~~~
-pip install -e .
-~~~
+   ~~~
+   pip install -e .
+   ~~~
 
-Step 7.  Install PyTorch with the correct CUDA Version for GPU support.
+7.  Install PyTorch with the correct CUDA Version for GPU support.
   
     The MuscleMap Toolbox works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use the MuscleMap Toolbox with CPU only, skip Step 7.
 
-    The default installation of the MuscleMap dependencies (from Step 6) uses a CPU-only build of PyTorch. 
-    
-    **To use a GPU**, you must manually install a GPU-enabled build of PyTorch. Proceed with Step 7.1 or Step 7.2 below, depending on your hardware:
-    
+    The default installation of the MuscleMap dependencies (from Step 6) uses a CPU-only build of PyTorch. **To use a GPU**, you must manually install a GPU-enabled build of PyTorch. Proceed with Step 7.1 or Step 7.2 below, depending on your hardware:
     - NVIDIA GPU with a compatible **CUDA** runtime, or  
     - AMD GPU with ROCm support (Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU).
      
-    Step  7.1 — Check your system CUDA version 
+    * Step 7.1. — Check your system CUDA version (terminal)
 
-    Open a terminal and run one of the following commands:
+       Open a terminal and run one of the following commands:
 
-    For an **NVIDIA GPU** with **CUDA** runtime:
+        For an **NVIDIA GPU** with **CUDA** runtime:
+        ```
+        nvidia-smi
+        ```
 
-    ```
-    nvidia-smi
-    ```
-
-    For an **AMD GPU** with **ROCm support**:
-
-    ```
-    rocm-smi
-    ```
-
-    You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
-
-    Step 7.2. — Open a Python console and run:
-
-    ```python
-    import torch
-    print("Is CUDA available?:", torch.cuda.is_available())
-    ```
+       For an **AMD GPU** with **ROCm support**:
+       ```
+        rocm-smi
+        ```
     
-    If PyTorch indicates that CUDA is **available**, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (repeat Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
+        You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
-Step 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+    * Step 7.2.  — Open a Python console and run:
+
+        ```python
+        import torch
+        print("Is CUDA available?:", torch.cuda.is_available())
+        ```
+    If PyTorch indicates that CUDA is ** available**, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (repeat Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
+
+8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
 ### Usage
 
-Step 1. Activate python environment:
-
+1. Activate python environment:
     ~~~
     conda activate MuscleMap
     ~~~
 
-Step 2. To run mm_segment:
+2. To run mm_segment:
 
     ~~~
     mm_segment -i image.nii.gz
     ~~~
 
     * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 89 muscles and bones.
-       
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
       
@@ -220,13 +208,10 @@ Step 2. To run mm_segment:
             Right Fibula 8162
           ```
        </details>
-
-    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 75%:
-
+    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
        ~~~
-       mm_segment -i image.nii.gz -s 75
+       mm_segment -i image.nii.gz -s 50
        ~~~
-
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
@@ -237,9 +222,9 @@ Step 2. To run mm_segment:
 
    ***If the models do not work well on your images, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues). If you share your images, we will update the MuscleMap segmentation model to improve its accuracy on your images.***
 
-Step 3. To run mm_extract_metrics:
+3. To run mm_extract_metrics:
 
-    Step 3.1. For T1w and T2w MRI:
+    1. For T1w and T2w MRI:
 
         ~~~
         mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
@@ -250,19 +235,19 @@ Step 3. To run mm_extract_metrics:
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
 
-    Step 3.2. For Dixon Fat-Water MRI:
+    2. For Dixon Fat-Water MRI:
 
         ~~~
         mm_extract_metrics -m dixon -r wholebody -f image_fat.nii.gz -w image_water.nii.gz -s image_dseg.nii.gz
         ~~~
 
-   Step 3.3 For Dixon Fat Fraction MRI or CT:
+   3. For Dixon Fat Fraction MRI or CT:
 
         ~~~
         mm_extract_metrics -m average -r wholebody -i image.nii.gz -s image_dseg.nii.gz
         ~~~
      
-Step 4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
+4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
 
      ~~~
      mm_gui
@@ -270,7 +255,7 @@ Step 4. To run mm_segment and mm_extract_metrics via a graphical user interface 
     
     * To automatically run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
-Step 5. To run mm_register_to_template:
+5. To run mm_register_to_template:
 
     ~~~
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
@@ -287,11 +272,11 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 ### Convert DICOM to BIDS
 
-Step 1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
+1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
     * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz).
     * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters.
 
-Step 2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
+2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
 
    <details>
     <summary>Click to see an example BIDS directory structure.</summary>
@@ -364,11 +349,11 @@ Step 2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wi
 
 ## Planned MuscleMap Phases
 
-Step 1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
-Step 2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
+2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
-Step 3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
+3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
 
 ## Standardized Acquisition Protocol
 
