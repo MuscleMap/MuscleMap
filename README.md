@@ -14,20 +14,20 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
-1. Install python:
+Step 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
 
-2. Create python environment:
+Step 2. Create python environment:
     ~~~
     conda create --name MuscleMap python=3.9.23
     ~~~
 
-3. Activate python environment:
+Step 3. Activate python environment:
     ~~~
     conda activate MuscleMap
     ~~~
 
-4. Download MuscleMap repository:
+Step 4. Download MuscleMap repository:
     1. Using the git command line tool:
         ~~~
         git clone https://github.com/MuscleMap/MuscleMap
@@ -43,19 +43,19 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
         4. Unzip the MuscleMap repository
 
-5. Navigate to MuscleMap repository:
+Step 5. Navigate to MuscleMap repository:
 
    ~~~
    cd ./MuscleMap
    ~~~
 
-6. Install python packages:
+Step 6. Install python packages:
     
    ~~~
    pip install -e .
    ~~~
 
-7.  Install PyTorch with the correct CUDA Version for GPU support.
+Step 7.  Install PyTorch with the correct CUDA Version for GPU support.
   
     The MuscleMap Toolbox works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use the MuscleMap Toolbox with CPU only, skip Step 7.
 
@@ -66,7 +66,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     - NVIDIA GPU with a compatible **CUDA** runtime, or  
     - AMD GPU with ROCm support (Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU).
      
-    7.1. Step 1 — Check your system CUDA version 
+    Step  7.1 — Check your system CUDA version 
 
     Open a terminal and run one of the following commands:
 
@@ -84,7 +84,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
     You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
-    7.2. Step 2 — Open a Python console and run:
+    Step 7.2. — Open a Python console and run:
 
     ```python
     import torch
@@ -93,16 +93,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
     If PyTorch indicates that CUDA is **available**, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (repeat Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
 
-9. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+Step 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
 ### Usage
 
-1. Activate python environment:
+Step 1. Activate python environment:
     ~~~
     conda activate MuscleMap
     ~~~
 
-2. To run mm_segment:
+Step 2. To run mm_segment:
 
     ~~~
     mm_segment -i image.nii.gz
@@ -162,6 +162,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Sacrum 6160
             Left Femur 6171
             Right Femur 6172
+            Left Piriformis 6181
+            Right Piriformis 6182
+            Left Pectineus 6191
+            Right Pectineus 6192
+            Left Obturator Internus 6201
+            Right Obturator Internus 6202
+            Left Obturator Externus 6211
+            Right Obturator Externus 6212
+            Left Gemelli and Quadratus 6221
+            Right Gemelli and Quadratus 6222
             Left Vastus Lateralis 7101
             Right Vastus Lateralis 7102
             Left Vastus Intermedius 7111
@@ -218,9 +228,9 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
 
    ***If the models do not work well on your images, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues). If you share your images, we will update the MuscleMap segmentation model to improve its accuracy on your images.***
 
-3. To run mm_extract_metrics:
+Step 3. To run mm_extract_metrics:
 
-    1. For T1w and T2w MRI:
+    Step 3.1. For T1w and T2w MRI:
 
         ~~~
         mm_extract_metrics -m gmm -r wholebody -i image.nii.gz -s image_dseg.nii.gz -c 3
@@ -231,19 +241,19 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
 
-    2. For Dixon Fat-Water MRI:
+    Step 3.2. For Dixon Fat-Water MRI:
 
         ~~~
         mm_extract_metrics -m dixon -r wholebody -f image_fat.nii.gz -w image_water.nii.gz -s image_dseg.nii.gz
         ~~~
 
-   3. For Dixon Fat Fraction MRI or CT:
+   Step 3.3 For Dixon Fat Fraction MRI or CT:
 
         ~~~
         mm_extract_metrics -m average -r wholebody -i image.nii.gz -s image_dseg.nii.gz
         ~~~
      
-4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
+Step 4. To run mm_segment and mm_extract_metrics via a graphical user interface (GUI):
 
      ~~~
      mm_gui
@@ -251,7 +261,7 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
     * To automatically run mm_segment followed by mm_extract metrics use the chaining options in the GUI.
 
-5. To run mm_register_to_template:
+Step 5. To run mm_register_to_template:
 
     ~~~
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
@@ -268,11 +278,11 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 ### Convert DICOM to BIDS
 
-1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
+Step 1. Convert images from [DICOM](https://www.dicomstandard.org/) format to [NIfTI](https://nifti.nimh.nih.gov/) format.
     * We recommend using [dcm2niix](https://github.com/rordenlab/dcm2niix) and working with compressed [NIfTI](https://nifti.nimh.nih.gov/) files (nii.gz).
     * Keep the [json](https://en.wikipedia.org/wiki/JSON) sidecar file, which contains imaging parameters.
 
-2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
+Step 2. Rename the [NIfTI](https://nifti.nimh.nih.gov/) and [json](https://en.wikipedia.org/wiki/JSON) files and organize your dataset to follow the [BIDS](https://bids.neuroimaging.io/) specification.
 
    <details>
     <summary>Click to see an example BIDS directory structure.</summary>
@@ -345,11 +355,11 @@ We strongly recommend following the [Brain Imaging Data Structure (BIDS)](https:
 
 ## Planned MuscleMap Phases
 
-1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
+Step 1. Develop a standardized acquisition protocol for whole-body quantitative MRI of muscle for the most common MR manufacturers.
 
-2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
+Step 2. Generate an open-source large (n≥1,000) annotated multi-site, multi-racial, and multi-ethnic heterogenous whole-body muscle MRI dataset across the lifespan using the standardized acquisition protocol.
 
-3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
+Step 3. Create an open-source toolbox for the analysis of whole-body muscle morphometry and composition using the heterogenous whole-body muscle MRI dataset.
 
 ## Standardized Acquisition Protocol
 
