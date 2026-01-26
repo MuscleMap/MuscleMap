@@ -14,30 +14,30 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
-Step 1. Install python:
+* Step 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
 
-Step 2. Create python environment:
+* Step 2. Create python environment:
     
-~~~
+```bash
 conda create --name MuscleMap python=3.9.23
-~~~
+```
 
-Step 3. Activate python environment:
+* Step 3. Activate python environment:
 
-~~~
+```bash
 conda activate MuscleMap
-~~~
+```
 
-Step 4. Download MuscleMap repository:
+* Step 4. Download MuscleMap repository:
 
-    Step 4.1. Using the git command line tool:
+    * Step 4.1. Using the git command line tool:
 
-    ~~~
+    ```bash
     git clone https://github.com/MuscleMap/MuscleMap
-    ~~~
-
-    Step 4.2. From your browser:
+    ```
+    
+    * Step 4.2. From your browser:
     
         1. Open https://github.com/MuscleMap/MuscleMap in your browser
 
