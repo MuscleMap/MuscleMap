@@ -1,7 +1,7 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
 <p align="center">
-   <img width="100%" src="https://github.com/MuscleMap/MuscleMap/blob/main/logo.png">
+   <img width="100%" src="logo.png">
 </p>
 
 ## MuscleMap Toolbox
@@ -59,20 +59,11 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
   
     The MuscleMap Toolbox works with both CPU and GPU, but performs best with a GPU-enabled PyTorch installation. If you want to use the MuscleMap Toolbox with CPU only, skip Step 7.
 
-    **To use a GPU** you need either:
-    - An NVIDIA GPU with a compatible **CUDA** runtime, or  
-    - An AMD GPU with **ROCm** support.
-    
-    1. Step 1 — Open a Python console and run:
-
-        ```python
-        import torch
-        print("Is CUDA available?:", torch.cuda.is_available())
-        ```
-        
-    If PyTorch indicates that CUDA is available, then the system is functioning correctly. If PyTorch indicates that it is not available, verify whether your system has a compatible driver installed (Step 2). 
+    The default installation of the MuscleMap dependencies (from Step 6) uses a CPU-only build of PyTorch. **To use a GPU**, you must manually install a GPU-enabled build of PyTorch. Proceed with Step 7.1 or Step 7.2 below, depending on your hardware:
+    - NVIDIA GPU with a compatible **CUDA** runtime, or  
+    - AMD GPU with ROCm support (Note: ROCm is supported on Linux only and requires a ROCm-compatible AMD GPU).
      
-    2. Step 2 — Check your system CUDA version (terminal)
+    * Step 7.1. — Check your system CUDA version (terminal)
 
        Open a terminal and run one of the following commands:
 
@@ -88,7 +79,15 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
     
         You then need to install the corresponding GPU-compatible version of [PyTorch v2.4.0](https://pytorch.org/get-started/previous-versions/). We recommend installing the PyTorch wheel with pip.  
 
-9. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+    * Step 7.2.  — Open a Python console and run:
+
+        ```python
+        import torch
+        print("Is CUDA available?:", torch.cuda.is_available())
+        ```
+    If PyTorch indicates that CUDA is **available**, then the system is functioning correctly. If PyTorch indicates that CUDA is not available, verify whether your system has a compatible driver installed (repeat Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
+
+8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
 ### Usage
 
@@ -157,6 +156,16 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Sacrum 6160
             Left Femur 6171
             Right Femur 6172
+            Left Piriformis 6181
+            Right Piriformis 6182
+            Left Pectineus 6191
+            Right Pectineus 6192
+            Left Obturator Internus 6201
+            Right Obturator Internus 6202
+            Left Obturator Externus 6211
+            Right Obturator Externus 6212
+            Left Gemelli and Quadratus Femoris 6221
+            Right Gemelli and Quadratus Femoris 6222
             Left Vastus Lateralis 7101
             Right Vastus Lateralis 7102
             Left Vastus Intermedius 7111
@@ -199,12 +208,15 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
             Right Fibula 8162
           ```
        </details>
-    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50%:
+    * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 75%:
        ~~~
-       mm_segment -i image.nii.gz -s 50
+       mm_segment -i image.nii.gz -s 75
        ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
+
+      **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
+      
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
