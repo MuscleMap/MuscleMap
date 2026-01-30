@@ -12,7 +12,7 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 * Python 3.9.23
 
 ### Installation
-We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). MuscleMap is also implemented as a dedicated 3D Slicer extension that enables automated muscle segmentation directly within the Slicer environment. Installation and usage tutorial video for the 3D Slicer extension can be found [here] (https://www.youtube.com/watch?v=aAXxopcMeKI). 
 
 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
@@ -411,10 +411,20 @@ When using the MuscleMap Toolbox, please cite the following publications:
 
 ## Publications
 
-### 2025
-* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia, Clinics in Geriatric Medicine, In Press. <https://doi.org/10.1016/j.cger.2025.08.012>
+### 2026 
+* van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up. European Spine Journal, 2026; published online January 5, 2026. <https://doi.org/10.1007/s00586-025-09620-3>
 
-* Wesselink EO, Verheijen E, Djuric N, Coppieters M, Elliott J, Weber KA 2nd, Wouter M, Vleggeert-Lankamp C, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis. A Longitudinal Cohort Study With 5-year Follow-up. Spine, In Press. <https://doi.org/10.1097/brs.0000000000005408>
+* Wesselink EO, Verheijen EJA, Djuric N, Coppieters MW, Elliott JM, Weber KA 2nd, Moojen WA, Vleggeert-Lankamp CL, Pool-Goudzwaard A. Lumbar Multifidus Intramuscular Fat Concentrations are Associated With Recovery Following Decompressive Surgery for Lumbar Spinal Stenosis: A Longitudinal Cohort Study With Five-Year Follow-Up. Spine (Phila Pa 1976), 2026;51(1):25–33.<https://doi.org/10.1097/brs.0000000000005408>
+
+* Masnoon N, Cornwall J, Elliott JM, Glare P, Hilmer SN, McKay M, Walton DM, Weber K, Wesselink E. Muscle Composition as a Novel Prognostic Tool for Pain, Frailty, and Sarcopenia. Clin Geriatr Med, 2026;42(1):61–73.
+https://doi.org/10.1016/j.cger.2025.08.012
+
+### 2025
+* Nim C, Weber II KA, O’Neill S, Paulsen RT, Culmsee-Holm L, Wesselink EO, Sun Y-L, Jun P, Breen A, Kawchuk GN. The relation between bulk (external) and internal measures of spinal stiffness. Chiropractic & Manual Therapies. 2025;33(1):52.<https://doi.org/10.1186/s12998-025-00615-x>
+
+* Smulligan KL, Smith AC, Weber KA, Carry P, Esopenko C, Baugh CM, Elliott J, Snodgrass S, Wesselink EO, Wilson J, Howell DL. A Magnetic Resonance Imaging (MRI) Investigation of Cervical Spine Muscle Characteristics After Concussion: Identifying Return-to-Play Clearance and Subsequent Injury Prognosis. Journal of Child Neurology. 2025; published online November 6, 2025. <https://doi.org/10.1177/08830738251392519>
+
+* Fundaun J, Oliva V, Bédard S, Wesselink EO, Lynn BP, Pai S A, Pfyffer D, Kaptan M, Berhe N, Ratliff J, Hu SS, Smith ZA, Hastie TJ, Mackey S, McKay MJ, Elliott JM, Delp SL, Chaudhari AS, Law CSW, … Weber KA. Automated Segmentation of Forearm Muscles: Clinical Associations With Hand Function, Muscle Volume and Intramuscular Fat. JCSM Communications. 2025;8(2):e70015. <https://doi.org/10.1002/rco2.70015>
 
 * Smith AC, Muñoz Laguna J,  Wesselink EO, Scott ZE, Jenkins H, Thornton W, Wasielewski M, Connor J, Delp S, Chaudhari A, Parrish TB, Mackey S, Elliott JM,  Weber II KA. Leg Muscle Volume, Intramuscular Fat, and Force Generation: Insights from a Computer Vision Model and Fat-Water MRI, Journal of Cachexia, Sarcopenia and Muscle, 2025;16(1):e13735. <https://doi.org/10.1002/jcsm.13735>
 
