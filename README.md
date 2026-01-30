@@ -214,7 +214,9 @@ We provide a step-by-step installation and usage tutorial video [here](https://w
        ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, and leg.
-      **Note The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
+
+      **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
+      
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
