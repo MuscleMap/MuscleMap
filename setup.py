@@ -7,7 +7,7 @@ with open('requirements.txt') as f:
 setup(
     name='scripts',
     version='1.2',
-    authors='Kenneth Weber, Eddo Wesselink, Benjamin DeLeener,' 'Richard Yin',  # Add authors' names
+    authors='Kenneth Weber, Eddo Wesselink, Benjamin DeLeener,Brian Kim, Richard Yin',  
     description='A toolbox for muscle imaging.',
     url='https://github.com/MuscleMap/MuscleMap.git',
     packages=find_packages(),
