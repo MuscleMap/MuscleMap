@@ -12,7 +12,7 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 * Python 3.9.23
 
 ### Installation
-We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). MuscleMap is also implemented as a dedicated 3D Slicer extension that enables automated muscle segmentation directly within the Slicer environment. Installation and usage tutorial video for the 3D Slicer extension can be found [here] (https://www.youtube.com/watch?v=aAXxopcMeKI). 
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). MuscleMap is also implemented as a dedicated 3D Slicer extension that enables automated muscle segmentation directly within the Slicer environment. Installation and usage tutorial video for the 3D Slicer extension can be found [here](https://www.youtube.com/watch?v=aAXxopcMeKI). 
 
 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
