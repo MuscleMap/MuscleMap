@@ -308,7 +308,7 @@ def calculate_metrics_dixon(
     
     # raise value error when shapes do no match or when 4D is given as input
     if not (label_img.shape == water_array.shape == fat_array.shape):
-        raise ValueError("label_img, water_array en fat_array moeten dezelfde shape hebben")
+        raise ValueError("Shape mismatch: segmentation image, water image, and fat image must have identical shapes.")
     if len(pix_dim) != 3:
         raise ValueError("pix_dim must be a 3-tuple (mm, mm, mm)")
     
@@ -368,7 +368,7 @@ def calculate_metrics_average(
     
     #Raise ValueError when mismatch or image not in 3D
     if label_img.shape != img_array.shape:
-        raise ValueError("label_img and img_array must have the same shape")
+        raise ValueError("Shape mismatch: Segmentation image and img_array must have the same shape")
     if len(pix_dim) != 3:
         raise ValueError("pix_dim must be a 3-tuple (mm, mm, mm)")
     
@@ -703,7 +703,6 @@ def run_inference(
     img_data = img_nii.get_fdata().astype(np.float32)
     D        = img_data.shape[-1]
     
-    # ----- KLEINE VOLUME-TAK -----
     if D <= chunk_size:
         data   = {"image": image_path}
         data   = pre_transforms(data)
@@ -729,15 +728,12 @@ def run_inference(
         seg_np      = seg_tensor.numpy()
         full_seg    = connected_chunks(seg_np)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-        # opruimen
         del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         return out_path
 
-    # ----- CHUNK-TAK -----
     temp_dir = os.path.join(output_dir, "temp_chunks")
     os.makedirs(temp_dir, exist_ok=True)
 
