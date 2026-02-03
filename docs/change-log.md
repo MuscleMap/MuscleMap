@@ -38,7 +38,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 <ul>
   <li>Included 10 more muscles (left and right pectineus, obturator externus, obturator internus, piriformis, 
       gemelli and quadratus femoris)<li>
-  <li>Included more training data 
+  <li>Included more training data <li>
 </ul>
 </div>
 
