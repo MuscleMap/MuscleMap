@@ -15,7 +15,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
 <!-- ===== VERSION 1.1 ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v1.1</strong>
+  <strong style="font-size: 22px;">v1.2</strong>
   <span style="
     background: #2ea44f;
     color: white;
@@ -36,10 +36,33 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
 
 <ul>
+  <li>Included 10 more muscles (left and right pectineus, obturator externus, obturator internus, piriformis, 
+      gemelli and quadratus femoris)<li>
+  <li>Included more training data 
+</ul>
+</div>
+
+
+<!-- ===== VERSION 1.0 ===== -->
+<p align="left" style="margin-bottom: 4px;">
+  <strong style="font-size: 22px;">v1.1</strong>
+</p>
+
+<div style="
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+
+<ul>
   <li>Trained whole-body model on a more diverse dataset to improve generalizability</li>
   <li>Now using foreground cropping to improve inference efficiency</li>
 </ul>
 </div>
+
+
 
 <!-- ===== VERSION 1.0 ===== -->
 <p align="left" style="margin-bottom: 4px;">

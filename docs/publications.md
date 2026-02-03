@@ -13,6 +13,10 @@ permalink: /publications/
 <div id="pub-year-chart" class="pub-year-chart" aria-label="Publications per year chart"></div>
 
 ### 2026
+* Alexis B Slutsky-Ganesh, Salomé Baup, Upasana Bharadwaj, Jake A Slaton, Melanie Valencia, Jed A Diekfuss, Taylor Zuleger, Shayla Warren, Kim Barber Foss, Kyle Hammond, John W Xerogeanes, Ruud B van Heeswijk, Gregory D Myer, Augustin C Ogier, Optimizing MRI Annotation Workflows for High-Accuracy Deep Learning Thigh Muscle Segmentation in Athletes, Radiology Advances, 2026;, umag005.  
+  [https://doi.org/10.1093/radadv/umag005](https://doi.org/10.1093/radadv/umag005)<br> 
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('SlutskyGanesh2026OptimizingMRI'); return false;" }
+
 * van Amstel RN, Wesselink EO, Weide G, Hooijmans MT, Elliott JM, Weber KA II, Hancock MJ, Jaspers RT, Pool-Goudzwaard AL. *Higher Lumbodorsal Epimuscular Fat Associated With Recurrent Low Back Pain: An Exploratory Secondary Analysis of Cross-Sectional MRI Data With 1-Year Follow-Up.* European Spine Journal, 2026; published online January 5, 2026.<br> 
   [https://doi.org/10.1007/s00586-025-09620-3](https://doi.org/10.1007/s00586-025-09620-3)<br> 
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('vanAmstel2026EpimuscularFat'); return false;" }
