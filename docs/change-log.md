@@ -13,7 +13,7 @@ Segmentation models in MuscleMap are periodically retrained on expanded and more
 All notable changes to **MuscleMap** are listed below.  
 Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
-<!-- ===== VERSION 1.1 ===== -->
+<!-- ===== VERSION 1.2 ===== -->
 <p align="left" style="margin-bottom: 4px;">
   <strong style="font-size: 22px;">v1.2</strong>
   <span style="
@@ -35,11 +35,13 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
   background: #ffffff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
 
-<ul>
-  <li>Included 10 more muscles (left and right pectineus, obturator externus, obturator internus, piriformis, 
-      gemelli and quadratus femoris)<li>
-  <li>Included more training data <li>
-</ul>
+  <ul>
+    <li>
+      Included 10 more muscles (left and right pectineus, obturator externus, obturator internus, piriformis,
+      gemelli and quadratus femoris)
+    </li>
+    <li>Included more training data</li>
+  </ul>
 </div>
 
 
