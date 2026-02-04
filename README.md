@@ -104,7 +104,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension that enables au
     mm_segment -i image.nii.gz
     ~~~
 
-    * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 89 muscles and bones.
+    * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 99 muscles and bones.
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
       
