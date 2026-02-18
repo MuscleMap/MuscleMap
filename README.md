@@ -21,7 +21,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension that enables au
 
 2. Create python environment:
     ~~~
-    conda create --name MuscleMap python=3.9.23
+    conda create --name MuscleMap python=3.11.8
     ~~~
 
 3. Activate python environment:
