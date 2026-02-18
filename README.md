@@ -9,7 +9,7 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 
 ### Dependencies
 
-* Python 3.9.23
+* Python 3.11.8
 
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). 
