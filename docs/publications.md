@@ -13,6 +13,10 @@ permalink: /publications/
 <div id="pub-year-chart" class="pub-year-chart" aria-label="Publications per year chart"></div>
 
 ### 2026
+* Machao Guo, Xiangyu Li, Yuxi Liu, Shibao Lu, Paraspinal muscle MRI radiomics outperform disc radiomics for predicting poor disability improvement after L4/5 single-level lumbar surgery, European Spine Journal, 2026;.
+  [https://doi.org/10.1007/s00586-026-09801-8](https://doi.org/10.1007/s00586-026-09801-8)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Guo2026ParaspinalRadiomics'); return false;" }
+
 * Alexis B Slutsky-Ganesh, Salomé Baup, Upasana Bharadwaj, Jake A Slaton, Melanie Valencia, Jed A Diekfuss, Taylor Zuleger, Shayla Warren, Kim Barber Foss, Kyle Hammond, John W Xerogeanes, Ruud B van Heeswijk, Gregory D Myer, Augustin C Ogier, Optimizing MRI Annotation Workflows for High-Accuracy Deep Learning Thigh Muscle Segmentation in Athletes, Radiology Advances, 2026;, umag005.  
   [https://doi.org/10.1093/radadv/umag005](https://doi.org/10.1093/radadv/umag005)<br> 
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('SlutskyGanesh2026OptimizingMRI'); return false;" }
