@@ -1,0 +1,27 @@
+{
+  "parameters": {
+    "num_workers": 4,
+    "roi_size": [256, 256],
+    "spatial_window_batch_size": 1,
+    "pix_dim": [1, 1, -1]
+  },
+  "model": {
+    "version": 0.0,
+    "spatial_dims": 2,
+    "in_channels": 1,
+    "out_channels": 6,
+    "channels": [64, 128, 256, 512, 1024],
+    "act": "LeakyReLU",
+    "strides": [2, 2, 2, 2],
+    "num_res_units": 1,
+    "norm": "instance"
+  },
+  "labels": [
+    { "region": "leg", "anatomy": "other muscles", "side": "no side", "value": 1 },
+    { "region": "leg", "anatomy": "radius", "side": "no side", "value": 2 },
+    { "region": "leg", "anatomy": "ulna", "side": "no side", "value": 3 },
+    { "region": "leg", "anatomy": "extensor compartment", "side": "no side", "value": 4 },
+    { "region": "leg", "anatomy": "flexor compartment", "side": "no side", "value": 5 }
+  ]
+}
+
