@@ -17,7 +17,7 @@
     "norm": "instance"
   },
   "labels": [
-    { "region": "leg", "anatomy": "intermediate compartment", "side": "no side", "value": 1 },
+    { "region": "leg", "anatomy": "other muscles", "side": "no side", "value": 1 },
     { "region": "leg", "anatomy": "radius", "side": "no side", "value": 2 },
     { "region": "leg", "anatomy": "ulna", "side": "no side", "value": 3 },
     { "region": "leg", "anatomy": "extensor compartment", "side": "no side", "value": 4 },
