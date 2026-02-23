@@ -215,7 +215,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension that enables au
        mm_segment -i image.nii.gz -s 75
        ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
-      * Available regions: abdomen, pelvis, thigh, and leg.
+      * Available regions: abdomen, pelvis, thigh, forearm and leg.
 
       **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
       
