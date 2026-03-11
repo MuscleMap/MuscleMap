@@ -23,6 +23,8 @@ AUTO_CHUNK_GPU_MIN_RESERVE_BYTES = 1 * 1024**3
 AUTO_CHUNK_CPU_MIN_RESERVE_BYTES = 4 * 1024**3
 AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD = 1.35
 AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD = 2.00
+AUTO_CHUNK_CPU_MAX_LOGIT_BYTES = 2 * 1024**3
+AUTO_CHUNK_CPU_LOGIT_FRACTION = 0.25
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -324,9 +326,24 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
     )
 
     estimated_chunk = max(1, min(int(dims[2]), usable_bytes // max(bytes_per_input_slice, 1)))
+    logit_cap_chunk = None
+    if not (device is not None and device.type == "cuda" and torch.cuda.is_available()):
+        logit_bytes_per_input_slice = int(
+            math.ceil(
+                resampled_dims[0]
+                * resampled_dims[1]
+                * depth_scale
+                * out_channels
+                * np.dtype(np.float32).itemsize
+            )
+        )
+        max_logit_bytes = min(int(usable_bytes * AUTO_CHUNK_CPU_LOGIT_FRACTION), AUTO_CHUNK_CPU_MAX_LOGIT_BYTES)
+        logit_cap_chunk = max(1, max_logit_bytes // max(logit_bytes_per_input_slice, 1))
+        estimated_chunk = min(estimated_chunk, logit_cap_chunk)
+
     logging.info(
         "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
-        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f).",
+        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f, logit_cap=%s).",
         _format_bytes(free_bytes),
         _format_bytes(usable_bytes),
         _format_bytes(reserve_bytes),
@@ -336,6 +353,7 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
         resampled_dims[1],
         out_channels,
         overhead_factor,
+        logit_cap_chunk if logit_cap_chunk is not None else "n/a",
     )
     return estimated_chunk
 
