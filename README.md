@@ -214,6 +214,10 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension that enables au
        ~~~
        mm_segment -i image.nii.gz -s 75
        ~~~
+    * `-c auto` estimates a safe chunk size from currently available CPU or GPU memory and keeps extra headroom to reduce OOM failures:
+       ~~~
+       mm_segment -i image.nii.gz -c auto
+       ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, forearm and leg.
 

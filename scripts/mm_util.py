@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 import json
+import math
 import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
@@ -10,10 +11,17 @@ from monai.transforms import (MapTransform)
 import gc, torch
 import os, gc, torch, nibabel as nib
 import shutil
+import psutil
 from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+
+AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.80
+AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.65
+AUTO_CHUNK_GPU_MIN_RESERVE_BYTES = 1 * 1024**3
+AUTO_CHUNK_CPU_MIN_RESERVE_BYTES = 2 * 1024**3
+AUTO_CHUNK_ESTIMATE_OVERHEAD = 1.15
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -115,6 +123,169 @@ def validate_seg_arguments(args):
         if arg_value and not isinstance(arg_value, str):
             logging.error(f"Error: The {arg_name} ({flag}) argument must be a string.")
             sys.exit(1)
+
+def _format_bytes(num_bytes: int) -> str:
+    if num_bytes < 1024:
+        return f"{num_bytes} B"
+    units = ("KiB", "MiB", "GiB", "TiB")
+    value = float(num_bytes)
+    for unit in units:
+        value /= 1024.0
+        if value < 1024.0:
+            return f"{value:.1f} {unit}"
+    return f"{value:.1f} PiB"
+
+def _release_memory(device=None):
+    gc.collect()
+    if device is not None and device.type == "cuda" and torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+def _is_oom_error(exc: Exception) -> bool:
+    if isinstance(exc, (MemoryError, torch.cuda.OutOfMemoryError)):
+        return True
+    msg = str(exc).lower()
+    return any(
+        token in msg
+        for token in (
+            "out of memory",
+            "cuda error: out of memory",
+            "can't allocate memory",
+            "cannot allocate memory",
+            "std::bad_alloc",
+            "bad alloc",
+        )
+    )
+
+def _resolve_target_spacing(header_zooms, target_pixdim):
+    if not target_pixdim:
+        return tuple(float(z) for z in header_zooms[:3])
+
+    resolved = []
+    for axis, zoom in enumerate(header_zooms[:3]):
+        try:
+            target = float(target_pixdim[axis])
+        except (IndexError, TypeError, ValueError):
+            target = float(zoom)
+        if target <= 0:
+            target = float(zoom)
+        resolved.append(target)
+    return tuple(resolved)
+
+def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdim=None):
+    img_nii = nib.load(image_path)
+    header = img_nii.header
+    dims = header.get_data_shape()[:3]
+    zooms = header.get_zooms()[:3]
+    del img_nii
+
+    if len(dims) < 3 or dims[-1] < 1:
+        return 1
+
+    _release_memory(device)
+
+    if device is not None and device.type == "cuda" and torch.cuda.is_available():
+        device_index = device.index if device.index is not None else torch.cuda.current_device()
+        free_bytes, total_bytes = torch.cuda.mem_get_info(device_index)
+        reserve_bytes = max(AUTO_CHUNK_GPU_MIN_RESERVE_BYTES, int(total_bytes * 0.10))
+        safety_margin = AUTO_CHUNK_GPU_SAFETY_MARGIN
+    else:
+        mem = psutil.virtual_memory()
+        free_bytes = int(mem.available)
+        total_bytes = int(mem.total)
+        reserve_bytes = max(AUTO_CHUNK_CPU_MIN_RESERVE_BYTES, int(total_bytes * 0.05))
+        safety_margin = AUTO_CHUNK_CPU_SAFETY_MARGIN
+
+    usable_bytes = int(max(free_bytes - reserve_bytes, 0) * safety_margin)
+    if usable_bytes <= 0:
+        logging.warning(
+            "Auto chunk sizing found no free headroom after reserves; falling back to 1 slice "
+            f"(free={_format_bytes(free_bytes)} reserve={_format_bytes(reserve_bytes)})."
+        )
+        return 1
+
+    resolved_spacing = _resolve_target_spacing(zooms, target_pixdim)
+    resampled_dims = [
+        max(1, int(math.ceil(float(dim) * float(zoom) / float(spacing))))
+        for dim, zoom, spacing in zip(dims, zooms, resolved_spacing)
+    ]
+
+    out_channels = max(int(out_channels or 1), 1)
+    bytes_per_voxel = (
+        np.dtype(np.float32).itemsize + (out_channels * np.dtype(np.float32).itemsize) + np.dtype(np.int16).itemsize
+    )
+    depth_scale = max(float(zooms[2]) / float(resolved_spacing[2]), 1e-6)
+    bytes_per_input_slice = int(
+        math.ceil(
+            resampled_dims[0]
+            * resampled_dims[1]
+            * depth_scale
+            * bytes_per_voxel
+            * AUTO_CHUNK_ESTIMATE_OVERHEAD
+        )
+    )
+
+    estimated_chunk = max(1, min(int(dims[2]), usable_bytes // max(bytes_per_input_slice, 1)))
+    logging.info(
+        "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
+        "(resampled=%sx%s, labels=%s).",
+        _format_bytes(free_bytes),
+        _format_bytes(usable_bytes),
+        _format_bytes(reserve_bytes),
+        estimated_chunk,
+        resampled_dims[0],
+        resampled_dims[1],
+        out_channels,
+    )
+    return estimated_chunk
+
+def _run_inference_on_file(
+    image_path,
+    pre_transforms,
+    post_transforms,
+    amp_context,
+    device,
+    inferer,
+    model,
+):
+    data = None
+    tensor = None
+    pred = None
+    single_pred = None
+    post_in = None
+    post_out = None
+    seg_tensor = None
+    try:
+        data = {"image": image_path}
+        data = pre_transforms(data)
+        tensor = data["image"]
+        if device.type == "cpu":
+            tensor = tensor.float()
+        if tensor.ndim == 4:
+            tensor = tensor.unsqueeze(0)
+        tensor = tensor.to(device, non_blocking=device.type == "cuda")
+
+        with amp_context, torch.inference_mode():
+            pred = inferer(tensor, model)
+
+        single_pred = pred.squeeze(0).squeeze(0)
+        post_in = {
+            "pred": single_pred,
+            "image": data["image"],
+            "image_meta_dict": data["image_meta_dict"],
+        }
+        post_out = post_transforms(post_in)
+        seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
+        return seg_tensor.numpy().copy()
+    finally:
+        del data, tensor, pred, single_pred, post_in, post_out, seg_tensor
+        _release_memory(device)
+
+def _write_temp_chunk(image_proxy, affine, header, temp_dir, start, end):
+    vol_chunk = np.asarray(image_proxy.dataobj[..., start:end], dtype=np.float32)
+    chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii")
+    nib.save(nib.Nifti1Image(vol_chunk, affine, header.copy()), chunk_path)
+    del vol_chunk
+    return chunk_path
 
 def save_nifti(data: np.ndarray, affine, header, out_path):
     new_hdr = header.copy()                            
@@ -695,98 +866,104 @@ def run_inference(
     device=None,
     inferer=None,
     model=None,
+    out_channels=None,
+    target_pixdim=None,
 ):
     out_path = _make_out_path(image_path, output_dir, "_dseg")
-    img_nii  = nib.load(image_path)
-    affine   = img_nii.affine.copy()
-    header   = img_nii.header.copy()
-    img_data = img_nii.get_fdata().astype(np.float32)
-    D        = img_data.shape[-1]
-    
-    if D <= chunk_size:
-        data   = {"image": image_path}
-        data   = pre_transforms(data)
-        tensor = data["image"]
-        if device.type == "cpu":
-            tensor = tensor.float()
-        if tensor.ndim == 4:
-            tensor = tensor.unsqueeze(0)              
-        tensor = tensor.to(device, non_blocking=True)
+    img_nii = nib.load(image_path)
+    affine = img_nii.affine.copy()
+    header = img_nii.header.copy()
+    dims = header.get_data_shape()
+    D = dims[-1]
+    auto_chunking = isinstance(chunk_size, str) and chunk_size.lower() == "auto"
 
-        with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
+    if auto_chunking:
+        chunk_size = estimate_auto_chunk_size(
+            image_path,
+            device,
+            out_channels=out_channels,
+            target_pixdim=target_pixdim,
+        )
+    else:
+        chunk_size = int(chunk_size)
 
-        single_pred = pred.squeeze(0).squeeze(0)     
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data
-        post_out    = post_transforms(post_in)
-        seg_tensor  = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np      = seg_tensor.numpy()
-        full_seg    = connected_chunks(seg_np)
-        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor, full_seg, img_data, img_nii
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        return out_path
+    chunk_size = max(1, min(chunk_size, D))
+    logging.info("Using chunk size: %s%s", chunk_size, " (auto)" if auto_chunking else "")
 
     temp_dir = os.path.join(output_dir, "temp_chunks")
-    os.makedirs(temp_dir, exist_ok=True)
+    full_seg = None
+    try:
+        if chunk_size >= D:
+            try:
+                seg_np = _run_inference_on_file(
+                    image_path,
+                    pre_transforms,
+                    post_transforms,
+                    amp_context,
+                    device,
+                    inferer,
+                    model,
+                )
+            except Exception as exc:
+                if not (auto_chunking and _is_oom_error(exc) and D > 1):
+                    raise
+                chunk_size = max(1, D // 2)
+                logging.warning(
+                    "Auto chunking hit OOM on the full volume; retrying with chunk size %s.",
+                    chunk_size,
+                )
+            else:
+                full_seg = connected_chunks(seg_np)
+                nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+                del seg_np
+                return out_path
 
-    dims     = header.get_data_shape()  
-    full_seg = np.zeros(dims, dtype=np.int16)
-    chunk_files = []
-    for start in range(0, D, chunk_size):
-        end       = min(start + chunk_size, D)
-        vol_chunk = img_data[..., start:end]
-        chunk_path = os.path.join(temp_dir, f"chunk_{start}_{end}.nii")
-        nib.save(nib.Nifti1Image(vol_chunk, affine, header), chunk_path)
-        del vol_chunk  
-        chunk_files.append({"image": chunk_path, "start": start, "end": end})
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    del img_data, img_nii
-    
-    for entry in chunk_files:
-        data   = {"image": entry["image"]}
-        data   = pre_transforms(data)
-        tensor = data["image"]
-        if device.type == "cpu":
-            tensor = tensor.float()
-        if tensor.ndim == 4:
-            tensor = tensor.unsqueeze(0)
-        tensor = tensor.to(device, non_blocking=True)
+        os.makedirs(temp_dir, exist_ok=True)
+        full_seg = np.zeros(dims, dtype=np.int16)
+        start = 0
+        while start < D:
+            end = min(start + chunk_size, D)
+            chunk_path = None
+            try:
+                chunk_path = _write_temp_chunk(img_nii, affine, header, temp_dir, start, end)
+                seg_np = _run_inference_on_file(
+                    chunk_path,
+                    pre_transforms,
+                    post_transforms,
+                    amp_context,
+                    device,
+                    inferer,
+                    model,
+                )
+                full_seg[..., start:end] = seg_np
+                del seg_np
+                start = end
+            except Exception as exc:
+                if not (auto_chunking and _is_oom_error(exc)):
+                    raise
+                if chunk_size == 1:
+                    raise RuntimeError(
+                        "Auto chunking could not find a safe chunk size. Inference still OOMs at 1 slice."
+                    ) from exc
+                new_chunk_size = max(1, chunk_size // 2)
+                logging.warning(
+                    "OOM while processing slices %s:%s with chunk size %s; retrying with %s.",
+                    start,
+                    end,
+                    chunk_size,
+                    new_chunk_size,
+                )
+                chunk_size = new_chunk_size
+            finally:
+                if chunk_path and os.path.exists(chunk_path):
+                    os.remove(chunk_path)
 
-        with amp_context, torch.inference_mode():
-            pred = inferer(tensor, model)
-
-        single_pred = pred.squeeze(0).squeeze(0)
-        post_in = {
-            "pred": single_pred,
-            "image": data["image"],
-            "image_meta_dict": data["image_meta_dict"],
-        }
-        del data  
-        post_out   = post_transforms(post_in)
-        seg_tensor = post_out["pred"].detach().cpu().to(torch.int16)
-        seg_np     = seg_tensor.numpy()
-
-        s, e = entry["start"], entry["end"]
-        full_seg[..., s:e] = seg_np
-        del seg_np, tensor, pred, single_pred, post_in, post_out, seg_tensor 
-    
-    full_seg = connected_chunks(full_seg)
-    nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
-
-    # final cleanup
-    del full_seg
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    return out_path
+        full_seg = connected_chunks(full_seg)
+        nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        return out_path
+    finally:
+        del img_nii
+        if full_seg is not None:
+            del full_seg
+        _release_memory(device)
+        shutil.rmtree(temp_dir, ignore_errors=True)
