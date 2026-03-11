@@ -17,11 +17,12 @@ from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
 
-AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.80
-AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.65
+AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.75
+AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.35
 AUTO_CHUNK_GPU_MIN_RESERVE_BYTES = 1 * 1024**3
-AUTO_CHUNK_CPU_MIN_RESERVE_BYTES = 2 * 1024**3
-AUTO_CHUNK_ESTIMATE_OVERHEAD = 1.15
+AUTO_CHUNK_CPU_MIN_RESERVE_BYTES = 4 * 1024**3
+AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD = 1.35
+AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD = 2.00
 
 #check_image_exists 
 def check_image_exists(image_path):
@@ -171,6 +172,92 @@ def _resolve_target_spacing(header_zooms, target_pixdim):
         resolved.append(target)
     return tuple(resolved)
 
+def _read_int_file(path: Path, allow_zero=False):
+    try:
+        raw = path.read_text().strip()
+    except OSError:
+        return None
+    if not raw or raw == "max":
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None
+    lower_bound = 0 if allow_zero else 1
+    if value < lower_bound or value >= 1 << 60:
+        return None
+    return value
+
+def _get_cgroup_memory_budget():
+    proc_cgroup = Path("/proc/self/cgroup")
+    candidates = []
+
+    if proc_cgroup.exists():
+        try:
+            lines = proc_cgroup.read_text().splitlines()
+        except OSError:
+            lines = []
+        for line in lines:
+            parts = line.split(":", 2)
+            if len(parts) != 3:
+                continue
+            _, controllers, relative_path = parts
+            rel = relative_path.lstrip("/")
+
+            if controllers == "":
+                base = Path("/sys/fs/cgroup")
+                scoped = base / rel if rel else base
+                candidates.extend(
+                    [
+                        (scoped / "memory.max", scoped / "memory.current"),
+                        (base / "memory.max", base / "memory.current"),
+                    ]
+                )
+                continue
+
+            if "memory" not in controllers.split(","):
+                continue
+
+            base = Path("/sys/fs/cgroup/memory")
+            scoped = base / rel if rel else base
+            candidates.extend(
+                [
+                    (scoped / "memory.limit_in_bytes", scoped / "memory.usage_in_bytes"),
+                    (base / "memory.limit_in_bytes", base / "memory.usage_in_bytes"),
+                ]
+            )
+
+    candidates.extend(
+        [
+            (Path("/sys/fs/cgroup/memory.max"), Path("/sys/fs/cgroup/memory.current")),
+            (
+                Path("/sys/fs/cgroup/memory/memory.limit_in_bytes"),
+                Path("/sys/fs/cgroup/memory/memory.usage_in_bytes"),
+            ),
+        ]
+    )
+
+    seen = set()
+    for limit_path, current_path in candidates:
+        key = (str(limit_path), str(current_path))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        limit_bytes = _read_int_file(limit_path)
+        current_bytes = _read_int_file(current_path, allow_zero=True)
+        if limit_bytes is None or current_bytes is None:
+            continue
+
+        return {
+            "limit_bytes": limit_bytes,
+            "current_bytes": current_bytes,
+            "available_bytes": max(limit_bytes - current_bytes, 0),
+            "source": str(limit_path.parent),
+        }
+
+    return None
+
 def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdim=None):
     img_nii = nib.load(image_path)
     header = img_nii.header
@@ -183,17 +270,26 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
 
     _release_memory(device)
 
+    memory_source = "system"
     if device is not None and device.type == "cuda" and torch.cuda.is_available():
         device_index = device.index if device.index is not None else torch.cuda.current_device()
         free_bytes, total_bytes = torch.cuda.mem_get_info(device_index)
         reserve_bytes = max(AUTO_CHUNK_GPU_MIN_RESERVE_BYTES, int(total_bytes * 0.10))
         safety_margin = AUTO_CHUNK_GPU_SAFETY_MARGIN
+        overhead_factor = AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD
+        memory_source = f"cuda:{device_index}"
     else:
         mem = psutil.virtual_memory()
         free_bytes = int(mem.available)
         total_bytes = int(mem.total)
-        reserve_bytes = max(AUTO_CHUNK_CPU_MIN_RESERVE_BYTES, int(total_bytes * 0.05))
+        cgroup_budget = _get_cgroup_memory_budget()
+        if cgroup_budget is not None:
+            free_bytes = min(free_bytes, int(cgroup_budget["available_bytes"]))
+            total_bytes = min(total_bytes, int(cgroup_budget["limit_bytes"]))
+            memory_source = f"system+cgroup:{cgroup_budget['source']}"
+        reserve_bytes = max(AUTO_CHUNK_CPU_MIN_RESERVE_BYTES, int(total_bytes * 0.10))
         safety_margin = AUTO_CHUNK_CPU_SAFETY_MARGIN
+        overhead_factor = AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD
 
     usable_bytes = int(max(free_bytes - reserve_bytes, 0) * safety_margin)
     if usable_bytes <= 0:
@@ -211,7 +307,10 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
 
     out_channels = max(int(out_channels or 1), 1)
     bytes_per_voxel = (
-        np.dtype(np.float32).itemsize + (out_channels * np.dtype(np.float32).itemsize) + np.dtype(np.int16).itemsize
+        np.dtype(np.float32).itemsize
+        + (out_channels * np.dtype(np.float32).itemsize)
+        + np.dtype(np.float32).itemsize
+        + np.dtype(np.int16).itemsize
     )
     depth_scale = max(float(zooms[2]) / float(resolved_spacing[2]), 1e-6)
     bytes_per_input_slice = int(
@@ -220,21 +319,23 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
             * resampled_dims[1]
             * depth_scale
             * bytes_per_voxel
-            * AUTO_CHUNK_ESTIMATE_OVERHEAD
+            * overhead_factor
         )
     )
 
     estimated_chunk = max(1, min(int(dims[2]), usable_bytes // max(bytes_per_input_slice, 1)))
     logging.info(
         "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
-        "(resampled=%sx%s, labels=%s).",
+        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f).",
         _format_bytes(free_bytes),
         _format_bytes(usable_bytes),
         _format_bytes(reserve_bytes),
         estimated_chunk,
+        memory_source,
         resampled_dims[0],
         resampled_dims[1],
         out_channels,
+        overhead_factor,
     )
     return estimated_chunk
 
