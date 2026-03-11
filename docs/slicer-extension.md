@@ -49,8 +49,15 @@ The GUI provides an end-to-end workflow: from loading CT or MRI data, installing
 ### Installation
 
 ### Step 1 – Install 3D Slicer
-Download and install the latest version of 3D Slicer (≥ 5.2) from:  
+
+Download and install the latest (preview release!) version of 3D Slicer from:  
 https://www.slicer.org
+
+<div class="callout callout-note">
+  <strong>Note</strong><br>
+  As of March 11, 2026, MuscleMap is only available in the <em>Preview Release</em> of 3D Slicer.  
+  Once MuscleMap becomes available in the stable release, we will update both the tutorial video and the written instructions accordingly.
+</div>
 
 ---
 ### Step 2 – Install the PyTorch (SlicerPyTorch) extension
