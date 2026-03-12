@@ -260,6 +260,20 @@ def _get_cgroup_memory_budget():
 
     return None
 
+def _get_system_memory_budget():
+    mem = psutil.virtual_memory()
+    free_bytes = int(mem.available)
+    total_bytes = int(mem.total)
+    source = "system"
+
+    cgroup_budget = _get_cgroup_memory_budget()
+    if cgroup_budget is not None:
+        free_bytes = min(free_bytes, int(cgroup_budget["available_bytes"]))
+        total_bytes = min(total_bytes, int(cgroup_budget["limit_bytes"]))
+        source = f"system+cgroup:{cgroup_budget['source']}"
+
+    return free_bytes, total_bytes, source
+
 def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdim=None):
     img_nii = nib.load(image_path)
     header = img_nii.header
@@ -272,7 +286,11 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
 
     _release_memory(device)
 
-    memory_source = "system"
+    system_free_bytes, system_total_bytes, system_source = _get_system_memory_budget()
+    system_reserve_bytes = max(AUTO_CHUNK_CPU_MIN_RESERVE_BYTES, int(system_total_bytes * 0.10))
+    system_usable_bytes = int(max(system_free_bytes - system_reserve_bytes, 0) * AUTO_CHUNK_CPU_SAFETY_MARGIN)
+
+    memory_source = system_source
     if device is not None and device.type == "cuda" and torch.cuda.is_available():
         device_index = device.index if device.index is not None else torch.cuda.current_device()
         free_bytes, total_bytes = torch.cuda.mem_get_info(device_index)
@@ -281,15 +299,9 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
         overhead_factor = AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD
         memory_source = f"cuda:{device_index}"
     else:
-        mem = psutil.virtual_memory()
-        free_bytes = int(mem.available)
-        total_bytes = int(mem.total)
-        cgroup_budget = _get_cgroup_memory_budget()
-        if cgroup_budget is not None:
-            free_bytes = min(free_bytes, int(cgroup_budget["available_bytes"]))
-            total_bytes = min(total_bytes, int(cgroup_budget["limit_bytes"]))
-            memory_source = f"system+cgroup:{cgroup_budget['source']}"
-        reserve_bytes = max(AUTO_CHUNK_CPU_MIN_RESERVE_BYTES, int(total_bytes * 0.10))
+        free_bytes = system_free_bytes
+        total_bytes = system_total_bytes
+        reserve_bytes = system_reserve_bytes
         safety_margin = AUTO_CHUNK_CPU_SAFETY_MARGIN
         overhead_factor = AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD
 
@@ -326,33 +338,46 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
     )
 
     estimated_chunk = max(1, min(int(dims[2]), usable_bytes // max(bytes_per_input_slice, 1)))
-    logit_cap_chunk = None
-    if not (device is not None and device.type == "cuda" and torch.cuda.is_available()):
-        logit_bytes_per_input_slice = int(
-            math.ceil(
-                resampled_dims[0]
-                * resampled_dims[1]
-                * depth_scale
-                * out_channels
-                * np.dtype(np.float32).itemsize
-            )
+
+    system_bytes_per_input_slice = int(
+        math.ceil(
+            resampled_dims[0]
+            * resampled_dims[1]
+            * depth_scale
+            * bytes_per_voxel
+            * AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD
         )
-        max_logit_bytes = min(int(usable_bytes * AUTO_CHUNK_CPU_LOGIT_FRACTION), AUTO_CHUNK_CPU_MAX_LOGIT_BYTES)
-        logit_cap_chunk = max(1, max_logit_bytes // max(logit_bytes_per_input_slice, 1))
-        estimated_chunk = min(estimated_chunk, logit_cap_chunk)
+    )
+    system_cap_chunk = max(1, system_usable_bytes // max(system_bytes_per_input_slice, 1))
+
+    logit_bytes_per_input_slice = int(
+        math.ceil(
+            resampled_dims[0]
+            * resampled_dims[1]
+            * depth_scale
+            * out_channels
+            * np.dtype(np.float32).itemsize
+        )
+    )
+    max_logit_bytes = min(int(system_usable_bytes * AUTO_CHUNK_CPU_LOGIT_FRACTION), AUTO_CHUNK_CPU_MAX_LOGIT_BYTES)
+    logit_cap_chunk = max(1, max_logit_bytes // max(logit_bytes_per_input_slice, 1))
+
+    estimated_chunk = min(estimated_chunk, system_cap_chunk, logit_cap_chunk)
 
     logging.info(
         "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
-        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f, logit_cap=%s).",
+        "(source=%s, cpu_post_source=%s, resampled=%sx%s, labels=%s, overhead=%.2f, cpu_cap=%s, logit_cap=%s).",
         _format_bytes(free_bytes),
         _format_bytes(usable_bytes),
         _format_bytes(reserve_bytes),
         estimated_chunk,
         memory_source,
+        system_source,
         resampled_dims[0],
         resampled_dims[1],
         out_channels,
         overhead_factor,
+        system_cap_chunk,
         logit_cap_chunk if logit_cap_chunk is not None else "n/a",
     )
     return estimated_chunk
