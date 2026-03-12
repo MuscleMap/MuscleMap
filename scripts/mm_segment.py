@@ -178,12 +178,13 @@ def main():
         EnsureTyped(keys=["image"]),
     ])
     
+    post_transform_device = torch.device("cpu")
     post_transforms = [
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
+        to_tensor=True, device=post_transform_device
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
