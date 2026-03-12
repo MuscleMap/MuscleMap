@@ -387,6 +387,12 @@ def _run_inference_on_file(
             pred = inferer(tensor, model)
 
         single_pred = pred.squeeze(0).squeeze(0)
+        if device.type == "cuda":
+            # Run inverse resampling and discretization on CPU to avoid a second large CUDA allocation.
+            single_pred = single_pred.float().cpu()
+            del pred
+            pred = None
+            _release_memory(device)
         post_in = {
             "pred": single_pred,
             "image": data["image"],
