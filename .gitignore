@@ -2,3 +2,6 @@
 __pycache__/
 **/__pycache__/
 scripts.egg-info/
+venv
+data
+requirements.txt
