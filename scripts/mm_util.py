@@ -21,7 +21,7 @@ AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.75
 AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.35
 AUTO_CHUNK_GPU_MIN_RESERVE_BYTES = 1 * 1024**3
 AUTO_CHUNK_CPU_MIN_RESERVE_BYTES = 4 * 1024**3
-AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD = 1.35
+AUTO_CHUNK_GPU_ESTIMATE_OVERHEAD = 1.50
 AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD = 2.00
 AUTO_CHUNK_CPU_MAX_LOGIT_BYTES = 2 * 1024**3
 AUTO_CHUNK_CPU_LOGIT_FRACTION = 0.25
@@ -144,20 +144,25 @@ def _release_memory(device=None):
         torch.cuda.empty_cache()
 
 def _is_oom_error(exc: Exception) -> bool:
-    if isinstance(exc, (MemoryError, torch.cuda.OutOfMemoryError)):
-        return True
-    msg = str(exc).lower()
-    return any(
-        token in msg
-        for token in (
-            "out of memory",
-            "cuda error: out of memory",
-            "can't allocate memory",
-            "cannot allocate memory",
-            "std::bad_alloc",
-            "bad alloc",
-        )
-    )
+    current = exc
+    while current is not None:
+        if isinstance(current, (MemoryError, torch.cuda.OutOfMemoryError)):
+            return True
+        msg = str(current).lower()
+        if any(
+            token in msg
+            for token in (
+                "out of memory",
+                "cuda error: out of memory",
+                "can't allocate memory",
+                "cannot allocate memory",
+                "std::bad_alloc",
+                "bad alloc",
+            )
+        ):
+            return True
+        current = current.__cause__
+    return False
 
 def _resolve_target_spacing(header_zooms, target_pixdim):
     if not target_pixdim:
@@ -320,65 +325,62 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
     ]
 
     out_channels = max(int(out_channels or 1), 1)
-    bytes_per_voxel = (
-        np.dtype(np.float32).itemsize
-        + (out_channels * np.dtype(np.float32).itemsize)
-        + np.dtype(np.float32).itemsize
-        + np.dtype(np.int16).itemsize
-    )
+    f32 = np.dtype(np.float32).itemsize  # 4
+
     depth_scale = max(float(zooms[2]) / float(resolved_spacing[2]), 1e-6)
-    bytes_per_input_slice = int(
-        math.ceil(
-            resampled_dims[0]
-            * resampled_dims[1]
-            * depth_scale
-            * bytes_per_voxel
-            * overhead_factor
-        )
-    )
+
+    # Memory at resampled resolution (inference): input tensor + logits
+    resampled_bytes_per_slice = int(math.ceil(
+        resampled_dims[0] * resampled_dims[1] * depth_scale
+        * (f32 + out_channels * f32)  # input + logits
+    ))
+
+    # Memory at original resolution (post-processing inverse resample):
+    # affine grid (3 floats) + resampled output (out_channels floats)
+    original_bytes_per_slice = int(math.ceil(
+        dims[0] * dims[1] * 1.0  # original voxels per input slice (no depth scaling)
+        * (3 * f32 + out_channels * f32)  # grid + output
+    ))
+
+    bytes_per_input_slice = int(math.ceil(
+        (resampled_bytes_per_slice + original_bytes_per_slice) * overhead_factor
+    ))
 
     estimated_chunk = max(1, min(int(dims[2]), usable_bytes // max(bytes_per_input_slice, 1)))
 
-    system_bytes_per_input_slice = int(
-        math.ceil(
-            resampled_dims[0]
-            * resampled_dims[1]
-            * depth_scale
-            * bytes_per_voxel
+    # On CPU, post-processing competes for the same system RAM — apply extra caps.
+    # On GPU, post-processing stays on the device and the overhead factor already covers it.
+    system_cap_chunk = None
+    logit_cap_chunk = None
+    if not (device is not None and device.type == "cuda" and torch.cuda.is_available()):
+        cpu_bytes_per_input_slice = int(math.ceil(
+            (resampled_bytes_per_slice + original_bytes_per_slice)
             * AUTO_CHUNK_CPU_ESTIMATE_OVERHEAD
-        )
-    )
-    system_cap_chunk = max(1, system_usable_bytes // max(system_bytes_per_input_slice, 1))
+        ))
+        system_cap_chunk = max(1, system_usable_bytes // max(cpu_bytes_per_input_slice, 1))
 
-    logit_bytes_per_input_slice = int(
-        math.ceil(
-            resampled_dims[0]
-            * resampled_dims[1]
-            * depth_scale
-            * out_channels
-            * np.dtype(np.float32).itemsize
-        )
-    )
-    max_logit_bytes = min(int(system_usable_bytes * AUTO_CHUNK_CPU_LOGIT_FRACTION), AUTO_CHUNK_CPU_MAX_LOGIT_BYTES)
-    logit_cap_chunk = max(1, max_logit_bytes // max(logit_bytes_per_input_slice, 1))
+        logit_bytes_per_input_slice = int(math.ceil(
+            resampled_dims[0] * resampled_dims[1] * depth_scale
+            * out_channels * f32
+        ))
+        max_logit_bytes = min(int(system_usable_bytes * AUTO_CHUNK_CPU_LOGIT_FRACTION), AUTO_CHUNK_CPU_MAX_LOGIT_BYTES)
+        logit_cap_chunk = max(1, max_logit_bytes // max(logit_bytes_per_input_slice, 1))
 
-    estimated_chunk = min(estimated_chunk, system_cap_chunk, logit_cap_chunk)
+        estimated_chunk = min(estimated_chunk, system_cap_chunk, logit_cap_chunk)
 
     logging.info(
         "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
-        "(source=%s, cpu_post_source=%s, resampled=%sx%s, labels=%s, overhead=%.2f, cpu_cap=%s, logit_cap=%s).",
+        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f%s).",
         _format_bytes(free_bytes),
         _format_bytes(usable_bytes),
         _format_bytes(reserve_bytes),
         estimated_chunk,
         memory_source,
-        system_source,
         resampled_dims[0],
         resampled_dims[1],
         out_channels,
         overhead_factor,
-        system_cap_chunk,
-        logit_cap_chunk if logit_cap_chunk is not None else "n/a",
+        (f", cpu_cap={system_cap_chunk}, logit_cap={logit_cap_chunk}") if system_cap_chunk is not None else "",
     )
     return estimated_chunk
 
@@ -412,12 +414,8 @@ def _run_inference_on_file(
             pred = inferer(tensor, model)
 
         single_pred = pred.squeeze(0).squeeze(0)
-        if device.type == "cuda":
-            # Run inverse resampling and discretization on CPU to avoid a second large CUDA allocation.
-            single_pred = single_pred.float().cpu()
-            del pred
-            pred = None
-            _release_memory(device)
+        del pred
+        pred = None
         post_in = {
             "pred": single_pred,
             "image": data["image"],
