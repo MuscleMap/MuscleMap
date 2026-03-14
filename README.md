@@ -14,7 +14,9 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). 
 
-MuscleMap is also implemented as a dedicated 3D Slicer extension that enables automated muscle segmentation directly within the Slicer environment. Installation and usage tutorial video for the 3D Slicer extension can be found [here](https://www.youtube.com/watch?v=aAXxopcMeKI). 
+MuscleMap is also implemented as a dedicated 3D Slicer extension and within the NeuroDesk environment, enabling automated muscle segmentation without requiring programming knowledge.
+- Installation and usage tutorial video for the 3D Slicer extension can be found [here](https://www.youtube.com/watch?v=aAXxopcMeKI).
+- WebApps for MuscleMap in Neurodesk can be found [here](https://musclemap.neurodesk.org/)
 
 1. Install python:
    * We recommend installing [Miniconda](https://docs.anaconda.com/miniconda) or [Anaconda](https://docs.anaconda.com/anaconda).
@@ -213,6 +215,10 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension that enables au
     * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 75%:
        ~~~
        mm_segment -i image.nii.gz -s 75
+       ~~~
+    * `-c auto` estimates a safe chunk size from currently available CPU or GPU memory and keeps extra headroom to reduce OOM failures:
+       ~~~
+       mm_segment -i image.nii.gz -c auto
        ~~~
     * Users may specify our legacy region segmentation models (version 0.0) with -r.
       * Available regions: abdomen, pelvis, thigh, forearm and leg.
