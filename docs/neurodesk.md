@@ -1,5 +1,5 @@
 ---
-title: Neurodesk Web Application
+title: Neurodesk Webapps
 parent: Key features
 description:
 grand_parent: User section
