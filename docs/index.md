@@ -27,9 +27,12 @@ parent: Overview
     </div>
   </div>
 </div>
+
 <div class="mm-section">
   <h2>Features</h2>
+
   <div class="mm-grid">
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
@@ -47,12 +50,13 @@ parent: Overview
         <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}" alt="MuscleMap whole-body GIF">
       </div>
     </div>
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
           <a class="mm-btn mm-btn-ghost"
              href="{{ '/muscle-quantification/' | relative_url }}">
-            Automated muscle quantification 
+            Automated muscle quantification
           </a>
         </h3>
         <p>
@@ -64,6 +68,7 @@ parent: Overview
         <img src="{{ '/assets/images/thresholding.png' | relative_url }}" alt="MuscleMap thresholding png">
       </div>
     </div>
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
@@ -81,6 +86,7 @@ parent: Overview
         <img src="{{ '/assets/images/template.png' | relative_url }}" alt="Template example">
       </div>
     </div>
+
     <div class="mm-card mm-card-with-media">
       <div class="mm-card-text">
         <h3>
@@ -98,5 +104,27 @@ parent: Overview
         <img src="{{ '/assets/images/MuscleMap_Slicer3D.png' | relative_url }}" alt="MuscleMap Slicer 3D view">
       </div>
     </div>
+
+    <div class="mm-card mm-card-with-media">
+      <div class="mm-card-text">
+        <h3>
+          <a class="mm-btn mm-btn-ghost"
+             href="{{ '/neurodesk/' | relative_url }}">
+            Neurodesk web application
+          </a>
+        </h3>
+        <p>
+          Run MuscleMap directly in your browser through Neurodesk.
+          Simply drag and drop NIfTI or DICOM images and click run segmentation.
+          No installation required and all data remains on your local workstation.
+        </p>
+      </div>
+      <div class="mm-card-media">
+        <video autoplay loop muted playsinline>
+          <source src="{{ '/assets/images/video_neurodesk.mp4' | relative_url }}" type="video/mp4">
+        </video>
+      </div>
+    </div>
+
   </div>
 </div>
