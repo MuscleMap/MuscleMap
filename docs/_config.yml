@@ -6,6 +6,7 @@ remote_theme: just-the-docs/just-the-docs
 url: "https://musclemap.github.io"
 baseurl: "/MuscleMap"
 logo: "/MuscleMap/assets/images/favicon.png"
+favicon_ico: "/favicon.ico"
 
 search_enabled: true
 
