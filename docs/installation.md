@@ -23,7 +23,7 @@ This guide explains how to install MuscleMap and its dependencies for automated 
 
 ### Dependencies
 
-- **Python:** 3.9.23  
+- **Python:** 3.11.8  
 - **Operating system:** Linux, macOS, or Windows  
 
 The MuscleMap Toolbox works on **CPU and GPU**, but performance is substantially faster with GPU acceleration.
@@ -41,7 +41,7 @@ We recommend installing **Miniconda** or **Anaconda** through the following link
 ### 2. Create and activate a conda environment
 
 ```bash
-conda create --name MuscleMap python=3.9.23
+conda create --name MuscleMap python=3.11.8
 conda activate MuscleMap
 ```
 
