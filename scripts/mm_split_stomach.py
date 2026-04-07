@@ -1000,6 +1000,7 @@ def main():
     window = MainWindow(img_path, seg_path, out_path)
     window.resize(1180, 760)
     window.show()
+    print('Output in components saved to input folder')
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
