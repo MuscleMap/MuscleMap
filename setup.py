@@ -17,7 +17,8 @@ setup(
             'mm_segment=scripts.mm_segment:main',
             'mm_extract_metrics=scripts.mm_extract_metrics:main',
             'mm_gui=scripts.mm_gui:main',
-            'mm_register_to_template=scripts.mm_register_to_template:main' 
+            'mm_register_to_template=scripts.mm_register_to_template:main', 
+            'mm_split_stomach=scripts.mm_split_stomach:main' 
         ]
     },
     package_data={
