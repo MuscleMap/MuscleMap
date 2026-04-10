@@ -28,6 +28,7 @@ from monai.transforms import (
     NormalizeIntensityd,
     EnsureChannelFirstd,
     CropForegroundd,
+    SpatialPadd,
 )
 from monai.networks.layers import Norm
 from time import perf_counter
@@ -38,6 +39,17 @@ except ImportError:
     # Fallback to direct import if run as a standalone script
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
 import torch
+
+def chunk_size_arg(value):
+    if isinstance(value, str) and value.lower() == "auto":
+        return "auto"
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("chunk_size must be a positive integer or 'auto'.") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("chunk_size must be at least 1.")
+    return parsed
 
 #naming not functional
 # get_parser: parses command line arguments, sets up a) required (image, body region), and b) optional arguments (model, output file name, output directory)
@@ -67,8 +79,8 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
 
-    optional.add_argument("-c", '--chunk_size', required=False, default = 25, type=int,
-                    help="Number of axials slices to be processed as a single chunk. If image is larger than chunk size, then image will be processed in separate chunks to save memory and improve speed. Default is 50 slices.")
+    optional.add_argument("-c", '--chunk_size', required=False, default='auto', type=chunk_size_arg,
+                    help="Number of axial slices to process per chunk, or 'auto' to size chunks from available CPU/GPU memory with a safety margin. Default is auto")
 
     return parser
 
@@ -164,15 +176,21 @@ def main():
         Spacingd(keys=["image"], pixdim=pix_dim, mode="bilinear"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
         CropForegroundd(keys=["image"], source_key="image", margin=20),
+        SpatialPadd(
+            keys=["image"],
+            spatial_size=(256, 256, 1),
+            method="end",
+            mode="constant"),
         EnsureTyped(keys=["image"]),
     ])
-    
+
+    post_transform_device = torch.device("cpu")
     post_transforms = [
     Invertd(
         keys="pred", transform= pre_transforms, orig_keys="image",
         meta_keys="pred_meta_dict", orig_meta_keys="image_meta_dict",
         meta_key_postfix="meta_dict", nearest_interp=False,
-        to_tensor=True, device=device
+        to_tensor=True, device=post_transform_device
     ),
     AsDiscreted(keys="pred", argmax=True),
     SqueezeTransform(keys=["pred"])]
@@ -209,7 +227,19 @@ def main():
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
         try:
-            run_inference(test["image"], output_dir, pre_transforms, post_transforms, amp_context, chunk_size, device, inferer, model )
+            run_inference(
+                test["image"],
+                output_dir,
+                pre_transforms,
+                post_transforms,
+                amp_context,
+                chunk_size,
+                device,
+                inferer,
+                model,
+                out_channels=out_channels,
+                target_pixdim=pix_dim,
+            )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
             logging.exception(f"Error processing {test['image']}: {e}"),
