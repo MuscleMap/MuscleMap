@@ -28,6 +28,7 @@ from monai.transforms import (
     NormalizeIntensityd,
     EnsureChannelFirstd,
     CropForegroundd,
+    SpatialPadd,
 )
 from monai.networks.layers import Norm
 from time import perf_counter
@@ -78,8 +79,8 @@ def get_parser():
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                          help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
 
-    optional.add_argument("-c", '--chunk_size', required=False, default=25, type=chunk_size_arg,
-                    help="Number of axial slices to process per chunk, or 'auto' to size chunks from available CPU/GPU memory with a safety margin. Default is 25 slices.")
+    optional.add_argument("-c", '--chunk_size', required=False, default='auto', type=chunk_size_arg,
+                    help="Number of axial slices to process per chunk, or 'auto' to size chunks from available CPU/GPU memory with a safety margin. Default is auto")
 
     return parser
 
@@ -175,9 +176,14 @@ def main():
         Spacingd(keys=["image"], pixdim=pix_dim, mode="bilinear"),
         NormalizeIntensityd(keys=["image"], nonzero=True),
         CropForegroundd(keys=["image"], source_key="image", margin=20),
+        SpatialPadd(
+            keys=["image"],
+            spatial_size=(256, 256, 1),
+            method="end",
+            mode="constant"),
         EnsureTyped(keys=["image"]),
     ])
-    
+
     post_transform_device = torch.device("cpu")
     post_transforms = [
     Invertd(

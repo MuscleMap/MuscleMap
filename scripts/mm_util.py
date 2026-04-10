@@ -369,16 +369,12 @@ def estimate_auto_chunk_size(image_path, device, out_channels=None, target_pixdi
         estimated_chunk = min(estimated_chunk, system_cap_chunk, logit_cap_chunk)
 
     logging.info(
-        "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s) "
-        "(source=%s, resampled=%sx%s, labels=%s, overhead=%.2f%s).",
+        "Auto chunk sizing: free=%s usable=%s reserve=%s estimated=%s slice(s)(source=%s,overhead=%.2f%s).",
         _format_bytes(free_bytes),
         _format_bytes(usable_bytes),
         _format_bytes(reserve_bytes),
         estimated_chunk,
         memory_source,
-        resampled_dims[0],
-        resampled_dims[1],
-        out_channels,
         overhead_factor,
         (f", cpu_cap={system_cap_chunk}, logit_cap={logit_cap_chunk}") if system_cap_chunk is not None else "",
     )
