@@ -15,7 +15,8 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python -c ' *)",
-      "Bash(python -c \"import ast; ast.parse\\(open\\('scripts/mm_gui.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
+      "Bash(python -c \"import ast; ast.parse\\(open\\('scripts/mm_gui.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(pip show *)"
     ]
   }
 }
