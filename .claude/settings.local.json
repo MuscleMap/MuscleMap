@@ -13,7 +13,9 @@
       "Bash(gh api *)",
       "Bash(python -c \"import sys,json; [print\\(f['name']\\) for f in json.load\\(sys.stdin\\)]\")",
       "WebFetch(domain:api.github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('scripts/mm_gui.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
