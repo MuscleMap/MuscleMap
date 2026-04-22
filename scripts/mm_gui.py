@@ -4,8 +4,6 @@ import subprocess
 import os
 import sys
 import threading
-import urllib.request
-import io
 
 ctk.set_appearance_mode("light")
 
@@ -22,12 +20,11 @@ MUTED         = "#6b6875"
 BORDER        = "#ddd8e4"
 FONT          = "Segoe UI"
 
-FAVICON_URL  = "https://musclemap.github.io/MuscleMap/favicon.ico"
-GIF_URL      = "https://musclemap.github.io/MuscleMap/assets/images/musclemap_scroll.gif"
-
-# If user saves the colorful body image locally, use that instead of the GIF
-_SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-LOCAL_HERO   = os.path.join(_SCRIPT_DIR, "hero_body.png")
+_SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
+_ROOT_DIR     = os.path.dirname(_SCRIPT_DIR)
+_ASSETS_DIR   = os.path.join(_ROOT_DIR, "assets")
+LOCAL_LOGO    = os.path.join(_ASSETS_DIR, "logo_musclemap_white.png")
+LOCAL_FAVICON = os.path.join(_ASSETS_DIR, "favicon.png")
 
 REGIONS = ['wholebody', 'abdomen', 'pelvis', 'thigh', 'leg']
 
@@ -35,29 +32,20 @@ REGIONS = ['wholebody', 'abdomen', 'pelvis', 'thigh', 'leg']
 # ---------------------------------------------------------------------------
 # Asset helpers
 # ---------------------------------------------------------------------------
-def _load_logo(size=(44, 44)):
+def _load_image(path, size):
     try:
         from PIL import Image
-        with urllib.request.urlopen(FAVICON_URL, timeout=5) as r:
-            data = r.read()
-        ico = Image.open(io.BytesIO(data)).convert("RGBA")
-        px = ico.load()
-        for y in range(ico.height):
-            for x in range(ico.width):
-                r_, g, b, _ = px[x, y]
-                if r_ < 45 and g < 45 and b < 45:
-                    px[x, y] = (0, 0, 0, 0)
-        ico = ico.resize(size, Image.LANCZOS)
-        return ctk.CTkImage(light_image=ico, dark_image=ico, size=size)
+        img = Image.open(path).convert("RGBA")
+        img = img.resize(size, Image.LANCZOS)
+        return ctk.CTkImage(light_image=img, dark_image=img, size=size)
     except Exception:
         return None
 
 
-def _load_static_hero(path, max_w=300, max_h=360):
-    """Load a local PNG, scale proportionally to fit max_w x max_h, no distortion."""
+def _load_hero_logo(max_w=320, max_h=380):
     try:
         from PIL import Image
-        img = Image.open(path).convert("RGBA")
+        img = Image.open(LOCAL_LOGO).convert("RGBA")
         w, h = img.size
         scale = min(max_w / w, max_h / h)
         nw, nh = int(w * scale), int(h * scale)
@@ -67,98 +55,35 @@ def _load_static_hero(path, max_w=300, max_h=360):
         return None
 
 
-def _load_gif_frames(url, display_size, step=2, timeout=12):
-    """
-    Download animated GIF, strip black background, return list of
-    (CTkImage, delay_ms) tuples sampled every `step` frames.
-    """
-    try:
-        import numpy as np
-        from PIL import Image
-        with urllib.request.urlopen(url, timeout=timeout) as r:
-            data = r.read()
-        gif = Image.open(io.BytesIO(data))
-        n = getattr(gif, "n_frames", 1)
-        frames = []
-        for i in range(0, n, step):
-            gif.seek(i)
-            frame = gif.copy().convert("RGBA")
-            arr = np.array(frame)
-            # Remove near-black canvas so the scan floats on the white card
-            dark = (arr[:, :, 0] < 25) & (arr[:, :, 1] < 25) & (arr[:, :, 2] < 25)
-            arr[dark, 3] = 0
-            frame = Image.fromarray(arr)
-            frame = frame.resize(display_size, Image.LANCZOS)
-            delay = gif.info.get("duration", 80) * step
-            cimg = ctk.CTkImage(light_image=frame, dark_image=frame, size=display_size)
-            frames.append((cimg, max(delay, 40)))
-        return frames
-    except Exception:
-        return []
-
-
 # ---------------------------------------------------------------------------
 # Application
 # ---------------------------------------------------------------------------
 class MuscleMapApp(ctk.CTk):
     def __init__(self):
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("musclemap.toolbox.1")
+        except Exception:
+            pass
         super().__init__()
         self.title("MuscleMap Toolbox")
         self.geometry("1060x680")
         self.minsize(860, 560)
         self.configure(fg_color=BG)
+        try:
+            import tempfile
+            from PIL import Image
+            _fav = Image.open(LOCAL_FAVICON)
+            _ico_path = os.path.join(tempfile.gettempdir(), "musclemap_icon.ico")
+            _fav.save(_ico_path, format="ICO", sizes=[(32, 32), (16, 16)])
+            self.iconbitmap(_ico_path)
+        except Exception:
+            pass
 
-        self.logo_img    = None
-        self.static_hero = None
-        self._anim_frames: list = []
-        self._anim_idx   = 0
-        self._anim_job   = None
-        self._anim_on    = False
+        self.favicon_img = _load_image(LOCAL_FAVICON, (32, 32))
+        self.hero_img    = _load_hero_logo()
 
-        threading.Thread(target=self._preload_assets, daemon=True).start()
         self._build_hero()
-
-    # ------------------------------------------------------------------
-    # Asset pre-loading (background thread)
-    # ------------------------------------------------------------------
-    def _preload_assets(self):
-        self.logo_img = _load_logo()
-
-        if os.path.exists(LOCAL_HERO):
-            self.static_hero = _load_static_hero(LOCAL_HERO)
-        else:
-            self._anim_frames = _load_gif_frames(GIF_URL, (270, 270))
-
-        self.after(0, self._on_assets_ready)
-
-    def _on_assets_ready(self):
-        if hasattr(self, "_hero_logo_lbl") and self.logo_img:
-            self._hero_logo_lbl.configure(image=self.logo_img)
-
-        if not hasattr(self, "_hero_body_lbl"):
-            return
-
-        if self.static_hero:
-            self._hero_body_lbl.configure(image=self.static_hero, text="")
-        elif self._anim_frames:
-            self._anim_on = True
-            self._hero_body_lbl.configure(text="")
-            self._tick()
-
-    def _tick(self):
-        if not self._anim_on or not self._anim_frames:
-            return
-        if not hasattr(self, "_hero_body_lbl"):
-            return
-        img, delay = self._anim_frames[self._anim_idx]
-        self._hero_body_lbl.configure(image=img)
-        self._anim_idx = (self._anim_idx + 1) % len(self._anim_frames)
-        self._anim_job = self.after(delay, self._tick)
-
-    def _stop_anim(self):
-        self._anim_on = False
-        if self._anim_job:
-            self.after_cancel(self._anim_job)
 
     # ------------------------------------------------------------------
     # Hero page
@@ -175,8 +100,7 @@ class MuscleMapApp(ctk.CTk):
 
         logo_row = ctk.CTkFrame(bar, fg_color="transparent")
         logo_row.pack(side="left", padx=22, pady=8)
-        self._hero_logo_lbl = ctk.CTkLabel(logo_row, text="", image=self.logo_img)
-        self._hero_logo_lbl.pack(side="left")
+        ctk.CTkLabel(logo_row, text="", image=self.favicon_img).pack(side="left")
         ctk.CTkLabel(
             logo_row, text="MuscleMap",
             font=ctk.CTkFont(family=FONT, size=16, weight="bold"), text_color=TEXT,
@@ -191,15 +115,16 @@ class MuscleMapApp(ctk.CTk):
         # Hero card
         card = ctk.CTkFrame(outer, fg_color=CARD, corner_radius=20,
                             border_width=1, border_color=BORDER)
-        card.grid(row=0, column=0, padx=50, pady=36, sticky="nsew")
-        card.grid_columnconfigure(0, weight=1)
-        card.grid_columnconfigure(1, weight=0)
-        card.grid_rowconfigure(0, weight=1)
+        card.grid(row=0, column=0, padx=50, pady=36, sticky="ns")
+
+        # --- Right: logo (packed first so it stays right) ---
+        right = ctk.CTkFrame(card, fg_color="transparent")
+        right.pack(side="right", padx=(0, 36), pady=36)
+        ctk.CTkLabel(right, text="", image=self.hero_img).pack()
 
         # --- Left: text ---
         left = ctk.CTkFrame(card, fg_color="transparent")
-        left.grid(row=0, column=0, sticky="nsew", padx=(44, 16), pady=44)
-        left.grid_rowconfigure(99, weight=1)   # spacer at bottom
+        left.pack(side="left", padx=(44, 24), pady=44)
 
         ctk.CTkLabel(
             left, text="OPEN-SOURCE TOOLBOX",
@@ -244,23 +169,11 @@ class MuscleMapApp(ctk.CTk):
             font=ctk.CTkFont(family=FONT, size=12), text_color=MUTED, justify="left",
         ).pack(anchor="w", pady=(20, 0))
 
-        # --- Right: image / animation ---
-        right = ctk.CTkFrame(card, fg_color="transparent")
-        right.grid(row=0, column=1, sticky="nsew", padx=(0, 0))
-        right.grid_rowconfigure(0, weight=1)
-        right.grid_columnconfigure(0, weight=1)
-
-        self._hero_body_lbl = ctk.CTkLabel(
-            right, text="Loading...",
-            text_color=MUTED, font=ctk.CTkFont(family=FONT, size=13),
-        )
-        self._hero_body_lbl.grid(row=0, column=0, padx=(16, 36), pady=36)
 
     # ------------------------------------------------------------------
     # Hero → main app
     # ------------------------------------------------------------------
     def _launch_app(self):
-        self._stop_anim()
         self._hero_frame.destroy()
         self._build_main()
 
@@ -288,15 +201,25 @@ class MuscleMapApp(ctk.CTk):
     # ------------------------------------------------------------------
     # Sidebar
     # ------------------------------------------------------------------
+    def _back_to_hero(self):
+        for w in self.winfo_children():
+            w.destroy()
+        self._build_hero()
+
     def _build_sidebar(self):
-        logo_row = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        logo_row = ctk.CTkFrame(self.sidebar, fg_color="transparent", cursor="hand2")
         logo_row.pack(pady=(20, 2), padx=14, fill="x")
-        if self.logo_img:
-            ctk.CTkLabel(logo_row, image=self.logo_img, text="").pack(side="left")
-        ctk.CTkLabel(
+        logo_row.bind("<Button-1>", lambda _: self._back_to_hero())
+        if self.favicon_img:
+            lbl_icon = ctk.CTkLabel(logo_row, image=self.favicon_img, text="")
+            lbl_icon.pack(side="left")
+            lbl_icon.bind("<Button-1>", lambda _: self._back_to_hero())
+        lbl_text = ctk.CTkLabel(
             logo_row, text="MuscleMap",
             font=ctk.CTkFont(family=FONT, size=14, weight="bold"), text_color=TEXT,
-        ).pack(side="left", padx=(8, 0))
+        )
+        lbl_text.pack(side="left", padx=(8, 0))
+        lbl_text.bind("<Button-1>", lambda _: self._back_to_hero())
 
         ctk.CTkLabel(
             self.sidebar, text="Toolbox",
@@ -306,7 +229,7 @@ class MuscleMapApp(ctk.CTk):
         ctk.CTkFrame(self.sidebar, height=1, fg_color=BORDER).pack(fill="x", padx=14, pady=(0, 12))
 
         self.nav_buttons: dict[str, ctk.CTkButton] = {}
-        for key, label in [("segment", "Segmentation"), ("extract", "Extract Metrics"), ("workflow", "Workflow")]:
+        for key, label in [("segment", "Segmentation"), ("extract", "Extract Metrics"), ("workflow", "Full MuscleMap Workflow")]:
             btn = ctk.CTkButton(
                 self.sidebar, text=label, height=40,
                 fg_color="transparent", hover_color="#fdf0e8",
@@ -502,16 +425,34 @@ class MuscleMapApp(ctk.CTk):
     def _build_extract_panel(self) -> ctk.CTkScrollableFrame:
         p = ctk.CTkScrollableFrame(self.panels_frame, fg_color=BG, corner_radius=0)
         self._heading(p, "Extract Metrics")
-        self._ext_method     = self._option(p, "Method:", ["dixon", "kmeans", "gmm", "average"])
-        self._ext_input      = self._field(p, "Input Image:")
-        self._ext_fat        = self._field(p, "Fat Image (Dixon):")
-        self._ext_water      = self._field(p, "Water Image (Dixon):")
+        self._ext_method = self._option(p, "Method:", ["dixon", "kmeans", "gmm", "average"])
+
+        dyn = ctk.CTkFrame(p, fg_color="transparent")
+        dyn.pack(fill="x")
+        self._ext_input = self._field(dyn, "Input Image:")
+        self._ext_fat   = self._field(dyn, "Fat Image (Dixon):")
+        self._ext_water = self._field(dyn, "Water Image (Dixon):")
+
         self._ext_seg        = self._field(p, "Segmentation:")
         self._ext_components = self._components_row(p)
         self._ext_region     = self._option(p, "Region:", REGIONS)
         self._ext_output     = self._field(p, "Output Directory:", browse="dir")
         self._ext_output.insert(0, os.getcwd())
         self._run_btn(p, self._run_extraction)
+
+        def _update_ext_fields(*_):
+            is_dixon = self._ext_method.get() == "dixon"
+            self._ext_input.master.pack_forget()
+            self._ext_fat.master.pack_forget()
+            self._ext_water.master.pack_forget()
+            if is_dixon:
+                self._ext_fat.master.pack(fill="x", pady=5)
+                self._ext_water.master.pack(fill="x", pady=5)
+            else:
+                self._ext_input.master.pack(fill="x", pady=5)
+
+        self._ext_method.trace_add("write", _update_ext_fields)
+        _update_ext_fields()
         return p
 
     def _run_extraction(self):
@@ -530,17 +471,35 @@ class MuscleMapApp(ctk.CTk):
 
     def _build_workflow_panel(self) -> ctk.CTkScrollableFrame:
         p = ctk.CTkScrollableFrame(self.panels_frame, fg_color=BG, corner_radius=0)
-        self._heading(p, "Workflow  —  Segment + Extract")
-        self._wf_method     = self._option(p, "Method:", ["kmeans", "gmm", "dixon", "average"])
-        self._wf_input      = self._field(p, "Input Image:")
-        self._wf_fat        = self._field(p, "Fat Image (Dixon):")
-        self._wf_water      = self._field(p, "Water Image (Dixon):")
+        self._heading(p, "Full MuscleMap Workflow")
+        self._wf_method = self._option(p, "Quantification Method:", ["kmeans", "gmm", "dixon", "average"])
+
+        dyn = ctk.CTkFrame(p, fg_color="transparent")
+        dyn.pack(fill="x")
+        self._wf_input = self._field(dyn, "Input Image:")
+        self._wf_fat   = self._field(dyn, "Fat Image (Dixon):")
+        self._wf_water = self._field(dyn, "Water Image (Dixon):")
+
         self._wf_region     = self._option(p, "Region:", REGIONS)
         self._wf_components = self._components_row(p)
         self._wf_output     = self._field(p, "Output Directory:", browse="dir")
         self._wf_output.insert(0, os.getcwd())
         self._wf_gpu        = self._gpu_row(p)
         self._run_btn(p, self._run_workflow)
+
+        def _update_wf_fields(*_):
+            is_dixon = self._wf_method.get() == "dixon"
+            self._wf_input.master.pack_forget()
+            self._wf_fat.master.pack_forget()
+            self._wf_water.master.pack_forget()
+            if is_dixon:
+                self._wf_fat.master.pack(fill="x", pady=5)
+                self._wf_water.master.pack(fill="x", pady=5)
+            else:
+                self._wf_input.master.pack(fill="x", pady=5)
+
+        self._wf_method.trace_add("write", _update_wf_fields)
+        _update_wf_fields()
         return p
 
     def _run_workflow(self):
