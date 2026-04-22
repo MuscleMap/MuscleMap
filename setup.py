@@ -21,7 +21,7 @@ setup(
         ]
     },
     package_data={
-        'scripts': ['models/**/*.json', 'models/**/*.pth', 'templates/**/*nii.gz'],
+        'scripts': ['models/**/*.json', 'templates/**/*nii.gz'],
     },
     include_package_data=True,
     python_requires='>=3.6',
