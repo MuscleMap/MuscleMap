@@ -3,6 +3,9 @@ import logging
 import sys
 import json
 import math
+import hashlib
+import tempfile
+import urllib.request
 import numpy as np
 import nibabel as nib
 from sklearn.cluster import KMeans
@@ -16,6 +19,105 @@ from scipy import ndimage as ndi
 from typing import Any, Dict, Optional, Tuple, Union
 from pathlib import Path
 import pandas as pd
+from tqdm import tqdm
+
+ZENODO_MODELS: Dict[str, Dict[str, str]] = {
+    "abdomen": {
+        "version": "0.0",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_abdomen_model.pth",
+        "filename": "contrast_agnostic_abdomen_model.pth",
+        "sha256": "",  # fill in after upload: sha256sum contrast_agnostic_abdomen_model.pth
+    },
+    "forearm": {
+        "version": "0.0",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_forearm_model.pth",
+        "filename": "contrast_agnostic_forearm_model.pth",
+        "sha256": "",
+    },
+    "leg": {
+        "version": "0.0",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_leg_model.pth",
+        "filename": "contrast_agnostic_leg_model.pth",
+        "sha256": "",
+    },
+    "pelvis": {
+        "version": "0.0",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_pelvis_model.pth",
+        "filename": "contrast_agnostic_pelvis_model.pth",
+        "sha256": "",
+    },
+    "thigh": {
+        "version": "0.0",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_thigh_model.pth",
+        "filename": "contrast_agnostic_thigh_model.pth",
+        "sha256": "",
+    },
+    "wholebody": {
+        "version": "1.3",
+        "url": "https://zenodo.org/records/XXXXXXX/files/contrast_agnostic_wholebody_model.pth",
+        "filename": "contrast_agnostic_wholebody_model.pth",
+        "sha256": "",
+    },
+}
+
+def _get_model_cache_dir(region: str) -> Path:
+    version = ZENODO_MODELS[region]["version"]
+    return Path.home() / ".musclemap" / "models" / region / f"v{version}"
+
+
+def _verify_sha256(path: Path, expected: str) -> bool:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest() == expected
+
+
+class _DownloadProgress(tqdm):
+    def update_to(self, block_count=1, block_size=1, total=-1):
+        if total >= 0:
+            self.total = total
+        self.update(block_count * block_size - self.n)
+
+
+def _download_file(url: str, dest: Path, sha256: str = "") -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=dest.parent, delete=False, suffix=".tmp") as tmp:
+        tmp_path = Path(tmp.name)
+    try:
+        with _DownloadProgress(unit="B", unit_scale=True, miniters=1, desc=dest.name) as progress:
+            urllib.request.urlretrieve(url, tmp_path, reporthook=progress.update_to)
+        if sha256:
+            if not _verify_sha256(tmp_path, sha256):
+                tmp_path.unlink(missing_ok=True)
+                logging.error(f"SHA256 mismatch for '{dest.name}'. Download may be corrupt.")
+                sys.exit(1)
+        tmp_path.rename(dest)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
+
+
+def ensure_model_downloaded(region: str) -> Path:
+    """Return path to the cached .pth for *region*, downloading it if needed."""
+    model_info = ZENODO_MODELS.get(region)
+    if model_info is None:
+        logging.error(f"No Zenodo entry configured for region '{region}'.")
+        sys.exit(1)
+
+    cache_dir = _get_model_cache_dir(region)
+    model_path = cache_dir / model_info["filename"]
+
+    if not model_path.exists():
+        logging.info(
+            f"Model weights for '{region}' not found in cache ({cache_dir}). "
+            f"Downloading from Zenodo..."
+        )
+        _download_file(model_info["url"], model_path, model_info.get("sha256", ""))
+        logging.info(f"Downloaded '{region}' model to {model_path}")
+
+    return model_path
+
 
 AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.70
 AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.35
@@ -36,9 +138,12 @@ def check_image_exists(image_path):
         sys.exit(1)
 
 def get_model_and_config_paths(region, specified_model=None):
-    models_base_dir = os.path.join(os.path.dirname(__file__), "models", region)
+    # .json configs ship with the package; .pth weights are cached in ~/.musclemap/
+    package_models_dir = os.path.join(os.path.dirname(__file__), "models", region)
+
     if specified_model:
-        model_path = os.path.join(models_base_dir, specified_model)
+        # Custom model: caller supplies the full .pth path directly
+        model_path = specified_model
         config_path = os.path.splitext(model_path)[0] + ".json"
         if not os.path.isfile(model_path):
             logging.error(f"Specified model '{specified_model}' does not exist.")
@@ -46,27 +151,26 @@ def get_model_and_config_paths(region, specified_model=None):
         if not os.path.isfile(config_path):
             logging.error(f"Config file for model '{specified_model}' does not exist.")
             sys.exit(1)
-    else:
-        if not os.path.isdir(models_base_dir):
-            logging.error(f"Region folder '{region}' does not exist.")
-            sys.exit(1)
-        
-        # Assuming only one model file and one config file in each region folder
-        model_path = None
-        config_path = None
+        return model_path, config_path
 
-        for file in os.listdir(models_base_dir):
-            if file.endswith(".pth"):
-                model_path = os.path.join(models_base_dir, file)
-            elif file.endswith(".json"):
-                config_path = os.path.join(models_base_dir, file)
+    # Locate the .json config from the package
+    if not os.path.isdir(package_models_dir):
+        logging.error(f"Region folder '{region}' does not exist in package.")
+        sys.exit(1)
 
-        if not model_path:
-            logging.error(f"No model file found in region folder '{region}'.")
-            sys.exit(1)
-        if not config_path:
-            logging.error(f"No config file found in region folder '{region}'.")
-            sys.exit(1)
+    config_path = None
+    for file in os.listdir(package_models_dir):
+        if file.endswith(".json"):
+            config_path = os.path.join(package_models_dir, file)
+            break
+
+    if not config_path:
+        logging.error(f"No config file found for region '{region}'.")
+        sys.exit(1)
+
+    # Locate (or download) the .pth weights from cache
+    model_path = str(ensure_model_downloaded(region))
+
     return model_path, config_path
 
 def get_template_paths(region, specified_template=None):
