@@ -70,8 +70,11 @@ def get_parser():
     required.add_argument("-o", '--output_dir', required=False, type=str,
                             help="Output directory to save the results, output file name suffix = dseg. If left empty, saves to current working directory.")
     
-    optional.add_argument("-m", '--model', default = None,  required=False, type=str,
+    optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
+
+    optional.add_argument("--model_version", default="latest", required=False, type=str,
+                          help="Model version to use, e.g. '0.0'. Default: latest available on Zenodo.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
@@ -132,7 +135,7 @@ def main():
 
     logging.info("Loading configuration file...")
 
-    model_path, model_config_path = get_model_and_config_paths(args.region, args.model)
+    model_path, model_config_path = get_model_and_config_paths(args.region, args.model, args.model_version)
 
     model_config = load_model_config(model_config_path)
 

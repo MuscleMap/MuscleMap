@@ -28,7 +28,6 @@ LOCAL_FAVICON = os.path.join(_ASSETS_DIR, "favicon.png")
 
 REGIONS = ['wholebody', 'abdomen', 'pelvis', 'thigh', 'leg']
 
-
 # ---------------------------------------------------------------------------
 # Asset helpers
 # ---------------------------------------------------------------------------
@@ -348,6 +347,9 @@ class MuscleMapApp(ctk.CTk):
     def _components_row(self, parent) -> ctk.StringVar:
         row = ctk.CTkFrame(parent, fg_color="transparent")
         row.pack(fill="x", pady=5)
+        return self._components_row_into(row)
+
+    def _components_row_into(self, row) -> ctk.StringVar:
         ctk.CTkLabel(row, text="Components:", width=165, anchor="w",
                      text_color=MUTED, font=ctk.CTkFont(family=FONT, size=13)).pack(side="left")
         var = ctk.StringVar(value="2")
@@ -433,23 +435,41 @@ class MuscleMapApp(ctk.CTk):
         self._ext_fat   = self._field(dyn, "Fat Image (Dixon):")
         self._ext_water = self._field(dyn, "Water Image (Dixon):")
 
-        self._ext_seg        = self._field(p, "Segmentation:")
-        self._ext_components = self._components_row(p)
+        self._ext_seg        = self._field(p, "Segmentation Image:")
+        self._ext_components_row = ctk.CTkFrame(p, fg_color="transparent")
+        self._ext_components = self._components_row_into(self._ext_components_row)
+
+        self._ext_qc_row = ctk.CTkFrame(p, fg_color="transparent")
+        self._ext_qc_var = ctk.BooleanVar(value=False)
+        ctk.CTkLabel(self._ext_qc_row, text="QC mode:", width=165, anchor="w",
+                     text_color=MUTED, font=ctk.CTkFont(family=FONT, size=13)).pack(side="left")
+        ctk.CTkCheckBox(self._ext_qc_row, text="Adjust thresholds interactively",
+                        variable=self._ext_qc_var,
+                        fg_color=PRIMARY, hover_color=PRIMARY_HOVER,
+                        text_color=TEXT, font=ctk.CTkFont(family=FONT, size=13),
+                        checkmark_color=PRIMARY_TEXT).pack(side="left", padx=(8, 0))
+
         self._ext_region     = self._option(p, "Region:", REGIONS)
         self._ext_output     = self._field(p, "Output Directory:", browse="dir")
         self._ext_output.insert(0, os.getcwd())
         self._run_btn(p, self._run_extraction)
 
         def _update_ext_fields(*_):
-            is_dixon = self._ext_method.get() == "dixon"
+            method = self._ext_method.get()
+            is_dixon = method == "dixon"
             self._ext_input.master.pack_forget()
             self._ext_fat.master.pack_forget()
             self._ext_water.master.pack_forget()
+            self._ext_components_row.pack_forget()
+            self._ext_qc_row.pack_forget()
             if is_dixon:
                 self._ext_fat.master.pack(fill="x", pady=5)
                 self._ext_water.master.pack(fill="x", pady=5)
             else:
                 self._ext_input.master.pack(fill="x", pady=5)
+            if method in ("kmeans", "gmm"):
+                self._ext_components_row.pack(fill="x", pady=5, after=self._ext_seg.master)
+                self._ext_qc_row.pack(fill="x", pady=5, after=self._ext_components_row)
 
         self._ext_method.trace_add("write", _update_ext_fields)
         _update_ext_fields()
@@ -467,6 +487,7 @@ class MuscleMapApp(ctk.CTk):
         else:
             if self._ext_input.get():      cmd += ["-i", self._ext_input.get()]
             if self._ext_components.get(): cmd += ["-c", self._ext_components.get()]
+            if self._ext_qc_var.get():     cmd += ["--qc"]
         self._run_commands([cmd], "Extraction completed.")
 
     def _build_workflow_panel(self) -> ctk.CTkScrollableFrame:
