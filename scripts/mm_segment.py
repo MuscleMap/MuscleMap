@@ -74,7 +74,7 @@ def get_parser():
                           help="Option to specify another model.")
 
     optional.add_argument("--model_version", default="latest", required=False, type=str,
-                          help="Model version to use, e.g. '0.0'. Default: latest available on Zenodo.")
+                          help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
@@ -90,10 +90,9 @@ def get_parser():
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
-    script_path = os.path.abspath(__file__)
-    print(f"The absolute path of the script is: {script_path}")
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
     
     parser = get_parser()
     args = parser.parse_args()
@@ -138,6 +137,8 @@ def main():
     model_path, model_config_path = get_model_and_config_paths(args.region, args.model, args.model_version)
 
     model_config = load_model_config(model_config_path)
+    model_version = model_config.get("model", {}).get("version", "unknown")
+    logging.info(f"Task: Segmentation  |  Region: {args.region.capitalize()}  |  Model version: {model_version}")
 
     norm_map = {
     "instance": Norm.INSTANCE,

@@ -46,26 +46,31 @@ def get_parser():
     parser.add_argument("--qc", action="store_true",
                           help="Open interactive QC window to adjust thresholds (kmeans/gmm only)")
 
+    parser.add_argument("--model_version", default="latest", required=False, type=str,
+                          help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
+
     return parser
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
+
     parser = get_parser()
     args = parser.parse_args()
     validate_extract_args(args)
-
-    logging.info(f"Method selected: {args.method}")
-    logging.info(f"Segmentation image: {args.segmentation_image}")
 
     _, mask, affine,header, image_dim, pix_dim = extract_image_data(args.segmentation_image)
 
     output_dir=create_output_dir(args.output_dir)
 
     if args.region:
-        model_config_path = get_config_path(args.region)
+        model_config_path = get_config_path(args.region, args.model_version)
         model_config = load_model_config(model_config_path)
+        model_version = model_config.get("model", {}).get("version", "unknown")
+        logging.info(f"Task: Quantification  |  Region: {args.region.capitalize()}  |  Model version: {model_version}")
     else:
-        model_config =  None
+        model_config = None
+        logging.info(f"Task: Quantification  |  No region specified")
     
     if args.method == 'dixon':
         input_filename = os.path.basename(args.fat_image)
