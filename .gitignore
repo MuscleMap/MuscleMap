@@ -2,3 +2,6 @@
 __pycache__/
 **/__pycache__/
 scripts.egg-info/
+
+# Downloaded model weights and configs (fetched from Zenodo at runtime)
+scripts/models/*/

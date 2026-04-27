@@ -27,32 +27,32 @@ _MODELS_DIR = Path(__file__).parent / "models"
 # Fill these in after publishing each model on Zenodo.
 ZENODO_MODELS: Dict[str, Dict[str, str]] = {
     "abdomen": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19631081",
         "pth_filename": "contrast_agnostic_abdomen_model.pth",
         "json_filename": "contrast_agnostic_abdomen_model.json",
     },
     "forearm": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19633115",
         "pth_filename": "contrast_agnostic_forearm_model.pth",
         "json_filename": "contrast_agnostic_forearm_model.json",
     },
     "leg": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19633057",
         "pth_filename": "contrast_agnostic_leg_model.pth",
         "json_filename": "contrast_agnostic_leg_model.json",
     },
     "pelvis": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19632902",
         "pth_filename": "contrast_agnostic_pelvis_model.pth",
         "json_filename": "contrast_agnostic_pelvis_model.json",
     },
     "thigh": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19633000",
         "pth_filename": "contrast_agnostic_thigh_model.pth",
         "json_filename": "contrast_agnostic_thigh_model.json",
     },
     "wholebody": {
-        "concept_id": "XXXXXXX",
+        "record_id": "19631185",
         "pth_filename": "contrast_agnostic_wholebody_model.pth",
         "json_filename": "contrast_agnostic_wholebody_model.json",
     },
@@ -63,41 +63,36 @@ def _get_model_cache_dir(region: str, version: str) -> Path:
     return _MODELS_DIR / region / f"v{version}"
 
 
-def _fetch_zenodo_record(concept_id: str, version: str = "latest") -> tuple:
-    """Query Zenodo API and return (resolved_version, {filename: download_url})."""
-    api_url = (
-        f"https://zenodo.org/api/records"
-        f"?q=conceptrecid:{concept_id}&all_versions=true&sort=mostrecent&size=100"
-    )
+def _latest_cached_version(region: str, pth_filename: str, json_filename: str) -> Path:
+    """Return the cache dir of the most recent locally cached version, or None."""
+    region_dir = _MODELS_DIR / region
+    if not region_dir.is_dir():
+        return None
+    candidates = []
+    for d in region_dir.iterdir():
+        if d.is_dir() and (d / pth_filename).exists() and (d / json_filename).exists():
+            candidates.append(d)
+    if not candidates:
+        return None
+    # Sort by folder name (v0.0, v1.0, v1.3 …) — lexicographic is fine for semver with leading v
+    return sorted(candidates, key=lambda p: p.name)[-1]
+
+
+def _zenodo_get(url: str) -> dict:
+    """GET a Zenodo API URL and return parsed JSON, or raise ConnectionError."""
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
-        with urllib.request.urlopen(api_url, timeout=15) as resp:
-            data = json.loads(resp.read())
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read())
     except Exception as e:
-        logging.error(f"Failed to contact Zenodo API: {e}")
-        sys.exit(1)
+        raise ConnectionError(f"Zenodo API request failed ({url}): {type(e).__name__}: {e}") from e
 
-    hits = data.get("hits", {}).get("hits", [])
-    if not hits:
-        logging.error(f"No Zenodo records found for concept ID '{concept_id}'.")
-        sys.exit(1)
 
-    if version == "latest":
-        record = hits[0]
-    else:
-        record = next(
-            (h for h in hits if h.get("metadata", {}).get("version", "") == version),
-            None,
-        )
-        if record is None:
-            available = [h.get("metadata", {}).get("version", "?") for h in hits]
-            logging.error(
-                f"Version '{version}' not found on Zenodo. "
-                f"Available versions: {', '.join(available)}"
-            )
-            sys.exit(1)
-
-    resolved_version = record.get("metadata", {}).get("version", "unknown")
-    file_urls = {f["key"]: f["links"]["self"] for f in record.get("files", [])}
+def _fetch_zenodo_latest(record_id: str) -> tuple:
+    """Fetch the latest version from Zenodo. Returns (resolved_version, {filename: url})."""
+    data = _zenodo_get(f"https://zenodo.org/api/records/{record_id}/versions/latest")
+    resolved_version = data.get("metadata", {}).get("version", "unknown")
+    file_urls = {f["key"]: f["links"]["self"] for f in data.get("files", [])}
     return resolved_version, file_urls
 
 
@@ -144,18 +139,30 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
         logging.error(f"No Zenodo entry configured for region '{region}'.")
         sys.exit(1)
 
-    concept_id   = model_info["concept_id"]
+    record_id    = model_info["record_id"]
     pth_filename = model_info["pth_filename"]
     json_filename = model_info["json_filename"]
 
-    if concept_id == "XXXXXXX":
+    if record_id == "XXXXXXX":
         logging.error(
-            f"Zenodo concept ID for '{region}' has not been configured yet. "
+            f"Zenodo record ID for '{region}' has not been configured yet. "
             f"Please update ZENODO_MODELS in mm_util.py after publishing."
         )
         sys.exit(1)
 
-    # For a pinned version, check cache before hitting the API
+    def _use_cached_fallback(reason: str) -> tuple:
+        """Fall back to the highest locally cached version, or exit if none exists."""
+        cached_dir = _latest_cached_version(region, pth_filename, json_filename)
+        if cached_dir is not None:
+            logging.info(f"{reason} Using cached '{region}' model ({cached_dir.name}).")
+            return cached_dir / pth_filename, cached_dir / json_filename
+        logging.error(
+            f"{reason} No cached model found for '{region}'. "
+            f"Please run MuscleMap with an internet connection at least once to download the model."
+        )
+        sys.exit(1)
+
+    # Specific version requested: check cache first
     if version != "latest":
         cache_dir = _get_model_cache_dir(region, version)
         pth_path  = cache_dir / pth_filename
@@ -163,10 +170,23 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
         if pth_path.exists() and json_path.exists():
             logging.info(f"Using cached '{region}' model v{version}.")
             return pth_path, json_path
+        # Not in cache: warn and fall back to highest cached / latest on Zenodo
+        return _use_cached_fallback(
+            f"Version '{version}' not found locally or on Zenodo."
+        )
 
-    # Query Zenodo to resolve version and get download URLs
+    # Latest requested: warn on first use, then fetch from Zenodo
+    if _latest_cached_version(region, pth_filename, json_filename) is None:
+        logging.info(
+            f"No local model found for '{region}'. "
+            f"An internet connection is required to download it from Zenodo."
+        )
+
     logging.info(f"Contacting Zenodo to resolve '{region}' model version...")
-    resolved_version, file_urls = _fetch_zenodo_record(concept_id, version)
+    try:
+        resolved_version, file_urls = _fetch_zenodo_latest(record_id)
+    except ConnectionError:
+        return _use_cached_fallback("Zenodo unreachable.")
 
     cache_dir = _get_model_cache_dir(region, resolved_version)
     pth_path  = cache_dir / pth_filename
@@ -187,7 +207,6 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
         _download_file(file_urls[filename], dest)
 
     return pth_path, json_path
-
 
 AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.70
 AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.35

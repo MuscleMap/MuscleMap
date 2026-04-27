@@ -1,9 +1,12 @@
 import customtkinter as ctk
-from tkinter import filedialog, messagebox
+import tkinter as tk
+from tkinter import filedialog
 import subprocess
 import os
 import sys
 import threading
+import random
+import math
 
 ctk.set_appearance_mode("light")
 
@@ -12,8 +15,8 @@ ORANGE        = "#f5a733"
 PRIMARY       = "#f07c2c"
 PRIMARY_HOVER = "#d96a1a"
 PRIMARY_TEXT  = "#ffffff"
-BG            = "#f0f2f5"
-SIDEBAR_BG    = "#ffffff"
+BG            = "#fffaf6"
+SIDEBAR_BG    = "#fff3e8"
 CARD          = "#ffffff"
 TEXT          = "#1a1a2e"
 MUTED         = "#6b6875"
@@ -41,6 +44,40 @@ def _load_image(path, size):
         return None
 
 
+_ICO_PATH_GUI  = None
+_MODELS_DIR_GUI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+
+def _cached_model_version(region: str) -> str:
+    """Return version string of highest cached model for region, or None."""
+    versions = _cached_versions_for_region(region)
+    return versions[-1] if versions else None
+
+
+def _cached_versions_for_region(region: str) -> list:
+    """Return sorted list of cached version strings for region (e.g. ['1.3'])."""
+    region_dir = os.path.join(_MODELS_DIR_GUI, region)
+    if not os.path.isdir(region_dir):
+        return []
+    return sorted(
+        d[1:] for d in os.listdir(region_dir)
+        if os.path.isdir(os.path.join(region_dir, d)) and d.startswith("v")
+    )
+
+def _set_window_icon(window):
+    global _ICO_PATH_GUI
+    try:
+        if _ICO_PATH_GUI is None:
+            import tempfile
+            from PIL import Image
+            fav = Image.open(LOCAL_FAVICON)
+            _ICO_PATH_GUI = os.path.join(tempfile.gettempdir(), "musclemap_icon.ico")
+            fav.save(_ICO_PATH_GUI, format="ICO", sizes=[(32, 32), (16, 16)])
+        window.iconbitmap(_ICO_PATH_GUI)
+    except Exception:
+        pass
+
+
 def _load_hero_logo(max_w=320, max_h=380):
     try:
         from PIL import Image
@@ -52,6 +89,142 @@ def _load_hero_logo(max_w=320, max_h=380):
         return ctk.CTkImage(light_image=img, dark_image=img, size=(nw, nh))
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Task window  (spinner → confetti success / error)
+# ---------------------------------------------------------------------------
+class _TaskWindow(ctk.CTkToplevel):
+    W, H = 360, 260
+    _CONFETTI_COLORS = ["#f07c2c", "#e05a4e", "#f5a733", "#5b9bd5", "#4caf6e", "#9c5bb5"]
+
+    def __init__(self, parent, label="Processing…", subtitle=""):
+        super().__init__(parent)
+        self.title("MuscleMap")
+        self.resizable(False, False)
+        self.configure(fg_color=BG)
+        self.protocol("WM_DELETE_WINDOW", lambda: None)
+        self.grab_set()
+        self.after(200, lambda: _set_window_icon(self))
+        self.update_idletasks()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        self.geometry(f"{self.W}x{self.H}+{(sw - self.W)//2}+{(sh - self.H)//2}")
+
+        self._running = True
+        self._angle   = 0
+
+        self._canvas = tk.Canvas(self, width=72, height=72, bg=BG, highlightthickness=0)
+        self._canvas.pack(pady=(28, 8))
+
+        self._lbl = ctk.CTkLabel(self, text=label,
+            font=ctk.CTkFont(family=FONT, size=14, weight="bold"), text_color=TEXT)
+        self._lbl.pack()
+
+        if subtitle:
+            ctk.CTkLabel(self, text=subtitle,
+                font=ctk.CTkFont(family=FONT, size=12, weight="bold"),
+                text_color=PRIMARY).pack(pady=(2, 0))
+
+        ctk.CTkLabel(self, text="This may take a few minutes…",
+            font=ctk.CTkFont(family=FONT, size=11), text_color=MUTED).pack(pady=(4, 0))
+
+        self._spin()
+
+    def _spin(self):
+        if not self._running:
+            return
+        c = self._canvas
+        c.delete("all")
+        cx = cy = 36
+        r = 26
+        c.create_arc(cx-r, cy-r, cx+r, cy+r, start=0, extent=359,
+                     outline="#fde8d0", width=5, style="arc")
+        c.create_arc(cx-r, cy-r, cx+r, cy+r, start=self._angle, extent=270,
+                     outline=PRIMARY, width=5, style="arc")
+        self._angle = (self._angle + 9) % 360
+        self.after(25, self._spin)
+
+    def show_success(self, message="Completed successfully."):
+        self._running = False
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        for w in self.winfo_children():
+            w.destroy()
+
+        conf = tk.Canvas(self, width=self.W, height=self.H, bg=BG, highlightthickness=0)
+        conf.place(x=0, y=0)
+
+        ctk.CTkLabel(self, text="✓",
+            font=ctk.CTkFont(family=FONT, size=52, weight="bold"),
+            text_color=PRIMARY, fg_color="transparent",
+        ).place(relx=0.5, rely=0.27, anchor="center")
+
+        ctk.CTkLabel(self, text=message,
+            font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
+            text_color=TEXT, fg_color="transparent",
+        ).place(relx=0.5, rely=0.54, anchor="center")
+
+        ctk.CTkButton(self, text="OK", width=110, height=36,
+            fg_color=PRIMARY, hover_color=PRIMARY_HOVER,
+            text_color=PRIMARY_TEXT, corner_radius=18,
+            font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
+            command=self.destroy,
+        ).place(relx=0.5, rely=0.80, anchor="center")
+
+        particles = [
+            {"x": random.randint(0, self.W), "y": random.randint(-60, -4),
+             "vx": random.uniform(-1.2, 1.2), "vy": random.uniform(2.5, 5.5),
+             "color": random.choice(self._CONFETTI_COLORS),
+             "size": random.randint(6, 11),
+             "shape": random.choice(["rect", "oval"])}
+            for _ in range(70)
+        ]
+
+        def _animate():
+            conf.delete("all")
+            for p in particles:
+                p["x"] += p["vx"]; p["y"] += p["vy"]
+                p["vy"] = min(p["vy"] + 0.1, 8)
+                if p["y"] > self.H:
+                    p["y"] = -8; p["x"] = random.randint(0, self.W)
+                    p["vy"] = random.uniform(2.5, 5.5)
+                x, y, s = int(p["x"]), int(p["y"]), p["size"]
+                if p["shape"] == "rect":
+                    conf.create_rectangle(x, y, x+s, y+s//2, fill=p["color"], outline="")
+                else:
+                    conf.create_oval(x, y, x+s, y+s, fill=p["color"], outline="")
+            if self.winfo_exists():
+                conf.after(30, _animate)
+
+        _animate()
+
+    def show_error(self, message):
+        self._running = False
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        for w in self.winfo_children():
+            w.destroy()
+        self.configure(fg_color=BG)
+
+        ctk.CTkLabel(self, text="✕",
+            font=ctk.CTkFont(family=FONT, size=52, weight="bold"),
+            text_color="#e05a4e", fg_color="transparent",
+        ).place(relx=0.5, rely=0.27, anchor="center")
+
+        ctk.CTkLabel(self, text="An error occurred.",
+            font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
+            text_color=TEXT, fg_color="transparent",
+        ).place(relx=0.5, rely=0.52, anchor="center")
+
+        ctk.CTkLabel(self, text=message[:120],
+            font=ctk.CTkFont(family=FONT, size=10), text_color=MUTED,
+            wraplength=300, fg_color="transparent",
+        ).place(relx=0.5, rely=0.65, anchor="center")
+
+        ctk.CTkButton(self, text="Close", width=110, height=36,
+            fg_color="#e05a4e", hover_color="#c94a3e",
+            text_color=PRIMARY_TEXT, corner_radius=18,
+            font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
+            command=self.destroy,
+        ).place(relx=0.5, rely=0.83, anchor="center")
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +559,9 @@ class MuscleMapApp(ctk.CTk):
     def _script(self, name: str) -> str:
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
 
-    def _run_commands(self, steps: list, success_msg: str):
+    def _run_commands(self, steps: list, success_msg: str, subtitle: str = ""):
+        win = _TaskWindow(self, subtitle=subtitle)
+
         def _thread():
             for cmd in steps:
                 self._log("$ " + " ".join(cmd))
@@ -395,11 +570,13 @@ class MuscleMapApp(ctk.CTk):
                     if proc.stdout:
                         self._log(proc.stdout.strip())
                 except subprocess.CalledProcessError as e:
-                    self._log(f"[ERROR] {e.stderr.strip() or str(e)}")
-                    self.after(0, lambda: messagebox.showerror("Error", str(e)))
+                    err = e.stderr.strip() or str(e)
+                    self._log(f"[ERROR] {err}")
+                    self.after(0, lambda m=err: win.show_error(m))
                     return
             self._log(f"[OK] {success_msg}")
-            self.after(0, lambda: messagebox.showinfo("Success", success_msg))
+            self.after(0, lambda: win.show_success(success_msg))
+
         threading.Thread(target=_thread, daemon=True).start()
 
     # ------------------------------------------------------------------
@@ -412,17 +589,50 @@ class MuscleMapApp(ctk.CTk):
         self._seg_region = self._option(p, "Region:", REGIONS)
         self._seg_output = self._field(p, "Output Directory:", browse="dir")
         self._seg_output.insert(0, os.getcwd())
-        self._seg_gpu    = self._gpu_row(p)
+
+        # Version dropdown — values update when region changes
+        ver_row = ctk.CTkFrame(p, fg_color="transparent")
+        ver_row.pack(fill="x", pady=5)
+        ctk.CTkLabel(ver_row, text="Model version:", width=165, anchor="w",
+                     text_color=MUTED, font=ctk.CTkFont(family=FONT, size=13)).pack(side="left")
+        self._seg_version_var = ctk.StringVar(value="latest")
+        self._seg_version_menu = ctk.CTkOptionMenu(
+            ver_row, variable=self._seg_version_var, values=["latest"],
+            height=34, fg_color=CARD, button_color=PRIMARY,
+            button_hover_color=PRIMARY_HOVER, dropdown_fg_color=CARD,
+            dropdown_hover_color="#fff3e8", text_color=TEXT,
+            dropdown_text_color=TEXT, font=ctk.CTkFont(family=FONT, size=13),
+        )
+        self._seg_version_menu.pack(side="left", padx=(8, 0))
+
+        def _update_versions(*_):
+            cached   = _cached_versions_for_region(self._seg_region.get())
+            versions = cached if cached else ["latest"]
+            self._seg_version_menu.configure(values=versions)
+            if self._seg_version_var.get() not in versions:
+                self._seg_version_var.set(versions[-1] if cached else "latest")
+
+        self._seg_region.trace_add("write", _update_versions)
+        _update_versions()
+
+        self._seg_gpu = self._gpu_row(p)
         self._run_btn(p, self._run_segmentation)
         return p
 
     def _run_segmentation(self):
+        region  = self._seg_region.get()
+        version = self._seg_version_var.get()
         cmd = [sys.executable, self._script("mm_segment.py"),
-               "-i", self._seg_input.get(), "-r", self._seg_region.get(),
-               "-g", self._seg_gpu.get()]
+               "-i", self._seg_input.get(), "-r", region, "-g", self._seg_gpu.get()]
+        if version != "latest":
+            cmd += ["--model_version", version]
         if self._seg_output.get():
             cmd += ["-o", self._seg_output.get()]
-        self._run_commands([cmd], "Segmentation completed.")
+        version_str = f"v{version}" if version != "latest" else (
+            f"v{_cached_model_version(region)}" if _cached_model_version(region) else "Downloading…"
+        )
+        self._run_commands([cmd], "Segmentation completed.",
+                           subtitle=f"{region.capitalize()}  |  {version_str}")
 
     def _build_extract_panel(self) -> ctk.CTkScrollableFrame:
         p = ctk.CTkScrollableFrame(self.panels_frame, fg_color=BG, corner_radius=0)
