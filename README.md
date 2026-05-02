@@ -34,8 +34,9 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 4. Download MuscleMap repository:
     1. Using the git command line tool:
         ~~~
-        git clone https://github.com/MuscleMap/MuscleMap
+        git clone --depth 1 https://github.com/MuscleMap/MuscleMap
         ~~~
+        > **Note:** The `--depth 1` flag downloads only the latest version of the repository, which is significantly faster and avoids downloading the full git history (~2 GB). Model weights are downloaded automatically from Zenodo on first use.
     
     2. From your browser:
     
@@ -46,6 +47,8 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
         3. Click **Download Zip**
 
         4. Unzip the MuscleMap repository
+
+        > **Note:** Downloading as a ZIP only includes the current files, not the git history. This is equivalent to `--depth 1` and is the recommended option for users without git.
 
 5. Navigate to MuscleMap repository:
 
