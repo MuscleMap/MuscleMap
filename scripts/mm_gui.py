@@ -25,6 +25,12 @@ FONT          = "Segoe UI"
 
 _SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 _ROOT_DIR     = os.path.dirname(_SCRIPT_DIR)
+
+try:
+    from .mm_util import check_for_model_update
+except ImportError:
+    sys.path.insert(0, _SCRIPT_DIR)
+    from mm_util import check_for_model_update
 _ASSETS_DIR   = os.path.join(_ROOT_DIR, "assets")
 LOCAL_LOGO    = os.path.join(_ASSETS_DIR, "logo_musclemap_white.png")
 LOCAL_FAVICON = os.path.join(_ASSETS_DIR, "favicon.png")
@@ -225,6 +231,62 @@ class _TaskWindow(ctk.CTkToplevel):
             font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
             command=self.destroy,
         ).place(relx=0.5, rely=0.83, anchor="center")
+
+
+# ---------------------------------------------------------------------------
+# Update dialog
+# ---------------------------------------------------------------------------
+class _UpdateDialog(ctk.CTkToplevel):
+    """Ask the user whether to download a newly available model version."""
+    W, H = 380, 220
+
+    def __init__(self, parent, cached_v: str, new_v: str, event: threading.Event,
+                 result: list):
+        super().__init__(parent)
+        self.title("MuscleMap")
+        self.resizable(False, False)
+        self.configure(fg_color=BG)
+        self.protocol("WM_DELETE_WINDOW", self._on_no)
+        self.grab_set()
+        self.after(200, lambda: _set_window_icon(self))
+        self.update_idletasks()
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        self.geometry(f"{self.W}x{self.H}+{(sw - self.W)//2}+{(sh - self.H)//2}")
+
+        self._event  = event
+        self._result = result
+
+        ctk.CTkLabel(self, text="Model update available",
+            font=ctk.CTkFont(family=FONT, size=14, weight="bold"),
+            text_color=TEXT).pack(pady=(28, 6))
+        ctk.CTkLabel(self,
+            text=f"A new model version is available on Zenodo.\n"
+                 f"Current: v{cached_v}   →   New: v{new_v}",
+            font=ctk.CTkFont(family=FONT, size=12), text_color=MUTED,
+            justify="center").pack(pady=(0, 20))
+
+        btn_row = ctk.CTkFrame(self, fg_color="transparent")
+        btn_row.pack()
+        ctk.CTkButton(btn_row, text="Download", width=130, height=36,
+            fg_color=PRIMARY, hover_color=PRIMARY_HOVER,
+            text_color=PRIMARY_TEXT, corner_radius=18,
+            font=ctk.CTkFont(family=FONT, size=13, weight="bold"),
+            command=self._on_yes).pack(side="left", padx=8)
+        ctk.CTkButton(btn_row, text="Keep current", width=130, height=36,
+            fg_color=CARD, hover_color="#f0ece8", text_color=TEXT,
+            border_width=1, border_color=BORDER, corner_radius=18,
+            font=ctk.CTkFont(family=FONT, size=13),
+            command=self._on_no).pack(side="left", padx=8)
+
+    def _on_yes(self):
+        self._result[0] = True
+        self.destroy()
+        self._event.set()
+
+    def _on_no(self):
+        self._result[0] = False
+        self.destroy()
+        self._event.set()
 
 
 # ---------------------------------------------------------------------------
@@ -622,6 +684,28 @@ class MuscleMapApp(ctk.CTk):
     def _run_segmentation(self):
         region  = self._seg_region.get()
         version = self._seg_version_var.get()
+
+        if version == "latest":
+            # Check for a newer version in a background thread, prompt if needed
+            def _check_and_run():
+                cached_v, zenodo_v = check_for_model_update(region)
+                final_version = "latest"
+
+                if cached_v and zenodo_v and cached_v != zenodo_v:
+                    event  = threading.Event()
+                    result = [False]
+                    self.after(0, lambda: _UpdateDialog(self, cached_v, zenodo_v, event, result))
+                    event.wait()
+                    if not result[0]:
+                        final_version = cached_v  # keep current, pass explicit version
+
+                self.after(0, lambda: self._do_run_segmentation(region, final_version))
+
+            threading.Thread(target=_check_and_run, daemon=True).start()
+        else:
+            self._do_run_segmentation(region, version)
+
+    def _do_run_segmentation(self, region: str, version: str):
         cmd = [sys.executable, self._script("mm_segment.py"),
                "-i", self._seg_input.get(), "-r", region, "-g", self._seg_gpu.get()]
         if version != "latest":

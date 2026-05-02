@@ -52,7 +52,13 @@ ZENODO_MODELS: Dict[str, Dict[str, str]] = {
         "json_filename": "contrast_agnostic_thigh_model.json",
     },
     "wholebody": {
-        "record_id": "19631185",
+        "record_id": "19631184",  # concept DOI — always resolves to latest
+        "versions": {
+            "1.0": "19631185",
+            "1.1": "19976722",
+            "1.2": "19976860",
+            "1.3": "19976940",
+        },
         "pth_filename": "contrast_agnostic_wholebody_model.pth",
         "json_filename": "contrast_agnostic_wholebody_model.json",
     },
@@ -96,6 +102,14 @@ def _fetch_zenodo_latest(record_id: str) -> tuple:
     return resolved_version, file_urls
 
 
+def _fetch_zenodo_version(version_record_id: str) -> tuple:
+    """Fetch a specific version record from Zenodo. Returns (version, {filename: url})."""
+    data = _zenodo_get(f"https://zenodo.org/api/records/{version_record_id}")
+    resolved_version = data.get("metadata", {}).get("version", "unknown")
+    file_urls = {f["key"]: f["links"]["self"] for f in data.get("files", [])}
+    return resolved_version, file_urls
+
+
 def _verify_sha256(path: Path, expected: str) -> bool:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -129,10 +143,37 @@ def _download_file(url: str, dest: Path, sha256: str = "") -> None:
         raise
 
 
-def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
+def check_for_model_update(region: str) -> tuple:
+    """
+    Check whether a newer model version is available on Zenodo.
+    Returns (cached_version_or_None, zenodo_version_or_None).
+    Does not download anything.
+    """
+    model_info = ZENODO_MODELS.get(region)
+    if not model_info:
+        return None, None
+    record_id    = model_info["record_id"]
+    pth_filename = model_info["pth_filename"]
+    json_filename = model_info["json_filename"]
+    cached_dir = _latest_cached_version(region, pth_filename, json_filename)
+    cached_v = cached_dir.name[1:] if cached_dir else None  # strip leading 'v'
+    try:
+        zenodo_v, _ = _fetch_zenodo_latest(record_id)
+    except ConnectionError:
+        return cached_v, None
+    return cached_v, zenodo_v
+
+
+def ensure_model_downloaded(region: str, version: str = "latest",
+                            prompt_callback=None) -> tuple:
     """
     Ensure both .pth and .json for *region* are cached locally.
     Returns (pth_path, json_path).
+
+    prompt_callback: optional callable(cached_version, new_version) -> bool.
+      Called when a newer version is available and a cached version already exists.
+      Return True to download the new version, False to keep the cached version.
+      If None, falls back to a terminal input() prompt.
     """
     model_info = ZENODO_MODELS.get(region)
     if model_info is None:
@@ -162,7 +203,7 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
         )
         sys.exit(1)
 
-    # Specific version requested: check cache first
+    # Specific version requested: check cache first, then try Zenodo
     if version != "latest":
         cache_dir = _get_model_cache_dir(region, version)
         pth_path  = cache_dir / pth_filename
@@ -170,9 +211,22 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
         if pth_path.exists() and json_path.exists():
             logging.info(f"Using cached '{region}' model v{version}.")
             return pth_path, json_path
-        # Not in cache: warn and fall back to highest cached / latest on Zenodo
+        # Not cached — try to download from Zenodo if we have the record ID
+        version_record_id = model_info.get("versions", {}).get(version)
+        if version_record_id:
+            logging.info(f"Downloading '{region}' model v{version} from Zenodo...")
+            try:
+                _, file_urls = _fetch_zenodo_version(version_record_id)
+                for filename, dest in [(pth_filename, pth_path), (json_filename, json_path)]:
+                    if filename not in file_urls:
+                        logging.error(f"File '{filename}' not found in Zenodo record v{version}.")
+                        sys.exit(1)
+                    _download_file(file_urls[filename], dest)
+                return pth_path, json_path
+            except ConnectionError:
+                return _use_cached_fallback(f"Zenodo unreachable. Could not download v{version}.")
         return _use_cached_fallback(
-            f"Version '{version}' not found locally or on Zenodo."
+            f"Version '{version}' not found locally and no Zenodo record configured for it."
         )
 
     # Latest requested: warn on first use, then fetch from Zenodo
@@ -195,6 +249,23 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
     if pth_path.exists() and json_path.exists():
         logging.info(f"Using cached '{region}' model v{resolved_version}.")
         return pth_path, json_path
+
+    # A newer version is available — ask user if they want to download it
+    cached_dir = _latest_cached_version(region, pth_filename, json_filename)
+    if cached_dir is not None:
+        cached_v = cached_dir.name[1:]  # strip leading 'v'
+        if cached_v != resolved_version:
+            if prompt_callback is not None:
+                download = prompt_callback(cached_v, resolved_version)
+            else:
+                ans = input(
+                    f"\nNew model version v{resolved_version} available "
+                    f"(current: v{cached_v}). Download now? [y/n]: "
+                )
+                download = ans.strip().lower() == "y"
+            if not download:
+                logging.info(f"Keeping existing '{region}' model v{cached_v}.")
+                return cached_dir / pth_filename, cached_dir / json_filename
 
     for filename, dest in [(pth_filename, pth_path), (json_filename, json_path)]:
         if filename not in file_urls:

@@ -228,6 +228,10 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 
       **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
       
+    * By default, mm_segment uses the latest available model version from Zenodo. Users can specify a specific model version with `--model_version`:
+       ~~~
+       mm_segment -i image.nii.gz --model_version 1.3
+       ~~~
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
