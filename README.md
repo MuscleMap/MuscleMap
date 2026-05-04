@@ -12,7 +12,13 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 * Python 3.11.8
 
 ### Installation
-We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). 
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
+
+> **Note for existing users:** If you experience conflicts when running `git pull`, this is likely due to a rewrite of the repository history. In that case, please delete your local clone and create a fresh one:
+
+> ```
+> git clone --depth 1 https://github.com/MuscleMap/MuscleMap.git
+> ``` 
 
 MuscleMap is also implemented as a dedicated 3D Slicer extension and within the NeuroDesk environment, enabling automated muscle segmentation without requiring programming knowledge.
 - Installation and usage tutorial video for the 3D Slicer extension can be found [here](https://www.youtube.com/watch?v=aAXxopcMeKI).

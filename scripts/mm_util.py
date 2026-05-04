@@ -164,16 +164,10 @@ def check_for_model_update(region: str) -> tuple:
     return cached_v, zenodo_v
 
 
-def ensure_model_downloaded(region: str, version: str = "latest",
-                            prompt_callback=None) -> tuple:
+def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
     """
     Ensure both .pth and .json for *region* are cached locally.
     Returns (pth_path, json_path).
-
-    prompt_callback: optional callable(cached_version, new_version) -> bool.
-      Called when a newer version is available and a cached version already exists.
-      Return True to download the new version, False to keep the cached version.
-      If None, falls back to a terminal input() prompt.
     """
     model_info = ZENODO_MODELS.get(region)
     if model_info is None:
@@ -250,22 +244,17 @@ def ensure_model_downloaded(region: str, version: str = "latest",
         logging.info(f"Using cached '{region}' model v{resolved_version}.")
         return pth_path, json_path
 
-    # A newer version is available — ask user if they want to download it
+    # A newer version is available — always download it and inform the user via logging.
+    # To use a specific version, pass --model_version explicitly.
     cached_dir = _latest_cached_version(region, pth_filename, json_filename)
     if cached_dir is not None:
         cached_v = cached_dir.name[1:]  # strip leading 'v'
         if cached_v != resolved_version:
-            if prompt_callback is not None:
-                download = prompt_callback(cached_v, resolved_version)
-            else:
-                ans = input(
-                    f"\nNew model version v{resolved_version} available "
-                    f"(current: v{cached_v}). Download now? [y/n]: "
-                )
-                download = ans.strip().lower() == "y"
-            if not download:
-                logging.info(f"Keeping existing '{region}' model v{cached_v}.")
-                return cached_dir / pth_filename, cached_dir / json_filename
+            logging.info(
+                f"New '{region}' model version available: v{resolved_version} "
+                f"(current: v{cached_v}). Downloading automatically. "
+                f"To keep a specific version, use --model_version {cached_v}."
+            )
 
     for filename, dest in [(pth_filename, pth_path), (json_filename, json_path)]:
         if filename not in file_urls:
@@ -277,6 +266,10 @@ def ensure_model_downloaded(region: str, version: str = "latest",
         logging.info(f"Downloading '{filename}' (v{resolved_version}) from Zenodo...")
         _download_file(file_urls[filename], dest)
 
+    logging.info(
+        f"'{region}' model v{resolved_version} downloaded successfully. "
+        f"To use a different version, use --model_version <version>."
+    )
     return pth_path, json_path
 
 AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.70
