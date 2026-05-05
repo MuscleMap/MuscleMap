@@ -5,3 +5,7 @@ scripts.egg-info/
 
 # Downloaded model weights and configs (fetched from Zenodo at runtime)
 scripts/models/*/
+
+*.pth
+*.nii.gz
+*.nii

@@ -22,6 +22,7 @@ import pandas as pd
 from tqdm import tqdm
 
 _MODELS_DIR = Path(__file__).parent / "models"
+_TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 # concept_id: the Zenodo "concept record ID" that always points to all versions.
 # Fill these in after publishing each model on Zenodo.
@@ -269,6 +270,69 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
     )
     return pth_path, json_path
 
+# concept_id: the Zenodo "concept record ID" that always points to all versions.
+# Fill these in after publishing each template set on Zenodo.
+ZENODO_TEMPLATES: Dict[str, Dict[str, str]] = {
+    "abdomen": {
+        "record_id": "20043147",
+    },
+}
+
+
+def ensure_template_downloaded(region: str) -> Path:
+    """
+    Ensure all template .nii.gz files for *region* are cached locally in
+    _TEMPLATES_DIR/<region>/. Downloads from Zenodo on first use.
+    Returns the template directory path.
+    """
+    template_info = ZENODO_TEMPLATES.get(region)
+    if template_info is None:
+        logging.error(f"No Zenodo template entry configured for region '{region}'.")
+        sys.exit(1)
+
+    record_id = template_info["record_id"]
+
+    if record_id == "XXXXXXX":
+        logging.error(
+            f"Zenodo record ID for '{region}' templates has not been configured yet. "
+            f"Please update ZENODO_TEMPLATES in mm_util.py after publishing."
+        )
+        sys.exit(1)
+
+    template_dir = _TEMPLATES_DIR / region
+    main_template = template_dir / f"{region}_template.nii.gz"
+    main_dseg = template_dir / f"{region}_template_dseg.nii.gz"
+
+    if main_template.exists() and main_dseg.exists():
+        logging.info(f"Using cached '{region}' templates.")
+        return template_dir
+
+    logging.info(f"Contacting Zenodo to download '{region}' templates...")
+    try:
+        _, file_urls = _fetch_zenodo_latest(record_id)
+    except ConnectionError as e:
+        logging.error(
+            f"Could not reach Zenodo to download '{region}' templates: {e}\n"
+            f"Please run mm_register_to_template with an internet connection at least once."
+        )
+        sys.exit(1)
+
+    nii_files = {k: v for k, v in file_urls.items() if k.endswith(".nii.gz")}
+    if not nii_files:
+        logging.error(f"No .nii.gz files found in Zenodo record for '{region}' templates.")
+        sys.exit(1)
+
+    template_dir.mkdir(parents=True, exist_ok=True)
+    for filename, url in nii_files.items():
+        dest = template_dir / filename
+        if not dest.exists():
+            logging.info(f"Downloading template '{filename}' from Zenodo...")
+            _download_file(url, dest)
+
+    logging.info(f"'{region}' templates downloaded successfully.")
+    return template_dir
+
+
 AUTO_CHUNK_GPU_SAFETY_MARGIN = 0.70
 AUTO_CHUNK_CPU_SAFETY_MARGIN = 0.35
 AUTO_CHUNK_GPU_MIN_RESERVE_BYTES = 1.5 * 1024**3
@@ -309,28 +373,21 @@ def get_model_and_config_paths(region, specified_model=None, version: str = "lat
     return str(pth_path), str(json_path)
 
 def get_template_paths(region, specified_template=None):
-    templates_base_dir = os.path.join(os.path.dirname(__file__), "templates", region)
-    
-    if not os.path.isdir(templates_base_dir):
-        logging.error(f"Region folder '{region}' does not exist.")
-        sys.exit(1)
-    
-    print(templates_base_dir)
+    template_dir = ensure_template_downloaded(region)
 
     if specified_template:
-        template_path = os.path.join(templates_base_dir, specified_template + '.nii.gz')
-        template_segmentation_path = os.path.join(templates_base_dir, specified_template + '_dseg.nii.gz')
+        template_path = str(template_dir / (specified_template + '.nii.gz'))
+        template_segmentation_path = str(template_dir / (specified_template + '_dseg.nii.gz'))
     else:
-        template_path = os.path.join(templates_base_dir, region + '_template.nii.gz')
-        template_segmentation_path = os.path.join(templates_base_dir, region + '_template_dseg.nii.gz')
-        
-    
+        template_path = str(template_dir / f"{region}_template.nii.gz")
+        template_segmentation_path = str(template_dir / f"{region}_template_dseg.nii.gz")
+
         if not os.path.isfile(template_path):
-            logging.error(f"No template file found in region folder '{region}': ${template_path}.")
+            logging.error(f"No template file found for region '{region}': {template_path}.")
             sys.exit(1)
-            
+
         if not os.path.isfile(template_segmentation_path):
-            logging.error(f"No template segmentation file found in region folder '{region}': ${template_segmentation_path}.")
+            logging.error(f"No template segmentation file found for region '{region}': {template_segmentation_path}.")
             sys.exit(1)
 
     return template_path, template_segmentation_path
