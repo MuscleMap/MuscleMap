@@ -42,7 +42,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
         ~~~
         git clone --depth 1 https://github.com/MuscleMap/MuscleMap
         ~~~
-        > **Note:** The `--depth 1` flag downloads only the latest version of the repository, which is significantly faster and avoids downloading the full git history (~2 GB). Model weights are downloaded automatically from Zenodo on first use.
+        > **Note:** The `--depth 1` flag downloads only the latest version of the repository, which is significantly faster and avoids downloading the full git history (~2 GB). Model weights are downloaded automatically from [Zenodo](https://zenodo.org/search?q=musclemap) on first use.
     
     2. From your browser:
     
@@ -102,7 +102,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
-   > **Note:** Template images required by mm_register_to_template are hosted on [Zenodo](https://doi.org/10.5281/zenodo.20043147) and are downloaded automatically on first use.
+   > **Note:** Template images required by mm_register_to_template are hosted on [Zenodo](https://zenodo.org/search?q=musclemap) and are downloaded automatically on first use.
 
 ### Usage
 
@@ -236,7 +236,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 
       **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
       
-    * By default, mm_segment uses the latest available model version from Zenodo. Users can specify a specific model version with `--model_version`:
+    * By default, mm_segment uses the latest available model version from [Zenodo](https://zenodo.org/search?q=musclemap). Users can specify a specific model version with `--model_version`:
        ~~~
        mm_segment -i image.nii.gz --model_version 1.3
        ~~~
@@ -260,6 +260,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     * Users may specify 2 or 3 components with -c.
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
+    * Use `--qc` to open an interactive window to manually adjust thresholds before saving results (gmm and kmeans only).
 
     2. For Dixon Fat-Water MRI:
 
@@ -287,7 +288,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
     ~~~
 
-    * Template images are downloaded automatically from [Zenodo](https://doi.org/10.5281/zenodo.20043147) on first use and cached locally.
+    * Template images are downloaded automatically from [Zenodo](https://zenodo.org/search?q=musclemap) on first use and cached locally.
 
     #### Regions
     * Abdomen

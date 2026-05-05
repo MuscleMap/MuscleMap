@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 import os
+import sys
 import pandas as pd
 import argparse
 import numpy as np
@@ -61,6 +62,10 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
     validate_extract_args(args)
+
+    if args.qc and args.method not in ('gmm', 'kmeans'):
+        logging.error("--qc is only supported with -m gmm or -m kmeans.")
+        sys.exit(1)
 
     _, mask, affine,header, image_dim, pix_dim = extract_image_data(args.segmentation_image)
 

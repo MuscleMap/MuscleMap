@@ -3,9 +3,13 @@ __pycache__/
 **/__pycache__/
 scripts.egg-info/
 
-# Downloaded model weights and configs (fetched from Zenodo at runtime)
 scripts/models/*/
 
 *.pth
 *.nii.gz
 *.nii
+
+# Output and log files generated at runtime
+output/
+*.log
+*.xlsx
