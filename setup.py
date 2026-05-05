@@ -6,7 +6,7 @@ with open('requirements.txt') as f:
 
 setup(
     name='scripts',
-    version='1.3',
+    version='2.0',
     authors='Kenneth Weber, Eddo Wesselink, Benjamin DeLeener, Brian Kim, Richard Yin, Steffen Bollmann',
     description='A toolbox for muscle imaging.',
     url='https://github.com/MuscleMap/MuscleMap.git',
@@ -20,9 +20,5 @@ setup(
             'mm_register_to_template=scripts.mm_register_to_template:main' 
         ]
     },
-    package_data={
-        'scripts': ['models/**/*.json', 'models/**/*.pth', 'templates/**/*nii.gz'],
-    },
-    include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.11',
 )

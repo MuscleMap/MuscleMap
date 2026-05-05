@@ -6,7 +6,6 @@
 # Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
 import warnings
-import argparse
 warnings.filterwarnings("ignore")
 import argparse
 import logging
@@ -70,8 +69,11 @@ def get_parser():
     required.add_argument("-o", '--output_dir', required=False, type=str,
                             help="Output directory to save the results, output file name suffix = dseg. If left empty, saves to current working directory.")
     
-    optional.add_argument("-m", '--model', default = None,  required=False, type=str,
+    optional.add_argument("-m", '--model', default=None, required=False, type=str,
                           help="Option to specify another model.")
+
+    optional.add_argument("--model_version", default="latest", required=False, type=str,
+                          help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                         help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
@@ -87,10 +89,10 @@ def get_parser():
 # main: sets up logging, parses command-line arguments using parser, runs model, inference, post-processing
 def main():
     gc.collect()
-    script_path = os.path.abspath(__file__)
-    print(f"The absolute path of the script is: {script_path}")
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
+    logging.info("-" * 60)
     
     parser = get_parser()
     args = parser.parse_args()
@@ -132,9 +134,11 @@ def main():
 
     logging.info("Loading configuration file...")
 
-    model_path, model_config_path = get_model_and_config_paths(args.region, args.model)
+    model_path, model_config_path = get_model_and_config_paths(args.region, args.model, args.model_version)
 
     model_config = load_model_config(model_config_path)
+    model_version = model_config.get("model", {}).get("version", "unknown")
+    logging.info(f"Task: Segmentation  |  Region: {args.region.capitalize()}  |  Model version: {model_version}")
 
     norm_map = {
     "instance": Norm.INSTANCE,
@@ -245,6 +249,7 @@ def main():
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
 # %%
+    logging.info("-" * 60)
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
     main()

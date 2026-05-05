@@ -12,7 +12,13 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 * Python 3.11.8
 
 ### Installation
-We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI). 
+We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
+
+> **Note for existing users:** If you experience conflicts when running `git pull`, this is likely due to a rewrite of the repository history. In that case, please delete your local clone and create a fresh one:
+
+> ```
+> git clone --depth 1 https://github.com/MuscleMap/MuscleMap.git
+> ``` 
 
 MuscleMap is also implemented as a dedicated 3D Slicer extension and within the NeuroDesk environment, enabling automated muscle segmentation without requiring programming knowledge.
 - Installation and usage tutorial video for the 3D Slicer extension can be found [here](https://www.youtube.com/watch?v=aAXxopcMeKI).
@@ -34,8 +40,9 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 4. Download MuscleMap repository:
     1. Using the git command line tool:
         ~~~
-        git clone https://github.com/MuscleMap/MuscleMap
+        git clone --depth 1 https://github.com/MuscleMap/MuscleMap
         ~~~
+        > **Note:** The `--depth 1` flag downloads only the latest version of the repository, which is significantly faster and avoids downloading the full git history. Model weights are downloaded automatically from [Zenodo](https://zenodo.org/search?q=musclemap) on first use.
     
     2. From your browser:
     
@@ -46,6 +53,8 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
         3. Click **Download Zip**
 
         4. Unzip the MuscleMap repository
+
+        > **Note:** Downloading as a ZIP only includes the current files, not the git history. This is equivalent to `--depth 1` and is the recommended option for users without git.
 
 5. Navigate to MuscleMap repository:
 
@@ -92,6 +101,8 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     If PyTorch indicates that CUDA is **available**, then the system is functioning correctly. If PyTorch indicates that CUDA is not available, verify whether your system has a compatible driver installed (repeat Step 2). Note: This availability check is used by PyTorch for both CUDA and ROCm backends.
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
+
+   > **Note:** Template images required by mm_register_to_template are hosted on [Zenodo](https://zenodo.org/search?q=musclemap) and are downloaded automatically on first use.
 
 ### Usage
 
@@ -225,6 +236,10 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 
       **Note: The legacy regional models are maintained for backward compatibility only. Active development and state-of-the-art MuscleMap performance are provided exclusively by the whole-body model.** 
       
+    * By default, mm_segment uses the latest available model version from [Zenodo](https://zenodo.org/search?q=musclemap). Users can specify a specific model version with `--model_version`:
+       ~~~
+       mm_segment -i image.nii.gz --model_version 1.3
+       ~~~
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
@@ -245,6 +260,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     * Users may specify 2 or 3 components with -c.
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
+    * Use `--qc` to open an interactive window to manually adjust thresholds before saving results (gmm and kmeans only).
 
     2. For Dixon Fat-Water MRI:
 
@@ -271,7 +287,9 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     ~~~
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
     ~~~
-    
+
+    * Template images are downloaded automatically from [Zenodo](https://zenodo.org/search?q=musclemap) on first use and cached locally.
+
     #### Regions
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum

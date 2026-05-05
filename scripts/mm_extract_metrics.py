@@ -1,4 +1,7 @@
+import warnings
+warnings.filterwarnings("ignore")
 import os
+import sys
 import pandas as pd
 import argparse
 import numpy as np
@@ -6,13 +9,12 @@ import logging
 import math
 try:
     # Attempt to import as if it is a part of a package
-    from .mm_util import (get_model_and_config_paths, load_model_config, validate_extract_args, 
-    extract_image_data, create_output_dir,  calculate_metrics_dixon, 
+    from .mm_util import (get_config_path, load_model_config, validate_extract_args,
+    extract_image_data, create_output_dir,  calculate_metrics_dixon,
     calculate_metrics_average,calculate_metrics_thresholding,build_entry_dict_metrics,results_entry_to_dataframe,
     add_slice_counts)
 except ImportError:
-    # Fallback to direct import if run as a standalone script
-    from mm_util import (get_model_and_config_paths, load_model_config, validate_extract_args, 
+    from mm_util import (get_config_path, load_model_config, validate_extract_args,
                          extract_image_data, create_output_dir,
                          calculate_metrics_dixon, calculate_metrics_average,
                          calculate_metrics_thresholding, build_entry_dict_metrics, results_entry_to_dataframe,
@@ -41,29 +43,42 @@ def get_parser():
     parser.add_argument("-r", '--region', required=False, type=str,
                           help="Anatomical region. Supported regions: wholebody, abdomen, pelvis, thigh, and leg")
 
-    parser.add_argument("-o", '--output_dir', required=False, type=str, 
+    parser.add_argument("-o", '--output_dir', required=False, type=str,
                           help="Output directory to save the results")
+
+    parser.add_argument("--qc", action="store_true",
+                          help="Open interactive QC window to adjust thresholds (kmeans/gmm only)")
+
+    parser.add_argument("--model_version", default="latest", required=False, type=str,
+                          help="Model version to use, e.g. '2.0'. Default: latest available on Zenodo.")
 
     return parser
 
 def main():
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
+    logging.info("-" * 60)
+
     parser = get_parser()
     args = parser.parse_args()
     validate_extract_args(args)
 
-    logging.info(f"Method selected: {args.method}")
-    logging.info(f"Segmentation image: {args.segmentation_image}")
+    if args.qc and args.method not in ('gmm', 'kmeans'):
+        logging.error("--qc is only supported with -m gmm or -m kmeans.")
+        sys.exit(1)
 
     _, mask, affine,header, image_dim, pix_dim = extract_image_data(args.segmentation_image)
 
     output_dir=create_output_dir(args.output_dir)
 
     if args.region:
-        _, model_config_path = get_model_and_config_paths(args.region, None)
+        model_config_path = get_config_path(args.region, args.model_version)
         model_config = load_model_config(model_config_path)
+        model_version = model_config.get("model", {}).get("version", "unknown")
+        logging.info(f"Task: Quantification  |  Region: {args.region.capitalize()}  |  Model version: {model_version}")
     else:
-        model_config =  None
+        model_config = None
+        logging.info(f"Task: Quantification  |  No region specified")
     
     if args.method == 'dixon':
         input_filename = os.path.basename(args.fat_image)
@@ -93,9 +108,9 @@ def main():
         elif args.method in ('kmeans', 'gmm'):
             _, image_array, _, _, _, _, = extract_image_data(args.input_image) 
             number_of_components = args.components
-            outputs = calculate_metrics_thresholding(args, results_entry, mask, image_array, affine,header, 
-                                                               pix_dim, number_of_components, output_dir, 
-                                                                id_part)
+            outputs = calculate_metrics_thresholding(args, results_entry, mask, image_array, affine, header,
+                                                               pix_dim, number_of_components, output_dir,
+                                                               id_part, qc=args.qc, model_config=model_config)
     # Construct the path to the output CSV file
     if args.method != 'dixon' and args.method != 'average':
         output_filename = f"{id_part}_{args.method}_{args.components}component_results.csv"
@@ -110,7 +125,8 @@ def main():
     index=False,
     sep=',')
 
-    print(f"Results have been exported to {output_file_path}")
+    logging.info("-" * 60)
+    logging.info(f"Results have been exported to {output_file_path}")
 
 if __name__ == "__main__":
     main()
