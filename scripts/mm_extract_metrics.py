@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore")
 import os
 import pandas as pd
 import argparse
@@ -47,13 +49,14 @@ def get_parser():
                           help="Open interactive QC window to adjust thresholds (kmeans/gmm only)")
 
     parser.add_argument("--model_version", default="latest", required=False, type=str,
-                          help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
+                          help="Model version to use, e.g. '2.0'. Default: latest available on Zenodo.")
 
     return parser
 
 def main():
     logging.basicConfig(level=logging.INFO)
     logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
+    logging.info("-" * 60)
 
     parser = get_parser()
     args = parser.parse_args()
@@ -117,7 +120,8 @@ def main():
     index=False,
     sep=',')
 
-    print(f"Results have been exported to {output_file_path}")
+    logging.info("-" * 60)
+    logging.info(f"Results have been exported to {output_file_path}")
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,6 @@
 # Authors: Richard Yin, Eddo Wesselink, Brian Kim and Kenneth Weber
 
 import warnings
-import argparse
 warnings.filterwarnings("ignore")
 import argparse
 import logging
@@ -93,6 +92,7 @@ def main():
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logging.getLogger().addFilter(lambda r: r.levelno != logging.WARNING)
+    logging.info("-" * 60)
     
     parser = get_parser()
     args = parser.parse_args()
@@ -249,6 +249,7 @@ def main():
             logging.exception(f"Error processing {test['image']}: {e}"),
             continue
 # %%
+    logging.info("-" * 60)
     logging.info("Inference completed. All outputs saved.")
 if __name__ == "__main__":
     main()

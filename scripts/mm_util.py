@@ -225,10 +225,7 @@ def ensure_model_downloaded(region: str, version: str = "latest") -> tuple:
 
     # Latest requested: warn on first use, then fetch from Zenodo
     if _latest_cached_version(region, pth_filename, json_filename) is None:
-        logging.info(
-            f"No local model found for '{region}'. "
-            f"An internet connection is required to download it from Zenodo."
-        )
+        logging.info(f"No local model found for '{region}'.")
 
     logging.info(f"Contacting Zenodo to resolve '{region}' model version...")
     try:

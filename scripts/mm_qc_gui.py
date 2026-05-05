@@ -59,6 +59,7 @@ def _set_taskbar_icon(window):
             pass
 
 
+
 class QCWindow(ctk.CTkToplevel):
     """
     thresholds : {label_int: (muscle_max, fat_min_or_None)}
@@ -100,6 +101,21 @@ class QCWindow(ctk.CTkToplevel):
         self._cursor_pos    = None        # (xdata, ydata) of last known mouse position
         self._cursor_patch  = None        # live matplotlib Circle patch
 
+        if components == 3:
+            gaps = [fat_min - muscle_max for _, (muscle_max, fat_min) in thresholds.items() if fat_min is not None]
+            self._min_threshold_gap = min(gaps) if gaps else 0.0
+        else:
+            self._min_threshold_gap = 0.0
+
+        self._vis_muscle    = True
+        self._vis_undefined = True
+        self._vis_fat       = True
+        self._vis_btns      = {}
+        self._tissue_expanded   = {}
+        self._tissue_arrows     = {}
+        self._tissue_contents   = {}
+        self._tissue_val_labels = {}
+
         # Public results
         self.result_muscle_delta = 0.0
         self.result_fat_delta    = 0.0
@@ -122,7 +138,7 @@ class QCWindow(ctk.CTkToplevel):
         self._update_plot()
 
         self.update_idletasks()
-        w, h = 1020, 660
+        w, h = 1400, 780
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
 
@@ -181,12 +197,21 @@ class QCWindow(ctk.CTkToplevel):
 
         right_text = self._anatomy_name if self._anatomy_name else f"Label {next(iter(self._thresholds))}"
         badge = ctk.CTkFrame(bar, fg_color=LOGO_RED, corner_radius=12)
-        badge.pack(side="right", padx=16, pady=12)
+        badge.pack(side="right", padx=(0, 16), pady=12)
         ctk.CTkLabel(
             badge, text=right_text,
             font=ctk.CTkFont(family=FONT, size=12, weight="bold"),
             text_color=PRIMARY_TEXT,
         ).pack(padx=12, pady=4)
+
+        ctk.CTkButton(
+            bar, text="Stop quality control", height=32,
+            fg_color="transparent", hover_color="#fdecea",
+            text_color=LOGO_RED, border_color=LOGO_RED, border_width=2,
+            corner_radius=16,
+            font=ctk.CTkFont(family=FONT, size=12),
+            command=self._confirm_quit,
+        ).pack(side="right", padx=(0, 10), pady=12)
 
     def _build_controls(self, parent):
         def _section_label(text):
@@ -220,32 +245,93 @@ class QCWindow(ctk.CTkToplevel):
 
         _divider()
 
-        # ── Fat threshold Δ ────────────────────────────────────────────
-        _section_label("Fat threshold  Δ")
+        # ── Tissues ────────────────────────────────────────────────────
+        _section_label("Tissues")
+
         self._muscle_delta_var = ctk.DoubleVar(value=0.0)
+        if self._components == 3:
+            self._fat_delta_var = ctk.DoubleVar(value=0.0)
+
+        tissue_defs = [("muscle", "Muscle (red)", True)]
+        if self._components == 3:
+            tissue_defs.append(("undefined", "Undefined (blue)", False))
+        tissue_defs.append(("fat", "Fat (yellow)", self._components == 3))
+
+        for key, label_text, has_slider in tissue_defs:
+            wrapper = ctk.CTkFrame(parent, fg_color="transparent")
+            wrapper.pack(fill="x", padx=8, pady=2)
+
+            hdr = ctk.CTkFrame(wrapper, fg_color="#f0eef8", corner_radius=8)
+            hdr.pack(fill="x")
+
+            arrow_btn = ctk.CTkButton(
+                hdr, text="▶", width=26, height=30,
+                fg_color="transparent", hover_color="#e4e0f0",
+                text_color=MUTED, border_width=0,
+                font=ctk.CTkFont(family=FONT, size=11),
+                command=lambda k=key: self._toggle_tissue_row(k),
+            )
+            arrow_btn.pack(side="left", padx=(6, 0), pady=2)
+            self._tissue_arrows[key] = arrow_btn
+
+            ctk.CTkLabel(
+                hdr, text=label_text,
+                font=ctk.CTkFont(family=FONT, size=12, weight="bold"),
+                text_color=TEXT,
+            ).pack(side="left", padx=(4, 0))
+
+            eye_btn = ctk.CTkButton(
+                hdr, text="◉", width=30, height=30,
+                fg_color="transparent", hover_color="#e4e0f0",
+                text_color=PRIMARY, border_width=0,
+                font=ctk.CTkFont(family=FONT, size=18),
+                command=lambda k=key: self._toggle_tissue(k),
+            )
+            eye_btn.pack(side="right", padx=(0, 6))
+            self._vis_btns[key] = eye_btn
+
+            content = ctk.CTkFrame(wrapper, fg_color="transparent")
+            self._tissue_contents[key] = content
+            self._tissue_expanded[key] = False
+
+            if has_slider:
+                delta_var  = self._muscle_delta_var if key == "muscle" else self._fat_delta_var
+                slider_cmd = self._on_muscle_slider if key == "muscle" else self._on_fat_slider
+                ctk.CTkSlider(
+                    content, from_=self._half_range, to=-self._half_range,
+                    number_of_steps=steps,
+                    variable=delta_var,
+                    fg_color=BORDER, progress_color=PRIMARY,
+                    button_color=PRIMARY, button_hover_color=PRIMARY_HOVER,
+                    command=lambda _, cmd=slider_cmd: cmd(),
+                ).pack(fill="x", padx=8, pady=(6, 0))
+                val_lbl = ctk.CTkLabel(content, text="+0.00",
+                                       font=ctk.CTkFont(family=FONT, size=11), text_color=MUTED)
+                val_lbl.pack(fill="x", padx=8, pady=(0, 6))
+                self._tissue_val_labels[key] = val_lbl
+            else:
+                ctk.CTkLabel(
+                    content,
+                    text="Defined by the muscle and fat thresholds.",
+                    font=ctk.CTkFont(family=FONT, size=11), text_color=MUTED,
+                    wraplength=170, justify="left",
+                ).pack(padx=8, pady=6)
+
+        _divider()
+
+        # ── Opacity ────────────────────────────────────────────────────
+        _section_label("Opacity")
+        self._opacity_var = ctk.DoubleVar(value=0.5)
         ctk.CTkSlider(
-            parent, from_=self._half_range, to=-self._half_range,
-            number_of_steps=steps,
-            variable=self._muscle_delta_var,
+            parent, from_=0.0, to=1.0, number_of_steps=20,
+            variable=self._opacity_var,
             fg_color=BORDER, progress_color=PRIMARY,
             button_color=PRIMARY, button_hover_color=PRIMARY_HOVER,
             command=lambda _: self._update_plot(),
         ).pack(fill="x", padx=16)
-        self._muscle_delta_label = _value_label()
-
-        if self._components == 3:
-            _divider()
-            _section_label("Fat min  Δ")
-            self._fat_delta_var = ctk.DoubleVar(value=0.0)
-            ctk.CTkSlider(
-                parent, from_=self._half_range, to=-self._half_range,
-                number_of_steps=steps,
-                variable=self._fat_delta_var,
-                fg_color=BORDER, progress_color=PRIMARY,
-                button_color=PRIMARY, button_hover_color=PRIMARY_HOVER,
-                command=lambda _: self._update_plot(),
-            ).pack(fill="x", padx=16)
-            self._fat_delta_label = _value_label()
+        self._opacity_label = ctk.CTkLabel(parent, text="0.50",
+                                           font=ctk.CTkFont(family=FONT, size=11), text_color=MUTED)
+        self._opacity_label.pack(fill="x", padx=16, pady=(0, 4))
 
         _divider()
 
@@ -300,15 +386,6 @@ class QCWindow(ctk.CTkToplevel):
             font=ctk.CTkFont(family=FONT, size=13),
             command=self._reset,
         ).pack(fill="x", padx=16, pady=(4, 4))
-
-        ctk.CTkButton(
-            parent, text="Quit QC", height=34,
-            fg_color="transparent", hover_color="#fdecea",
-            text_color=LOGO_RED, border_color=LOGO_RED, border_width=2,
-            corner_radius=17,
-            font=ctk.CTkFont(family=FONT, size=13),
-            command=self._confirm_quit,
-        ).pack(fill="x", padx=16, pady=(0, 6))
 
         ctk.CTkButton(
             parent, text="Accept", height=44,
@@ -407,6 +484,48 @@ class QCWindow(ctk.CTkToplevel):
         self._erased_mask[:, :, z] |= circle & group_mask
         self._update_plot()
 
+    def _toggle_tissue_row(self, key):
+        content = self._tissue_contents[key]
+        arrow   = self._tissue_arrows[key]
+        if self._tissue_expanded[key]:
+            content.pack_forget()
+            self._tissue_expanded[key] = False
+            arrow.configure(text="▶")
+        else:
+            content.pack(fill="x")
+            self._tissue_expanded[key] = True
+            arrow.configure(text="▼")
+
+    def _toggle_tissue(self, key):
+        if key == "muscle":
+            self._vis_muscle = not self._vis_muscle
+            visible = self._vis_muscle
+        elif key == "fat":
+            self._vis_fat = not self._vis_fat
+            visible = self._vis_fat
+        else:
+            self._vis_undefined = not self._vis_undefined
+            visible = self._vis_undefined
+        self._vis_btns[key].configure(
+            text="◉" if visible else "○",
+            text_color=PRIMARY if visible else MUTED,
+        )
+        self._update_plot()
+
+    def _on_muscle_slider(self):
+        if self._components == 3:
+            max_val = self._fat_delta_var.get() + self._min_threshold_gap
+            if self._muscle_delta_var.get() > max_val:
+                self._muscle_delta_var.set(max_val)
+        self._update_plot()
+
+    def _on_fat_slider(self):
+        if self._components == 3:
+            min_val = self._muscle_delta_var.get() - self._min_threshold_gap
+            if self._fat_delta_var.get() < min_val:
+                self._fat_delta_var.set(min_val)
+        self._update_plot()
+
     def _undo(self):
         if self._erase_history:
             self._erased_mask = self._erase_history.pop()
@@ -454,15 +573,25 @@ class QCWindow(ctk.CTkToplevel):
         self._ax.imshow(img_slice.T, cmap="gray", origin="lower",
                         vmin=vmin, vmax=vmax, aspect="equal", interpolation="nearest")
 
-        if undefined_mask.any():
+        alpha        = self._opacity_var.get()
+        erased_slice = self._erased_mask[:, :, z]
+        muscle_mask  = seg_mask & ~fat_mask & ~undefined_mask & ~erased_slice
+
+        if self._vis_muscle and muscle_mask.any():
             ov = np.zeros((*img_slice.shape, 4), dtype=np.float32)
-            ov[undefined_mask] = [1.0, 0.85, 0.2, 0.5]
+            ov[muscle_mask] = [0.9, 0.15, 0.15, alpha]
             self._ax.imshow(ov.transpose(1, 0, 2), origin="lower", aspect="equal",
                             interpolation="nearest")
 
-        if fat_mask.any():
+        if self._vis_undefined and undefined_mask.any():
             ov = np.zeros((*img_slice.shape, 4), dtype=np.float32)
-            ov[fat_mask] = [240 / 255, 124 / 255, 44 / 255, 0.5]
+            ov[undefined_mask] = [0.15, 0.45, 0.9, alpha]
+            self._ax.imshow(ov.transpose(1, 0, 2), origin="lower", aspect="equal",
+                            interpolation="nearest")
+
+        if self._vis_fat and fat_mask.any():
+            ov = np.zeros((*img_slice.shape, 4), dtype=np.float32)
+            ov[fat_mask] = [1.0, 0.85, 0.1, alpha]
             self._ax.imshow(ov.transpose(1, 0, 2), origin="lower", aspect="equal",
                             interpolation="nearest")
 
@@ -471,11 +600,13 @@ class QCWindow(ctk.CTkToplevel):
         self._redraw_cursor()
 
         self._slice_label.configure(text=f"z = {z}")
-        sign = "+" if muscle_delta >= 0 else ""
-        self._muscle_delta_label.configure(text=f"{sign}{muscle_delta:.2f}")
-        if self._components == 3:
+        self._opacity_label.configure(text=f"{alpha:.2f}")
+        if "muscle" in self._tissue_val_labels:
+            sign = "+" if muscle_delta >= 0 else ""
+            self._tissue_val_labels["muscle"].configure(text=f"{sign}{muscle_delta:.2f}")
+        if "fat" in self._tissue_val_labels and self._components == 3:
             sign = "+" if fat_delta >= 0 else ""
-            self._fat_delta_label.configure(text=f"{sign}{fat_delta:.2f}")
+            self._tissue_val_labels["fat"].configure(text=f"{sign}{fat_delta:.2f}")
 
     # ------------------------------------------------------------------
     # Reset / Undo / Quit / Accept
@@ -537,6 +668,12 @@ class QCWindow(ctk.CTkToplevel):
         self._muscle_delta_var.set(0.0)
         if self._components == 3:
             self._fat_delta_var.set(0.0)
+        self._opacity_var.set(0.5)
+        self._vis_muscle    = True
+        self._vis_undefined = True
+        self._vis_fat       = True
+        for btn in self._vis_btns.values():
+            btn.configure(text="◉", text_color=PRIMARY)
         self._update_plot()
 
     def _accept(self):
@@ -545,7 +682,6 @@ class QCWindow(ctk.CTkToplevel):
         self.result_erased_mask  = self._erased_mask.copy()
         self.grab_release()
         self.destroy()
-
 
 # ---------------------------------------------------------------------------
 # Public interface
