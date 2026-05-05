@@ -102,6 +102,8 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
 
 8. To use mm_register_to_template, you will need [Spinal Cord Toolbox](https://spinalcordtoolbox.com/) installed. We have only tested mm_register_to_template using Spinal Cord Toolbox [Version 6.5](https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/tag/6.5).
 
+   > **Note:** Template images required by mm_register_to_template are hosted on [Zenodo](https://doi.org/10.5281/zenodo.20043147) and are downloaded automatically on first use.
+
 ### Usage
 
 1. Activate python environment:
@@ -284,7 +286,9 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     ~~~
     mm_register_to_template -i image.nii.gz -s image_dseg.nii.gz -r abdomen
     ~~~
-    
+
+    * Template images are downloaded automatically from [Zenodo](https://doi.org/10.5281/zenodo.20043147) on first use and cached locally.
+
     #### Regions
     * Abdomen
         * Left and right multifidus, erector spinae, psoas major, and quadratus lumborum
