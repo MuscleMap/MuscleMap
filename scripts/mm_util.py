@@ -12,7 +12,6 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from monai.transforms import (MapTransform)
 import gc, torch
-import os, gc, torch, nibabel as nib
 import shutil
 import psutil
 from scipy import ndimage as ndi

@@ -20,9 +20,5 @@ setup(
             'mm_register_to_template=scripts.mm_register_to_template:main' 
         ]
     },
-    package_data={
-        'scripts': ['models/**/*.json', 'templates/**/*nii.gz'],
-    },
-    include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.11',
 )
