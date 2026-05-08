@@ -14,6 +14,10 @@ permalink: /publications/
 
 ### 2026
 
+* MaChao Guo, Xiangyu Li, Shuaikang Wang, Xiaolong Chen, Chao Kong, Yuxi Liu, Shibao Lu. *Frailty-Muscle Phenotypes Predict Outcomes After Lumbar Fusion in Adults Aged ≥75 Years: A Retrospective Cohort Study.* Neurospine, 2026;23(2):242–254.
+  [https://doi.org/10.14245/ns.2551838.919](https://doi.org/10.14245/ns.2551838.919)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Guo2026FrailtyMuscle'); return false;" }
+
 * MaChao Guo, Shuaikang Wang, Xiangyu Li, Yuxi Liu, Shibao Lu. *L1-S1 Posterior Paraspinal Muscle Fatty Infiltration and a Radiomics Signature Predict Prolonged Length of Stay After Lumbar Spine Surgery in Older Adults.* Spine (Phila Pa 1976), 2026;51(11):E283–E292.
   [https://doi.org/10.1097/BRS.0000000000005667](https://doi.org/10.1097/BRS.0000000000005667)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Guo2026RadiomicsLOS'); return false;" }
