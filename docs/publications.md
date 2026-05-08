@@ -14,6 +14,10 @@ permalink: /publications/
 
 ### 2026
 
+* MaChao Guo, Shuaikang Wang, Xiangyu Li, Yuxi Liu, Shibao Lu. *L1-S1 Posterior Paraspinal Muscle Fatty Infiltration and a Radiomics Signature Predict Prolonged Length of Stay After Lumbar Spine Surgery in Older Adults.* Spine (Phila Pa 1976), 2026;51(11):E283–E292.
+  [https://doi.org/10.1097/BRS.0000000000005667](https://doi.org/10.1097/BRS.0000000000005667)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Guo2026RadiomicsLOS'); return false;" }
+  
 * Chanelle Montpetit, Nicolas Vaillancourt, Brent Rosenstein, Evert Onno Wesselink, Geoffrey Dover, Christina Weiss, Lee Ann Papula, Antonys Melek, Kenneth Arnold Weber, James M. Elliott, Maryse Fortin. *Effects of aquatic therapy vs. standard care on gluteal muscle morphology and function in individuals with chronic low back pain: a randomized controlled trial.* BMC Sports Science, Medicine and Rehabilitation, 2026;
   [https://doi.org/10.1186/s13102-026-01666-0](https://doi.org/10.1186/s13102-026-01666-0)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Montpetit2026AquaticTherapy'); return false;" }

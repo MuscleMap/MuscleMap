@@ -38,3 +38,9 @@ htmlcov/
 # Temporary files
 *.tmp
 *.swp
+
+*.nii.gz
+*.nii
+
+*.pth
+*.json
