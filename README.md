@@ -14,7 +14,7 @@ A free and open-source software toolbox for whole-body muscle segmentation and a
 ### Installation
 We provide a step-by-step installation and usage tutorial video [here](https://www.youtube.com/watch?v=utlUVdvy6WI).
 
-> **Note for existing users:** If you experience conflicts when running `git pull`, this is likely due to a rewrite of the repository history. In that case, please delete your local clone and create a fresh one:
+> **Note for existing users:** If you experience conflicts when running `git pull`, please delete your local clone and redownload the MuscleMap repository:
 
 > ```
 > git clone --depth 1 https://github.com/MuscleMap/MuscleMap.git
