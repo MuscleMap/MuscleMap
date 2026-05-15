@@ -4,6 +4,8 @@ parent: Overview
 description:  "MuscleMap testimonial for muscle segmentation and quantification."
 nav_order: 3
 permalink: /testimonial/
+nav_exclude: true
+search_exclude: true
 ---
 
 ## Share your MuscleMap experience
