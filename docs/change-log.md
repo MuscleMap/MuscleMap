@@ -13,9 +13,10 @@ Segmentation models in MuscleMap are periodically retrained on expanded and more
 All notable changes to **MuscleMap** are listed below.  
 Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 
-<!-- ===== VERSION 1.2 ===== -->
+
+<!-- ===== VERSION 2.0 ===== -->
 <p align="left" style="margin-bottom: 4px;">
-  <strong style="font-size: 22px;">v1.2</strong>
+  <strong style="font-size: 22px;">v2.0</strong>
   <span style="
     background: #2ea44f;
     color: white;
@@ -36,10 +37,54 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
 
   <ul>
-    <li>
-      Included 10 more muscles in wholebody model (left and right pectineus, obturator externus, obturator internus, piriformis,
-      gemelli and quadratus femoris)
-    </li>
+    <li>Refactors MuscleMap to load model parameters and template NIfTI files directly from Zenodo instead of bundling them in the repository</li>
+    <li>Added Zenodo download logic in <code>mm_util.py</code> with support for multiple Zenodo versions</li>
+    <li>Updated <code>mm_gui.py</code> and <code>mm_segment.py</code> to use the new Zenodo-based model loading</li>
+    <li>Added <code>mm_qc_gui.py</code> as a new QC interface</li>
+    <li>Updated <code>setup.py</code> and <code>requirements.txt</code> for v2.0 dependencies</li>
+    <li>Updated <code>.gitignore</code> to exclude large model files</li>
+    <li>Updated <code>README.md</code> with instructions for Zenodo usage and template file setup</li>
+  </ul>
+</div>
+
+<!-- ===== VERSION 1.3 ===== -->
+<p align="left" style="margin-bottom: 4px;">
+  <strong style="font-size: 22px;">v1.3</strong>
+</p>
+
+<div style="
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+
+  <ul>
+    <li>Included auto chunking to estimate a safe chunk size from currently available CPU or GPU memory and keeps extra headroom to reduce OOM failures</li>
+    <li>Included new model parameters</li>
+    <li>Included extra spatial padding to preserve higher accuracy at muscle boundaries in cropped images</li>
+    <li><strong>Note:</strong> Model weights (<code>.pth</code>) and configuration files (<code>.json</code>) for <code>mm_segment</code> have been removed from the git history to reduce repository size. To use this release, download the model parameters from Zenodo and place them in the corresponding subfolder, e.g. <code>scripts/models/wholebody/</code> or <code>scripts/models/abdomen/</code></li>
+    <li><strong>Note:</strong> Template images (<code>.nii.gz</code>) for <code>mm_register_to_template</code> have been removed from the git history to reduce repository size. To use this release, download the template images from Zenodo and place them in the corresponding subfolder, e.g. <code>scripts/templates/abdomen/</code></li>
+  </ul>
+</div>
+
+
+<!-- ===== VERSION 1.2 ===== -->
+<p align="left" style="margin-bottom: 4px;">
+  <strong style="font-size: 22px;">v1.2</strong>
+</p>
+
+<div style="
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+
+  <ul>
+    <li>Included 10 more muscles in wholebody model (left and right pectineus, obturator externus, obturator internus, piriformis, gemelli and quadratus femoris)</li>
     <li>Included more training data for wholebody model</li>
   </ul>
 </div>
