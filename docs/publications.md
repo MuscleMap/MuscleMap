@@ -14,6 +14,10 @@ permalink: /publications/
 
 ### 2026
 
+* Serhat Aydin, Benjamin J. Carnovale, Samuel H. Wakelin, Armani Manov, Ayesha Akbar Waheed, Samuel Adida, Regan M. Shanahan, Andrew Legarreta, Qazi Zeeshan, David Kojo Hamilton, Nitin Agarwal. *Cervical Paraspinal Muscle Morphometry and Mechanical Failure: A Propensity-Matched Analysis.* World Neurosurgery, 2026;211:125035.
+  [https://doi.org/10.1016/j.wneu.2026.125035](https://doi.org/10.1016/j.wneu.2026.125035)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Aydin2026CervicalParaspinal'); return false;" }
+
 * MaChao Guo, Xiangyu Li, Shuaikang Wang, Xiaolong Chen, Chao Kong, Yuxi Liu, Shibao Lu. *Frailty-Muscle Phenotypes Predict Outcomes After Lumbar Fusion in Adults Aged ≥75 Years: A Retrospective Cohort Study.* Neurospine, 2026;23(2):242–254.
   [https://doi.org/10.14245/ns.2551838.919](https://doi.org/10.14245/ns.2551838.919)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Guo2026FrailtyMuscle'); return false;" }
