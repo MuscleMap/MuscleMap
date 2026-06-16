@@ -16,12 +16,22 @@ It will revolutionise standards of clinical care, providing the foundations for 
 
 And it will help push the limits of human endurance and performance in the most exciting realms of discovery—perhaps even extending the frontiers of what’s possible for human exploration and existence in deep space.
 
+## Support our work
+
+<a href="https://nilab.stanford.edu/support-our-work"
+   target="_blank"
+   rel="noopener"
+   class="support-button">
+  <span class="heart">♡</span>
+  Stanford Neuromuscular Imaging Laboratory
+</a>
+
 <a href="https://northfoundation.org.au/projects/musclemap/"
    target="_blank"
    rel="noopener"
    class="support-button">
   <span class="heart">♡</span>
-  Support MuscleMap
+  North Foundation
 </a>
 
 <style>
