@@ -18,47 +18,23 @@ And it will help push the limits of human endurance and performance in the most 
 
 ## Support our work
 
-<a href="https://nilab.stanford.edu/support-our-work"
-   target="_blank"
-   rel="noopener"
-   class="support-button">
-  <span class="heart">♡</span>
-  Stanford Neuromuscular Imaging Laboratory
-</a>
+<div class="mm-support-actions">
+  <a href="https://nilab.stanford.edu/support-our-work"
+     target="_blank"
+     rel="noopener"
+     class="support-button">
+    <span class="heart">♡</span>
+    Stanford Neuromuscular Imaging Laboratory
+  </a>
 
-<a href="https://northfoundation.org.au/projects/musclemap/"
-   target="_blank"
-   rel="noopener"
-   class="support-button">
-  <span class="heart">♡</span>
-  North Foundation
-</a>
-
-<style>
-.support-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  background-color: transparent;
-  color: #ff5e00;
-  border: 1px solid #ff5e00;
-  font-weight: 500;
-  font-size: 0.9rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-
-.support-button:hover {
-  background-color: #ff5e00;
-  color: #ffffff;
-}
-
-.support-button .heart {
-  font-size: 1rem;
-}
-</style>
+  <a href="https://northfoundation.org.au/projects/musclemap/"
+     target="_blank"
+     rel="noopener"
+     class="support-button">
+    <span class="heart">♡</span>
+    North Foundation
+  </a>
+</div>
 
 <a class="mm-btn mm-btn-ghost mm-btn-back"
    href="{{ '/' | relative_url }}">
