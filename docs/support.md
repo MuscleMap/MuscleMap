@@ -38,23 +38,25 @@ And it will help push the limits of human endurance and performance in the most 
 .support-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background-color: #ff5e00; /* zacht roze */
-  color: #ffffff;              /* wit */
-  font-weight: 600;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
+  gap: 0.45rem;
+  background-color: transparent;
+  color: #ff5e00;
+  border: 1px solid #ff5e00;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
   text-decoration: none;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .support-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  background-color: #ff5e00;
+  color: #ffffff;
 }
 
 .support-button .heart {
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 </style>
 
