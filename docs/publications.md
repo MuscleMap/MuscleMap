@@ -59,7 +59,7 @@ permalink: /publications/
   [https://doi.org/10.1177/08830738251392519](https://doi.org/10.1177/08830738251392519)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Smulligan2025CervicalMRI'); return false;" }
 
-* Fundaun J, Oliva V, Bédard S, Wesselink EO, Lynn BP, Pai S A, Pfyffer D, Kaptan M, Berhe N, Ratliff J, Hu SS, Smith ZA, Hastie TJ, Mackey S, McKay MJ, Elliott JM, Delp SL, Chaudhari AS, Law CSW, … Weber KA. *Automated Segmentation of Forearm Muscles: Clinical Associations With Hand Function, Muscle Volume and Intramuscular Fat. JCSM Communications.* 2025;8(2):e70015.<br>
+* Fundaun J, Oliva V, Bédard S, Wesselink EO, Lynn BP, Pai S A, Pfyffer D, Kaptan M, Berhe N, Ratliff J, Hu SS, Smith ZA, Hastie TJ, Mackey S, McKay MJ, Elliott JM, Delp SL, Chaudhari AS, Law CSW, … Weber KA. *Automated Segmentation of Forearm Muscles: Clinical Associations With Hand Function, Muscle Volume and Intramuscular Fat.* JCSM Communications. 2025;8(2):e70015.<br>
   [https://doi.org/10.1002/rco2.70015](https://doi.org/10.1002/rco2.70015)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Fundaun2025ForearmSegmentation'); return false;" }
 

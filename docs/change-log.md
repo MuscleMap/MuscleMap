@@ -90,7 +90,7 @@ Source: [GitHub Releases](https://github.com/MuscleMap/MuscleMap/releases)
 </div>
 
 
-<!-- ===== VERSION 1.0 ===== -->
+<!-- ===== VERSION 1.1 ===== -->
 <p align="left" style="margin-bottom: 4px;">
   <strong style="font-size: 22px;">v1.1</strong>
 </p>

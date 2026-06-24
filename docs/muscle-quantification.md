@@ -235,7 +235,7 @@ mm_extract_metrics -m kmeans -i img.nii.gz -s img_dseg.nii.gz -r pelvis
 ### 7.3 CT muscle density (HU)
 
 ```bash
-mm_extract_metrics -m hu -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
+mm_extract_metrics -m average -i ct_img.nii.gz -s ct_dseg.nii.gz -r abdomen
 ```
 
 ---

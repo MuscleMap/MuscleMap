@@ -142,11 +142,6 @@ fslmaths mask.nii.gz -bin mask_bin.nii.gz
 randomise   -i all_subjects_metric_4D.nii.gz   -o stats_metric_corr   -m mask_bin.nii.gz   -d design.mat   -t design.con   -n 5000   -T
 ```
 
-<div class="callout callout-note">
-  <strong>Note</strong><br>
-  Intermediate reflects a voxel with intermediate voxel signal not clearly corresponding to either fat or muscle.
-</div>
-
 <a class="mm-btn mm-btn-ghost mm-btn-back"
    href="{{ '/' | relative_url }}">
   ← Back to MuscleMap overview
