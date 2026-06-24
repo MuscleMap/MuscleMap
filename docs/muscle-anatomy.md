@@ -8,7 +8,7 @@ permalink: /muscle-anatomy/
 
 ## MuscleMap anatomical labels for automated muscle segmentation and quantification
 
-MuscleMap provides automated segmentation and quantfication (muscle volume, intramuscular fat and/or intensity) of 99 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and leg.
+MuscleMap provides automated segmentation and quantification (muscle volume, intramuscular fat and/or intensity) of 99 muscles and bones across the neck, thorax, abdomen, pelvis, thigh, and leg.
 
 The table below lists all anatomical structures included in the latest version of MuscleMap, together with their label values and laterality. These labels are consistent across all MuscleMap tools (mm_segment, mm_extract_metrics, mm_register_to_template and mm_gui). 
 
@@ -46,16 +46,16 @@ The table below lists all anatomical structures included in the latest version o
 | abdomen  | psoas major                          | right   | 5122     |
 | abdomen  | quadratus lumborum                   | left    | 5131     |
 | abdomen  | quadratus lumborum                   | right   | 5132     |
-| abdomen  | lattisimus dorsi                     | left    | 5141     |
-| abdomen  | lattisimus dorsi                     | right   | 5142     |
+| abdomen  | latissimus dorsi                     | left    | 5141     |
+| abdomen  | latissimus dorsi                     | right   | 5142     |
 | pelvis   | gluteus minimus                      | left    | 6101     |
 | pelvis   | gluteus minimus                      | right   | 6102     |
 | pelvis   | gluteus medius                       | left    | 6111     |
 | pelvis   | gluteus medius                       | right   | 6112     |
 | pelvis   | gluteus maximus                      | left    | 6121     |
 | pelvis   | gluteus maximus                      | right   | 6122     |
-| pelvis   | tensor fascia latae                  | left    | 6131     |
-| pelvis   | tensor fascia latae                  | right   | 6132     |
+| pelvis   | tensor fasciae latae                 | left    | 6131     |
+| pelvis   | tensor fasciae latae                 | right   | 6132     |
 | pelvis   | iliacus                              | left    | 6141     |
 | pelvis   | iliacus                              | right   | 6142     |
 | pelvis   | ilium                                | left    | 6151     |
