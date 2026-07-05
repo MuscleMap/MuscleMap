@@ -14,6 +14,18 @@ permalink: /publications/
 
 ### 2026
 
+* Renhai Feng, Binqiang Pan, Lushuang Ye, Binbin Yin, Guoping Pan, Jianming Chen, Dan Wang. *Association between 3D CT-based volumetric fat infiltration of lumbar paraspinal muscles and bone mineral density: a clinical study.* BMC Medical Imaging, 2026;26:2556; published online July 4, 2026.<br>
+  [https://doi.org/10.1186/s12880-026-02556-0](https://doi.org/10.1186/s12880-026-02556-0)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Feng2026ParaspinalBMD'); return false;" }
+
+* Merve Kaptan, Yiyu Wang, Augustijn de Boer, Ananya Goyal, Skylar Holmes, Kerem Ozkan, Sandrine Bédard, Teresa Indriolo, Christine S W Law, Dario Pfyffer, Joel Fundaun, Estifanos Berhe, Garry E. Gold, Akshay Chaudhari, Anoosha Pai S, Anthony A. Gatti, Feliks Kogan, Brian A. Hargreaves, Scott L. Delp, John Ratliff, Serena Hu, Anand Veeravagu, Atman Desai, Suzanne Tharin, Todd Alamin, Andrew C. Smith, Marnee J. McKay, Brian Kim, Robert Walsh, Alec Schielke, Dean Dennis, Johannes Decker, Benjamin De Leener, Julien Cohen-Adad, Zachary A. Smith, Fauziyya Muhammad, James M. Elliott, Andre F. Marquand, Sean Mackey, Evert Onno Wesselink, Kenneth A. Weber. *Patterns of Muscle Health in Single- and Multi-Site Chronic Pain: A UK Biobank Normative Modeling Study.* medRxiv, 2026; preprint, posted June 22, 2026.<br>
+  [https://doi.org/10.64898/2026.06.19.26356062](https://doi.org/10.64898/2026.06.19.26356062)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Kaptan2026ChronicPain'); return false;" }
+
+* Salim Bin Ghouth, Ozkan Cigdem, Valentina Mazzoli. *MR Imaging-Based Biomarkers for Strength Prediction: A Statistical Shape and Architecture Modeling of Quadriceps Muscles.* Journal of Magnetic Resonance Imaging (JMRI), 2026; published online June 11, 2026.<br>
+  [https://doi.org/10.1002/jmri.70377](https://doi.org/10.1002/jmri.70377)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('BinGhouth2026Quadriceps'); return false;" }
+
 * Serhat Aydin, Benjamin J. Carnovale, Samuel H. Wakelin, Armani Manov, Ayesha Akbar Waheed, Samuel Adida, Regan M. Shanahan, Andrew Legarreta, Qazi Zeeshan, David Kojo Hamilton, Nitin Agarwal. *Cervical Paraspinal Muscle Morphometry and Mechanical Failure: A Propensity-Matched Analysis.* World Neurosurgery, 2026;211:125035.
   [https://doi.org/10.1016/j.wneu.2026.125035](https://doi.org/10.1016/j.wneu.2026.125035)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Aydin2026CervicalParaspinal'); return false;" }
