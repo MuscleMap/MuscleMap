@@ -13,3 +13,5 @@ scripts/models/*/
 output/
 *.log
 *.xlsx
+
+.pth
