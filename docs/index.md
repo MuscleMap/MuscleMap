@@ -49,31 +49,6 @@ parent: Overview
   </div>
 </div>
 
-<div class="mm-hero mm-hero-axial">
-  <div class="mm-hero-inner">
-    <div class="mm-hero-text">
-      <h2>Whole-body muscle segmentation</h2>
-      <p class="mm-subtitle">
-        Designed for whole-body and clinical imaging with consistent labelling
-        across muscles and bones, enabling large-scale, multi-region analyses.
-      </p>
-    </div>
-    <div class="mm-hero-banner">
-      <div class="mm-modelswitch">
-        <img class="mm-model is-on" data-model="ct"
-             src="{{ '/assets/images/musclemap_scroll_ct.gif' | relative_url }}"
-             alt="Scrolling axial CT with MuscleMap muscle segmentation overlay">
-        <img class="mm-model" data-model="mri"
-             src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
-             alt="Scrolling axial MRI with MuscleMap muscle segmentation overlay">
-        <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
-          <button type="button" class="is-on" data-model="ct" aria-pressed="true">CT</button>
-          <button type="button" data-model="mri" aria-pressed="false">MRI</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Bedient alle CT/MRI-schakelaars op deze pagina; staat bewust buiten de
      blokken hierboven, zodat het blijft werken als je die uitcommentarieert. -->
