@@ -44,3 +44,5 @@ htmlcov/
 
 *.pth
 *.json
+
+*.xlsx
