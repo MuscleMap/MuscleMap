@@ -1,25 +1,28 @@
-/* CT/MRI-schakelaar voor de hero-afbeelding.
+/* CT/MRI-schakelaar, paginabreed.
  *
- * Werkt op elke .mm-modelswitch op de pagina.  Binnen zo'n blok krijgen de
- * afbeeldingen en de knoppen hetzelfde data-model ("ct" / "mri"); een klik zet
- * de klasse is-on op alles wat bij de gekozen modaliteit hoort en haalt hem
- * overal anders weg.  Staat er geen .mm-modelswitch (bijvoorbeeld omdat het
- * blok in de pagina tussen commentaar staat), dan doet dit script niets.
+ * Elk element dat bij een modaliteit hoort krijgt data-model="ct" of "mri" en de
+ * klasse is-on wanneer het aan staat.  Een klik op een knop in .mm-modelbtns zet
+ * de modaliteit voor de HELE pagina: zowel de 3D-vooraanzichten als de axiale
+ * overlay-GIFs schakelen dus samen, waar ze ook staan.
+ *
+ * De listener hangt aan het document, dus het werkt voor elk aantal schakelaars
+ * en ook als een blok in de pagina tussen commentaar staat.
  */
 (function () {
-  var boxes = document.querySelectorAll('.mm-modelswitch');
-
-  Array.prototype.forEach.call(boxes, function (box) {
-    box.addEventListener('click', function (e) {
-      var btn = e.target.closest('.mm-modelbtns button');
-      if (!btn) return;
-      var want = btn.getAttribute('data-model');
-      var items = box.querySelectorAll('[data-model]');
-      Array.prototype.forEach.call(items, function (el) {
-        var on = el.getAttribute('data-model') === want;
-        el.classList.toggle('is-on', on);
-        if (el.tagName === 'BUTTON') el.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
+  function apply(want) {
+    var items = document.querySelectorAll('[data-model]');
+    Array.prototype.forEach.call(items, function (el) {
+      var on = el.getAttribute('data-model') === want;
+      el.classList.toggle('is-on', on);
+      if (el.tagName === 'BUTTON') {
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
     });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.mm-modelbtns button[data-model]') : null;
+    if (!btn) return;
+    apply(btn.getAttribute('data-model'));
   });
 })();

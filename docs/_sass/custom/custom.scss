@@ -278,6 +278,19 @@
   margin-top: -40px;                 /* zelfde uitlijning als het logo hier had */
 }
 
+/* Tweede hero met de axiale overlay-GIF: geen negatieve marge nodig (daar stond geen
+   logo) en de kop is een h2, want de h1 hoort bij de hoofd-hero erboven. */
+.mm-hero-axial .mm-hero-banner .mm-modelswitch {
+  margin-top: 0;
+}
+
+.mm-hero-axial h2 {
+  margin: 0;
+  font-size: clamp(20px, 2.8vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
 /* Dezelfde schakelaar in een feature-kaart: daar vult de afbeelding de kaartbreedte
    in plaats van een vaste hoogte te krijgen. */
 .mm-card-media .mm-modelswitch img.mm-model {

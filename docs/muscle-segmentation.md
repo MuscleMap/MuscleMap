@@ -45,7 +45,6 @@ permalink: /muscle-segmentation/
           <button type="button" data-model="mri" aria-pressed="false">MRI</button>
         </div>
       </div>
-      <script src="{{ '/assets/js/model-switch.js' | relative_url }}" defer></script>
       <!-- ===== einde 3D-vooraanzicht ================================== -->
 
       <!-- ===== OUDE GIF ==============================================
@@ -56,6 +55,38 @@ permalink: /muscle-segmentation/
     </div>
   </div>
 </div>
+
+<div class="mm-hero mm-hero-axial">
+  <div class="mm-hero-inner">
+    <div class="mm-hero-text">
+      <p class="mm-eyebrow">Axial overlay</p>
+      <h2>Every muscle labelled, slice by slice</h2>
+      <p class="mm-subtitle">
+        The same segmentation on the axial images it was computed from, scrolling
+        from the calves up to the neck. Switch between CT and MRI &mdash; the 3D view
+        above follows along.
+      </p>
+    </div>
+    <div class="mm-hero-banner">
+      <div class="mm-modelswitch">
+        <img class="mm-model is-on" data-model="ct"
+             src="{{ '/assets/images/musclemap_scroll_ct.gif' | relative_url }}"
+             alt="Scrolling axial CT with MuscleMap muscle segmentation overlay">
+        <img class="mm-model" data-model="mri"
+             src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
+             alt="Scrolling axial MRI with MuscleMap muscle segmentation overlay">
+        <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
+          <button type="button" class="is-on" data-model="ct" aria-pressed="true">CT</button>
+          <button type="button" data-model="mri" aria-pressed="false">MRI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bedient alle CT/MRI-schakelaars op deze pagina; staat bewust buiten de
+     blokken hierboven, zodat het blijft werken als je die uitcommentarieert. -->
+<script src="{{ '/assets/js/model-switch.js' | relative_url }}" defer></script>
 
 This page explains:
 
