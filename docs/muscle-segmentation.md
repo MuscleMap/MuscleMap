@@ -26,6 +26,11 @@ permalink: /muscle-segmentation/
            target="_blank" rel="noopener">
           View code
         </a>
+        <a class="mm-btn mm-btn-red"
+           href="https://musclemap-3d.eddo-wesselink.workers.dev/"
+           target="_blank" rel="noopener">
+          View MuscleMap in 3D
+        </a>
       </div>
     </div>
     <div class="mm-hero-banner">

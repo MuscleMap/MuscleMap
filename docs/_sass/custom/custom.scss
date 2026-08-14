@@ -650,6 +650,26 @@
   color: #111 !important;
 }
 
+/* MuscleMap-rood (#eb5757, de rode helft van het logo) voor de 3D-viewer.  Staat na
+   de ghost/primary-regels hierboven, want die overschrijven kleur met !important. */
+.mm-btn-red,
+.mm-btn.mm-btn-red,
+.mm-hero-actions .mm-btn-red {
+  background: #eb5757 !important;
+  border: 1px solid #eb5757 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+.mm-btn-red:hover,
+.mm-btn.mm-btn-red:hover,
+.mm-hero-actions .mm-btn-red:hover {
+  background: #d64545 !important;
+  border-color: #d64545 !important;
+  color: #ffffff !important;
+  transition: 0.15s ease;
+}
+
 .main-content p,
 .main-content li,
 .main-content td,
