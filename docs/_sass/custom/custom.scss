@@ -272,7 +272,24 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+}
+
+.mm-hero-banner .mm-modelswitch {
   margin-top: -40px;                 /* zelfde uitlijning als het logo hier had */
+}
+
+/* Dezelfde schakelaar in een feature-kaart: daar vult de afbeelding de kaartbreedte
+   in plaats van een vaste hoogte te krijgen. */
+.mm-card-media .mm-modelswitch img.mm-model {
+  display: none;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.mm-card-media .mm-modelswitch img.mm-model.is-on {
+  display: block;
 }
 
 .mm-hero-banner .mm-modelswitch img.mm-model {

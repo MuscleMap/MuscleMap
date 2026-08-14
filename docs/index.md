@@ -69,7 +69,18 @@ parent: Overview
         </p>
       </div>
       <div class="mm-card-media">
-        <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}" alt="MuscleMap whole-body GIF">
+        <div class="mm-modelswitch">
+          <img class="mm-model is-on" data-model="mri"
+               src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
+               alt="Scrolling axial MRI with MuscleMap muscle segmentation overlay">
+          <img class="mm-model" data-model="ct"
+               src="{{ '/assets/images/musclemap_scroll_ct.gif' | relative_url }}"
+               alt="Scrolling axial CT with MuscleMap muscle segmentation overlay">
+          <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
+            <button type="button" class="is-on" data-model="mri" aria-pressed="true">MRI</button>
+            <button type="button" data-model="ct" aria-pressed="false">CT</button>
+          </div>
+        </div>
       </div>
     </div>
 
