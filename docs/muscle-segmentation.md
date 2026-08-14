@@ -62,9 +62,8 @@ permalink: /muscle-segmentation/
       <p class="mm-eyebrow">Axial overlay</p>
       <h2>Every muscle labelled, slice by slice</h2>
       <p class="mm-subtitle">
-        The same segmentation on the axial images it was computed from, scrolling
-        from the calves up to the neck. Switch between CT and MRI &mdash; the 3D view
-        above follows along.
+        Designed for whole-body and clinical imaging with consistent labelling
+        across muscles and bones, enabling large-scale, multi-region analyses.
       </p>
     </div>
     <div class="mm-hero-banner">
