@@ -1,7 +1,7 @@
 ---
 title: Segmentation
 parent: Key features
-description: "MuscleMap's mm_segment performs automatic whole-body muscle and bone segmentation on MRI and CT using deep learning. Supports 99 muscles, intramuscular fat analysis, and quantitative muscle metrics."
+description: "MuscleMap's mm_segment performs automatic whole-body muscle and bone segmentation on MRI and CT using deep learning. Supports 113 muscles, intramuscular fat analysis, and quantitative muscle metrics."
 grand_parent: User section
 nav_order: 1
 permalink: /muscle-segmentation/
