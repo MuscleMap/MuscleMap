@@ -52,8 +52,7 @@ parent: Overview
 <div class="mm-hero mm-hero-axial">
   <div class="mm-hero-inner">
     <div class="mm-hero-text">
-      <p class="mm-eyebrow">Axial overlay</p>
-      <h2>Every muscle labelled, slice by slice</h2>
+      <h2>Whole-body muscle segmentation</h2>
       <p class="mm-subtitle">
         Designed for whole-body and clinical imaging with consistent labelling
         across muscles and bones, enabling large-scale, multi-region analyses.
