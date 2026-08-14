@@ -35,24 +35,11 @@ parent: Overview
              src="{{ '/assets/images/hero_mri_front.png' | relative_url }}"
              alt="Whole-body MRI muscle segmentation, front view">
         <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
-          <button type="button" class="is-on" data-model="ct">CT</button>
-          <button type="button" data-model="mri">MRI</button>
+          <button type="button" class="is-on" data-model="ct" aria-pressed="true">CT</button>
+          <button type="button" data-model="mri" aria-pressed="false">MRI</button>
         </div>
       </div>
-      <script>
-        (function () {
-          var box = document.querySelector('.mm-modelswitch');
-          if (!box) return;
-          box.addEventListener('click', function (e) {
-            var b = e.target.closest('.mm-modelbtns button');
-            if (!b) return;
-            var want = b.dataset.model;
-            box.querySelectorAll('[data-model]').forEach(function (el) {
-              el.classList.toggle('is-on', el.dataset.model === want);
-            });
-          });
-        })();
-      </script>
+      <script src="{{ '/assets/js/model-switch.js' | relative_url }}" defer></script>
       <!-- ===== einde 3D-vooraanzicht ================================== -->
 
       <!-- ===== OUD LOGO ==============================================

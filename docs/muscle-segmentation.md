@@ -29,8 +29,30 @@ permalink: /muscle-segmentation/
       </div>
     </div>
     <div class="mm-hero-banner">
+
+      <!-- ===== 3D-vooraanzicht met CT/MRI-schakelaar =====================
+           Om de oude GIF terug te zetten: zet dit blok tussen commentaar en
+           haal het commentaar weg van het blok "OUDE GIF" hieronder. -->
+      <div class="mm-modelswitch">
+        <img class="mm-model is-on" data-model="ct"
+             src="{{ '/assets/images/hero_ct_front.png' | relative_url }}"
+             alt="Whole-body CT muscle segmentation, front view">
+        <img class="mm-model" data-model="mri"
+             src="{{ '/assets/images/hero_mri_front.png' | relative_url }}"
+             alt="Whole-body MRI muscle segmentation, front view">
+        <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
+          <button type="button" class="is-on" data-model="ct" aria-pressed="true">CT</button>
+          <button type="button" data-model="mri" aria-pressed="false">MRI</button>
+        </div>
+      </div>
+      <script src="{{ '/assets/js/model-switch.js' | relative_url }}" defer></script>
+      <!-- ===== einde 3D-vooraanzicht ================================== -->
+
+      <!-- ===== OUDE GIF ==============================================
       <img src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
            alt="Animated example of MuscleMap whole-body muscle segmentation">
+           ===== einde OUDE GIF ======================================== -->
+
     </div>
   </div>
 </div>
