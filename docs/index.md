@@ -23,7 +23,42 @@ parent: Overview
       </p>
     </div>
     <div class="mm-hero-banner">
+
+      <!-- ===== 3D-vooraanzicht met CT/MRI-schakelaar =====================
+           Om het oude logo terug te zetten: zet dit blok tussen commentaar en
+           haal het commentaar weg van het blok "OUD LOGO" hieronder. -->
+      <div class="mm-modelswitch">
+        <img class="mm-model is-on" data-model="ct"
+             src="{{ '/assets/images/hero_ct_front.png' | relative_url }}"
+             alt="Whole-body CT muscle segmentation, front view">
+        <img class="mm-model" data-model="mri"
+             src="{{ '/assets/images/hero_mri_front.png' | relative_url }}"
+             alt="Whole-body MRI muscle segmentation, front view">
+        <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
+          <button type="button" class="is-on" data-model="ct">CT</button>
+          <button type="button" data-model="mri">MRI</button>
+        </div>
+      </div>
+      <script>
+        (function () {
+          var box = document.querySelector('.mm-modelswitch');
+          if (!box) return;
+          box.addEventListener('click', function (e) {
+            var b = e.target.closest('.mm-modelbtns button');
+            if (!b) return;
+            var want = b.dataset.model;
+            box.querySelectorAll('[data-model]').forEach(function (el) {
+              el.classList.toggle('is-on', el.dataset.model === want);
+            });
+          });
+        })();
+      </script>
+      <!-- ===== einde 3D-vooraanzicht ================================== -->
+
+      <!-- ===== OUD LOGO ==============================================
       <img src="{{ '/assets/images/logo_musclemap_white.png' | relative_url }}" alt="MuscleMap whole-body GIF">
+           ===== einde OUD LOGO ======================================== -->
+
     </div>
   </div>
 </div>

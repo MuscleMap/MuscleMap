@@ -264,6 +264,58 @@
   margin-top: -40px;     /* → schuift afbeelding omhoog */
 }
 
+/* Hero: CT/MRI-vooraanzichten met schakelaar (vervangt het logo; zie index.md om dat
+   terug te zetten).  De hoogte is gelijk aan die waarop het logo stond: dat was
+   179x580 op max-width:90px, dus 90 * 580/179 = 292px. */
+.mm-modelswitch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: -40px;                 /* zelfde uitlijning als het logo hier had */
+}
+
+.mm-hero-banner .mm-modelswitch img.mm-model {
+  display: none;
+  height: 292px;
+  width: auto;
+  max-width: none;                   /* verslaat de 90px van .mm-hero-banner img */
+  margin: 0;
+}
+
+.mm-hero-banner .mm-modelswitch img.mm-model.is-on {
+  display: block;
+}
+
+.mm-modelbtns {
+  display: inline-flex;
+  border: 1px solid #f97316;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mm-modelbtns button {
+  border: 0;
+  background: transparent;
+  color: #111;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.8rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.mm-modelbtns button:hover:not(.is-on) {
+  background: rgba(249, 115, 22, 0.14);
+}
+
+.mm-modelbtns button.is-on {
+  background: #eb5757;               /* MuscleMap-rood, als de 3D-knop */
+  color: #ffffff;
+}
+
 /* Brightness boost for the quantitative metrics GIF */
 .mm-card-with-media .mm-card-media img[src*="thresholding_scroll.gif"] {
   filter: brightness(1.4);   /* 1.0 = normaal, 1.4 = 40% helderder */
