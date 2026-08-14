@@ -21,11 +21,6 @@ permalink: /muscle-segmentation/
            target="_blank" rel="noopener">
           View tutorial video
         </a>
-        <a class="mm-btn mm-btn-ghost"
-           href="https://github.com/MuscleMap/MuscleMap"
-           target="_blank" rel="noopener">
-          View code
-        </a>
         <a class="mm-btn mm-btn-red"
            href="https://musclemap-3d.eddo-wesselink.workers.dev/"
            target="_blank" rel="noopener">
