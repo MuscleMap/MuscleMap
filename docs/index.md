@@ -73,7 +73,6 @@ parent: Overview
         </p>
       </div>
       <div class="mm-card-media">
-        <!-- Geen eigen knoppen: volgt de modaliteit die elders op de pagina is gekozen. -->
         <div class="mm-modelswitch">
           <img class="mm-model is-on" data-model="ct"
                src="{{ '/assets/images/musclemap_scroll_ct.gif' | relative_url }}"
@@ -81,6 +80,10 @@ parent: Overview
           <img class="mm-model" data-model="mri"
                src="{{ '/assets/images/musclemap_scroll.gif' | relative_url }}"
                alt="Scrolling axial MRI with MuscleMap muscle segmentation overlay">
+          <div class="mm-modelbtns" role="group" aria-label="Imaging modality">
+            <button type="button" class="is-on" data-model="ct" aria-pressed="true">CT</button>
+            <button type="button" data-model="mri" aria-pressed="false">MRI</button>
+          </div>
         </div>
       </div>
     </div>
