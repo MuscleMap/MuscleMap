@@ -4,6 +4,10 @@
    <img width="100%" src="callout_both.gif" alt="Rotating whole-body MRI and CT muscle segmentations, with axial callouts at the neck, thorax, abdomen, hip, thigh and leg">
 </p>
 
+<p align="center">
+   <b>All MuscleMap labels can be found here: <a href="https://musclemap.github.io/MuscleMap/muscle-anatomy/">MuscleMap Muscle Anatomy</a></b>
+</p>
+
 <!-- To switch back to the static labelled figure: comment out the block above and uncomment the one below.
 <p align="center">
    <img width="100%" src="logo.png">
