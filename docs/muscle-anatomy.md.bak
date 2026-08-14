@@ -99,34 +99,20 @@ The table below lists all anatomical structures included in the latest version o
 | thigh    | adductor longus                      | right   | 7212     |
 | thigh    | adductor brevis                      | left    | 7221     |
 | thigh    | adductor brevis                      | right   | 7222     |
-| thigh    | patella                              | left    | 7231     |
-| thigh    | patella                              | right   | 7232     |
-| leg      | tibialis anterior                    | left    | 8101     |
-| leg      | tibialis anterior                    | right   | 8102     |
-| leg      | tibialis posterior                   | left    | 8111     |
-| leg      | tibialis posterior                   | right   | 8112     |
-| leg      | peroneus longus                      | left    | 8121     |
-| leg      | peroneus longus                      | right   | 8122     |
+| leg      | anterior compartment                 | left    | 8101     |
+| leg      | anterior compartment                 | right   | 8102     |
+| leg      | deep posterior compartment           | left    | 8111     |
+| leg      | deep posterior compartment           | right   | 8112     |
+| leg      | lateral compartment                  | left    | 8121     |
+| leg      | lateral compartment                  | right   | 8122     |
 | leg      | soleus                               | left    | 8131     |
 | leg      | soleus                               | right   | 8132     |
-| leg      | medial gastrocnemius                 | left    | 8141     |
-| leg      | medial gastrocnemius                 | right   | 8142     |
-| leg      | lateral gastrocnemius                | left    | 8151     |
-| leg      | lateral gastrocnemius                | right   | 8152     |
-| leg      | tibia                                | left    | 8161     |
-| leg      | tibia                                | right   | 8162     |
-| leg      | fibula                               | left    | 8171     |
-| leg      | fibula                               | right   | 8172     |
-| leg      | flexor hallucis longus               | left    | 8181     |
-| leg      | flexor hallucis longus               | right   | 8182     |
-| leg      | extensor digitorum longus            | left    | 8191     |
-| leg      | extensor digitorum longus            | right   | 8192     |
-| leg      | flexor digitorum longus              | left    | 8201     |
-| leg      | flexor digitorum longus              | right   | 8202     |
-| leg      | popliteus                            | left    | 8211     |
-| leg      | popliteus                            | right   | 8212     |
-| leg      | plantaris                            | left    | 8221     |
-| leg      | plantaris                            | right   | 8222     |
+| leg      | gastrocnemius                        | left    | 8141     |
+| leg      | gastrocnemius                        | right   | 8142     |
+| leg      | tibia                                | left    | 8151     |
+| leg      | tibia                                | right   | 8152     |
+| leg      | fibula                               | left    | 8161     |
+| leg      | fibula                               | right   | 8162     |
 
 
 
