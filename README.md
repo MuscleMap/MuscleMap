@@ -1,7 +1,7 @@
 # MuscleMap: An Open-Source, Community-Supported Consortium for Whole-Body Quantitative MRI of Muscle
 
 <p align="center">
-   <img width="100%" src="callout_both.gif" alt="Rotating whole-body MRI and CT muscle segmentations, with axial callouts at the neck, thorax, abdomen, hip, thigh and leg">
+   <img width="100%" src="assets/v1.4_figure.gif" alt="Rotating whole-body MRI and CT muscle segmentations, with axial callouts at the neck, thorax, abdomen, hip, thigh and leg">
 </p>
 
 <p align="center">
