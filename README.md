@@ -131,15 +131,15 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     mm_segment -i image.nii.gz
     ~~~
 
-    * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 99 muscles and bones.
+    * mm_segment uses our contrast agnostic whole-body segmentation model by default with currently 113 muscles and bones.
        <details>
           <summary>Click to see the current segmentations with labels.</summary>
       
           ```
             Left Levator Scapulae 1101
             Right Levator Scapulae 1102
-            Left Semispinalis Cervicis And Multifidus 1111
-            Right Semispinalis Cervicis And Multifidus 1112
+            Left Semispinalis Cervicis and Multifidus 1111
+            Right Semispinalis Cervicis and Multifidus 1112
             Left Semispinalis Capitis 1121
             Right Semispinalis Capitis 1122
             Left Splenius Capitis 1131
@@ -168,16 +168,16 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
             Right Psoas Major 5122
             Left Quadratus Lumborum 5131
             Right Quadratus Lumborum 5132
-            Left Lattisimus Dorsi 5141
-            Right Lattisimus Dorsi 5142
+            Left Latissimus Dorsi 5141
+            Right Latissimus Dorsi 5142
             Left Gluteus Minimus 6101
             Right Gluteus Minimus 6102
             Left Gluteus Medius 6111
             Right Gluteus Medius 6112
             Left Gluteus Maximus 6121
             Right Gluteus Maximus 6122
-            Left Tensor Fascia Latae 6131
-            Right Tensor Fascia Latae 6132
+            Left Tensor Fasciae Latae 6131
+            Right Tensor Fasciae Latae 6132
             Left Iliacus 6141
             Right Iliacus 6142
             Left Ilium 6151
@@ -221,20 +221,34 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
             Right Adductor Longus 7212
             Left Adductor Brevis 7221
             Right Adductor Brevis 7222
-            Left Anterior Compartment 8101
-            Right Anterior Compartment 8102
-            Left Deep Posterior Compartment 8111
-            Right Deep Posterior Compartment 8112
-            Left Lateral Compartment 8121
-            Right Lateral Compartment 8122
+            Left Patella 7231
+            Right Patella 7232
+            Left Tibialis Anterior 8101
+            Right Tibialis Anterior 8102
+            Left Tibialis Posterior 8111
+            Right Tibialis Posterior 8112
+            Left Peroneus Longus 8121
+            Right Peroneus Longus 8122
             Left Soleus 8131
             Right Soleus 8132
-            Left Gastrocnemius 8141
-            Right Gastrocnemius 8142
-            Left Tibia 8151
-            Right Tibia 8152
-            Left Fibula 8161
-            Right Fibula 8162
+            Left Medial Gastrocnemius 8141
+            Right Medial Gastrocnemius 8142
+            Left Lateral Gastrocnemius 8151
+            Right Lateral Gastrocnemius 8152
+            Left Tibia 8161
+            Right Tibia 8162
+            Left Fibula 8171
+            Right Fibula 8172
+            Left Flexor Hallucis Longus 8181
+            Right Flexor Hallucis Longus 8182
+            Left Extensor Digitorum Longus 8191
+            Right Extensor Digitorum Longus 8192
+            Left Flexor Digitorum Longus 8201
+            Right Flexor Digitorum Longus 8202
+            Left Popliteus 8211
+            Right Popliteus 8212
+            Left Plantaris 8221
+            Right Plantaris 8222
           ```
        </details>
     * The default spatial overlap during sliding window inference is 90%. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 75%:

@@ -58,6 +58,7 @@ ZENODO_MODELS: Dict[str, Dict[str, str]] = {
             "1.1": "19976722",
             "1.2": "19976860",
             "1.3": "19976940",
+            "1.4": "21929873",
         },
         "pth_filename": "contrast_agnostic_wholebody_model.pth",
         "json_filename": "contrast_agnostic_wholebody_model.json",
