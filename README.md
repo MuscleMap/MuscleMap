@@ -5,7 +5,13 @@
 </p>
 
 <p align="center">
-   <b>All MuscleMap labels can be found here: <a href="https://musclemap.github.io/MuscleMap/muscle-anatomy/">MuscleMap Muscle Anatomy</a></b>
+   <b>🦵 All MuscleMap labels can be found here: <a href="https://musclemap.github.io/MuscleMap/muscle-anatomy/">MuscleMap Muscle Anatomy</a></b>
+</p>
+
+<p align="center">
+   <b>🧊 Explore MuscleMap segmentations in 3D</b><br>
+   All segmentations can be inspected interactively in our
+   <a href="https://musclemap-3d.eddo-wesselink.workers.dev/">MuscleMap 3D viewer</a>
 </p>
 
 <!-- To switch back to the static labelled figure: comment out the block above and uncomment the one below.
