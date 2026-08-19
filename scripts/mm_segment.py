@@ -33,11 +33,9 @@ from monai.networks.layers import Norm
 from time import perf_counter
 try:
     # Attempt to import as if it is a part of a package
-    from . import __version__
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
 except ImportError:
     # Fallback to direct import if run as a standalone script
-    from __init__ import __version__
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
 import torch
 
@@ -235,13 +233,22 @@ def main():
     chunk_size = args.chunk_size
     suffix = args.suffix
     settings = {
-        "musclemap_version": __version__,
         "region": args.region,
         "model": os.path.basename(model_path),
         "model_version": model_version,
         "overlap_percent": args.overlap,
         "chunk_size": args.chunk_size,
         "device": str(device),
+        "inferer": {
+            "spatial_dim": inferer.spatial_dim,
+            "roi_size": list(inferer.roi_size),
+            "sw_batch_size": inferer.sw_batch_size,
+            "overlap": inferer.overlap,
+            "mode": str(inferer.mode),
+            "sigma_scale": inferer.sigma_scale,
+            "padding_mode": str(inferer.padding_mode),
+            "cval": inferer.cval,
+        },
     }
     for test in test_files:
         logging.info(f"Processing {test['image']}")
