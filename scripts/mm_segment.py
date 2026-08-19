@@ -33,9 +33,11 @@ from monai.networks.layers import Norm
 from time import perf_counter
 try:
     # Attempt to import as if it is a part of a package
+    from . import __version__
     from .mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments, RemapLabels,SqueezeTransform, run_inference,is_nifti
 except ImportError:
     # Fallback to direct import if run as a standalone script
+    from __init__ import __version__
     from mm_util import check_image_exists, get_model_and_config_paths, load_model_config, validate_seg_arguments,RemapLabels,SqueezeTransform, run_inference,is_nifti
 import torch
 
@@ -66,26 +68,26 @@ def get_parser():
     optional = parser.add_argument_group("Optional")
     optional.add_argument("-r", '--region', required=False, default = 'wholebody', type=str,
                     help="Anatomical region to segment. Supported regions: wholebody, abdomen, pelvis, thigh, and leg. Default is wholebody.")
-    
+
     optional.add_argument("-o", '--output_dir', required=False, type=str,
                     help="Output directory to save the results, output file name suffix = dseg by default (see --suffix). If left empty, saves to current working directory.")
-    
+
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
                     help="Option to specify another model.")
 
-    optional.add_argument("--model_version", default="latest", required=False, type=str,
+    optional.add_argument("-v", '--model_version', default="latest", required=False, type=str,
                     help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
-    
+
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
                     help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
-    
+
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
                     help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
 
     optional.add_argument("-c", '--chunk_size', required=False, default='auto', type=chunk_size_arg,
                     help="Number of axial slices to process per chunk, or 'auto' to size chunks from available CPU/GPU memory with a safety margin. Default is auto")
 
-    optional.add_argument('--suffix', required=False, default='dseg', type=str,
+    optional.add_argument("-x", '--suffix', required=False, default='dseg', type=str,
                     help="Suffix to append to the output file name (without leading underscore). Default is dseg.")
 
     return parser
@@ -231,6 +233,16 @@ def main():
     overlap_inference = args.overlap / 100
     inferer = SliceInferer(roi_size=roi_size, sw_batch_size=spatial_window_batch_size, spatial_dim=2, mode="gaussian", overlap=overlap_inference)
     chunk_size = args.chunk_size
+    suffix = args.suffix
+    settings = {
+        "musclemap_version": __version__,
+        "region": args.region,
+        "model": os.path.basename(model_path),
+        "model_version": model_version,
+        "overlap_percent": args.overlap,
+        "chunk_size": args.chunk_size,
+        "device": str(device),
+    }
     for test in test_files:
         logging.info(f"Processing {test['image']}")
         t0 = perf_counter()
@@ -247,7 +259,8 @@ def main():
                 model,
                 out_channels=out_channels,
                 target_pixdim=pix_dim,
-                suffix=args.suffix,
+                suffix=suffix,
+                settings=settings,
             )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:

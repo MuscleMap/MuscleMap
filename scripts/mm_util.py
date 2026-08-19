@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 import json
+from datetime import datetime, timezone
 import math
 import hashlib
 import tempfile
@@ -89,7 +90,7 @@ def _zenodo_get(url: str) -> dict:
     """GET a Zenodo API URL and return parsed JSON, or raise ConnectionError."""
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout = 15) as resp:
             return json.loads(resp.read())
     except Exception as e:
         raise ConnectionError(f"Zenodo API request failed ({url}): {type(e).__name__}: {e}") from e
@@ -1365,6 +1366,17 @@ def _make_out_path(image_path, output_dir, tag="dseg"):
         base = fname[:-4]
     return os.path.join(output_dir, f"{base}_{tag}.nii.gz")
 
+def _write_settings_json(out_path, image_path, settings):
+    json_path = out_path[:-len(".nii.gz")] + ".json"
+    payload = {
+        "input_image": image_path,
+        "output_image": os.path.basename(out_path),
+        "datetime": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        **(settings or {}),
+    }
+    with open(json_path, "w") as f:
+        json.dump(payload, f, indent=2)
+
 def run_inference(
     image_path,
     output_dir,
@@ -1378,6 +1390,7 @@ def run_inference(
     out_channels=None,
     target_pixdim=None,
     suffix="dseg",
+    settings=None,
 ):
     out_path = _make_out_path(image_path, output_dir, suffix)
     img_nii = nib.load(image_path)
@@ -1425,6 +1438,7 @@ def run_inference(
             else:
                 full_seg = connected_chunks(seg_np)
                 nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+                _write_settings_json(out_path, image_path, settings)
                 del seg_np
                 return out_path
 
@@ -1470,6 +1484,7 @@ def run_inference(
 
         full_seg = connected_chunks(full_seg)
         nib.save(nib.Nifti1Image(full_seg, affine, header), out_path)
+        _write_settings_json(out_path, image_path, settings)
         return out_path
     finally:
         del img_nii
