@@ -1357,13 +1357,13 @@ def is_nifti(path: str) -> bool:
     p = path.lower()
     return p.endswith(".nii.gz") or p.endswith(".nii")
 
-def _make_out_path(image_path, output_dir, tag="_dseg"):
+def _make_out_path(image_path, output_dir, tag="dseg"):
     fname = os.path.basename(image_path)
     if fname.endswith(".nii.gz"):
         base = fname[:-7]
     elif fname.endswith(".nii"):
         base = fname[:-4]
-    return os.path.join(output_dir, f"{base}{tag}.nii.gz")
+    return os.path.join(output_dir, f"{base}_{tag}.nii.gz")
 
 def run_inference(
     image_path,
@@ -1377,8 +1377,9 @@ def run_inference(
     model=None,
     out_channels=None,
     target_pixdim=None,
+    suffix="dseg",
 ):
-    out_path = _make_out_path(image_path, output_dir, "_dseg")
+    out_path = _make_out_path(image_path, output_dir, suffix)
     img_nii = nib.load(image_path)
     affine = img_nii.affine.copy()
     header = img_nii.header.copy()

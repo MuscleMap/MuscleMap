@@ -60,29 +60,33 @@ def get_parser():
     required = parser.add_argument_group("Required")
     
     required.add_argument("-i", '--input_image', required=True, type=str,
-                          help="Input image to segment. Can be single image or list of images separated by commas.")
-    
-    required.add_argument("-r", '--region', required=False, default = 'wholebody', type=str,
-                          help="Anatomical region to segment. Supported regions: wholebody, abdomen, pelvis, thigh, and leg. Default is wholebody.")
+                        help="Input image to segment. Can be single image or list of images separated by commas.")
+
     # Optional arguments
     optional = parser.add_argument_group("Optional")
-    required.add_argument("-o", '--output_dir', required=False, type=str,
-                            help="Output directory to save the results, output file name suffix = dseg. If left empty, saves to current working directory.")
+    optional.add_argument("-r", '--region', required=False, default = 'wholebody', type=str,
+                    help="Anatomical region to segment. Supported regions: wholebody, abdomen, pelvis, thigh, and leg. Default is wholebody.")
+    
+    optional.add_argument("-o", '--output_dir', required=False, type=str,
+                    help="Output directory to save the results, output file name suffix = dseg by default (see --suffix). If left empty, saves to current working directory.")
     
     optional.add_argument("-m", '--model', default=None, required=False, type=str,
-                          help="Option to specify another model.")
+                    help="Option to specify another model.")
 
     optional.add_argument("--model_version", default="latest", required=False, type=str,
-                          help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
+                    help="Model version to use, e.g. '1.3'. Default: latest available on Zenodo.")
     
     optional.add_argument("-g", '--use_GPU', required=False, default = 'Y', type=str ,choices=['Y', 'N'],
-                        help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
+                    help="If N will use the cpu even if a cuda enabled device is identified. Default is Y.")
     
     optional.add_argument("-s", '--overlap', required=False, default = 90, type=float,
-                         help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
+                    help="Percent spatial overlap during sliding window inference, higher percent may improve accuracy but will reduce inference speed. Default is 90. If inference speed needs to be increased, the spatial overlap can be lowered. For large high-resolution or whole-body images, we recommend lowering the spatial inference to 50.")
 
     optional.add_argument("-c", '--chunk_size', required=False, default='auto', type=chunk_size_arg,
                     help="Number of axial slices to process per chunk, or 'auto' to size chunks from available CPU/GPU memory with a safety margin. Default is auto")
+
+    optional.add_argument('--suffix', required=False, default='dseg', type=str,
+                    help="Suffix to append to the output file name (without leading underscore). Default is dseg.")
 
     return parser
 
@@ -96,7 +100,7 @@ def main():
     
     parser = get_parser()
     args = parser.parse_args()
-         
+    
     device = torch.device("cuda" if torch.cuda.is_available() and args.use_GPU=='Y' else "cpu")
     
     logging.info(f"Processing using cuda or cpu: {device}")
@@ -117,7 +121,7 @@ def main():
         os.makedirs(output_dir)
 
     elif os.path.exists(args.output_dir):
-       output_dir=args.output_dir
+        output_dir=args.output_dir
     else:
         logging.error(f"Error: {args.output_dir}. Output must be path to output directory.")
         sys.exit(1)
@@ -243,6 +247,7 @@ def main():
                 model,
                 out_channels=out_channels,
                 target_pixdim=pix_dim,
+                suffix=args.suffix,
             )
             logging.info(f"Inference of {test} finished in {perf_counter()-t0:.2f}s")
         except Exception as e:
