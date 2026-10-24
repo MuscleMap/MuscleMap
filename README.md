@@ -289,6 +289,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
     * For gmm, probability maps are ouput for each component and label (*_softseg.nii.gz).
     * For gmm and kmeans, binarized segmentations are ouput for each component and label (*_seg.nii.gz).
     * Use `--qc` to open an interactive window to manually adjust thresholds before saving results (gmm and kmeans only).
+    * Use `--per_slice` (any method) to additionally export per-slice metrics to `*_results_per_slice.csv`: one row per label per slice (only slices in which the label is present) with the slice index (0-based, as in Python/nibabel), the slice position in mm, the fat fraction / muscle percentage (or average intensity), the cross-sectional area (CSA, mm²) and the volume (ml). For gmm and kmeans the thresholds are determined on the whole 3D volume (including any `--qc` adjustments) and then applied per slice, so the per-slice values are directly comparable to the 3D results.
 
     2. For Dixon Fat-Water MRI:
 

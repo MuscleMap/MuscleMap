@@ -778,6 +778,147 @@ def extract_image_data(image_path):
     
     return img, img_array,affine,header,(dim_x, dim_y, dim_z), (pixdim_x, pixdim_y, pixdim_z)
 
+
+# --------------------------------------------------------------------------- #
+# Per-slice helpers
+# --------------------------------------------------------------------------- #
+def _slice_axis(pix_dim: Tuple[float, float, float]) -> int:
+    """
+    Axis along which slices are stacked: the axis with the largest voxel
+    dimension, or axis 2 when voxels are (near-)isotropic.
+    """
+    pix_dim = tuple(float(p) for p in pix_dim)
+    max_axis = int(np.argmax(pix_dim))
+    if max(pix_dim) / min(pix_dim) < 1.01:
+        max_axis = 2
+    return max_axis
+
+
+def _slice_geometry(
+    shape: Tuple[int, int, int],
+    pix_dim: Tuple[float, float, float],
+    affine: np.ndarray,
+    axis: int,
+) -> Tuple[int, float, float, np.ndarray]:
+    """
+    Returns (n_slices, pixel_area_mm2, voxel_vol_ml, slice_positions_mm).
+
+    pixel_area_mm2     : in-plane area of one voxel (mm^2), used for CSA.
+    voxel_vol_ml       : volume of one voxel (ml), used for per-slice volume.
+    slice_positions_mm : world coordinate (mm) of each slice index along the
+                         dominant world axis of the slice direction.
+    """
+    n_slices = int(shape[axis])
+    in_plane = [float(pix_dim[a]) for a in range(3) if a != axis]
+    pixel_area_mm2 = in_plane[0] * in_plane[1]
+    voxel_vol_ml = pixel_area_mm2 * float(pix_dim[axis]) / 1000.0
+
+    affine     = np.asarray(affine, dtype=np.float64)
+    direction  = affine[:3, axis]
+    world_axis = int(np.argmax(np.abs(direction)))
+    positions  = affine[world_axis, 3] + direction[world_axis] * np.arange(n_slices)
+    return n_slices, pixel_area_mm2, voxel_vol_ml, positions
+
+
+def _slice_index_array(shape: Tuple[int, int, int], axis: int) -> np.ndarray:
+    """3-D array where every voxel holds its own slice index along `axis`."""
+    shp = [1, 1, 1]
+    shp[axis] = shape[axis]
+    return np.broadcast_to(np.arange(shape[axis]).reshape(shp), shape)
+
+
+def _per_slice_mean_rows(
+    result_entry: Dict[int, Dict[str, Any]],
+    label_img: np.ndarray,
+    value_map: np.ndarray,
+    pix_dim: Tuple[float, float, float],
+    affine: np.ndarray,
+    value_col: str,
+    scale: float = 1.0,
+) -> "list[dict[str, Any]]":
+    """
+    Per label and per slice: mean of `value_map` (times `scale`), CSA (mm^2)
+    and volume (ml). Only slices in which the label is present are returned.
+    """
+    axis = _slice_axis(pix_dim)
+    n_slices, pixel_area_mm2, voxel_vol_ml, positions = _slice_geometry(
+        label_img.shape, pix_dim, affine, axis)
+
+    flat_lbl = label_img.astype(np.int64).ravel()
+    flat_slc = _slice_index_array(label_img.shape, axis).ravel()
+    flat_val = value_map.astype(np.float64).ravel()
+    max_label = int(flat_lbl.max()) if flat_lbl.size else 0
+
+    # combined (label, slice) index -> one bincount for the whole volume
+    combined = flat_lbl * n_slices + flat_slc
+    size     = (max_label + 1) * n_slices
+    sum_ls   = np.bincount(combined, weights=flat_val, minlength=size).reshape(max_label + 1, n_slices)
+    cnt_ls   = np.bincount(combined, minlength=size).reshape(max_label + 1, n_slices)
+
+    rows: "list[dict[str, Any]]" = []
+    for _k, entry in result_entry.items():
+        lbl = int(entry.get("Label", _k))
+        if lbl <= 0 or lbl > max_label:
+            continue
+        for s in np.flatnonzero(cnt_ls[lbl]):
+            n = int(cnt_ls[lbl, s])
+            rows.append({
+                "Label":               lbl,
+                "Anatomy":             entry.get("Anatomy", ""),
+                "Slice":               int(s),
+                "Slice position (mm)": round(float(positions[s]), 2),
+                value_col:             round(float(sum_ls[lbl, s] / n * scale), 2),
+                "CSA (mm2)":           round(n * pixel_area_mm2, 2),
+                "Volume (ml)":         round(n * voxel_vol_ml, 2),
+            })
+    return rows
+
+
+def _dixon_fat_fraction_map(fat_array: np.ndarray, water_array: np.ndarray) -> np.ndarray:
+    """Voxel-wise fat fraction fat / (fat + water); 0 where the denominator is 0."""
+    denom = fat_array + water_array
+    return np.divide(
+        fat_array, denom,
+        out=np.zeros_like(denom, dtype=np.float32),
+        where=(denom != 0)
+    ).astype(np.float32)
+
+
+def calculate_metrics_dixon_per_slice(
+    result_entry: Dict[int, Dict[str, Any]],
+    label_img: np.ndarray,
+    fat_array: np.ndarray,
+    water_array: np.ndarray,
+    pix_dim: Tuple[float, float, float],
+    affine: np.ndarray,
+) -> "list[dict[str, Any]]":
+    if not (label_img.shape == water_array.shape == fat_array.shape):
+        raise ValueError("Shape mismatch: segmentation image, water image, and fat image must have identical shapes.")
+    ff_map = _dixon_fat_fraction_map(fat_array, water_array)
+    return _per_slice_mean_rows(result_entry, label_img, ff_map, pix_dim, affine,
+                                value_col="Fat (%)", scale=100.0)
+
+
+def calculate_metrics_average_per_slice(
+    result_entry: Dict[int, Dict[str, Any]],
+    label_img: np.ndarray,
+    img_array: np.ndarray,
+    pix_dim: Tuple[float, float, float],
+    affine: np.ndarray,
+) -> "list[dict[str, Any]]":
+    if label_img.shape != img_array.shape:
+        raise ValueError("Shape mismatch: Segmentation image and img_array must have the same shape")
+    return _per_slice_mean_rows(result_entry, label_img, img_array, pix_dim, affine,
+                                value_col="Average Intensity")
+
+
+def per_slice_rows_to_dataframe(rows: "list[dict[str, Any]]") -> pd.DataFrame:
+    df = pd.DataFrame(rows)
+    if {"Label", "Slice"}.issubset(df.columns):
+        df = df.sort_values(["Label", "Slice"]).reset_index(drop=True)
+    return df
+
+
 def add_slice_counts(
     results_entry: Dict[int, Dict[str, Any]],
     label_img:     np.ndarray,
@@ -788,10 +929,7 @@ def add_slice_counts(
     if label_img.ndim != 3:
         raise ValueError("label_img must be 3-D")
     
-    pix_dim = tuple(float(p) for p in pix_dim)
-    max_axis = int(np.argmax(pix_dim))                
-    if max(pix_dim) / min(pix_dim) < 1.01:           
-        max_axis = 2                                
+    max_axis = _slice_axis(pix_dim)
     axes_to_reduce = tuple(ax for ax in range(3) if ax != max_axis)
 
     for lbl in np.unique(label_img):
@@ -927,12 +1065,7 @@ def calculate_metrics_dixon(
     voxel_vol_ml = (pix_dim[0] * pix_dim[1] * pix_dim[2]) / 1000.0
 
     # 1) Creating total fat fraction map for formula fat_signal/fat_signal + water signal. 
-    denom = fat_array + water_array
-    ff_map = np.divide(
-        fat_array, denom,
-        out=np.zeros_like(denom, dtype=np.float32),
-        where=(denom != 0)
-    ).astype(np.float32)
+    ff_map = _dixon_fat_fraction_map(fat_array, water_array)
 
     # 2) Flatten voor aggregration and set to int64 for efficiency
     flat_ff  = ff_map.ravel()
@@ -1085,8 +1218,15 @@ def calculate_metrics_thresholding(
     id_part: str = "",
     qc: bool = False,
     model_config: Optional[dict] = None,
+    per_slice_rows: Optional[list] = None,
 ) -> Dict[str, Any]:
-    
+    """
+    If `per_slice_rows` is a list, one row per (label, slice) is appended to it
+    with Muscle/Fat(/Undefined) (%), CSA (mm^2) and volume (ml), computed with
+    the same 3-D thresholds (incl. QC adjustments and erased voxels) as the
+    3-D metrics.
+    """
+
     # raise value errors if components is not 2/3 or when mismatch in shape
     if components not in (2, 3):
         raise ValueError("components must be 2 or 3")
@@ -1106,6 +1246,12 @@ def calculate_metrics_thresholding(
 
     # determine voxel vol ml to easily calculate volume from pixdim
     voxel_vol_ml = (pix_dim[0] * pix_dim[1] * pix_dim[2]) / 1000.0
+
+    # per-slice geometry (only used when per_slice_rows is given)
+    if per_slice_rows is not None:
+        _ps_axis = _slice_axis(pix_dim)
+        _ps_axes = tuple(a for a in range(3) if a != _ps_axis)
+        _, _ps_pixel_area, _, _ps_positions = _slice_geometry(label_img.shape, pix_dim, affine, _ps_axis)
 
     # --- Phase 1: cluster all labels and collect thresholds ---
     # cluster_data: {lbl: (muscle_max, fat_min, sorted_indices, clustering, mask_img_1d, mask_3d)}
@@ -1207,6 +1353,30 @@ def calculate_metrics_thresholding(
             entry["Undefined (%)"]         = (np.nan if undefined_percentage is None else round(float(undefined_percentage), 2))
             entry["Undefined volume (ml)"] = (np.nan if undefined_volume     is None else round(float(undefined_volume),     2))
         results_entry[lbl] = entry
+
+        if per_slice_rows is not None:
+            total_ps  = np.count_nonzero(mask,         axis=_ps_axes)
+            muscle_ps = np.count_nonzero(muscle_array, axis=_ps_axes)
+            fat_ps    = np.count_nonzero(fat_array,    axis=_ps_axes)
+            undef_ps  = np.count_nonzero(undefined_array, axis=_ps_axes) if components == 3 else None
+            for s in np.flatnonzero(total_ps):
+                n = int(total_ps[s])
+                row = {
+                    "Label":               lbl,
+                    "Anatomy":             entry.get("Anatomy", ""),
+                    "Slice":               int(s),
+                    "Slice position (mm)": round(float(_ps_positions[s]), 2),
+                    "Muscle (%)":          round(100.0 * muscle_ps[s] / n, 2),
+                    "Fat (%)":             round(100.0 * fat_ps[s] / n, 2),
+                    "Total CSA (mm2)":     round(n * _ps_pixel_area, 2),
+                    "Muscle CSA (mm2)":    round(muscle_ps[s] * _ps_pixel_area, 2),
+                    "Fat CSA (mm2)":       round(fat_ps[s] * _ps_pixel_area, 2),
+                    "Volume (ml)":         round(n * voxel_vol_ml, 2),
+                }
+                if components == 3:
+                    row["Undefined (%)"]       = round(100.0 * undef_ps[s] / n, 2)
+                    row["Undefined CSA (mm2)"] = round(undef_ps[s] * _ps_pixel_area, 2)
+                per_slice_rows.append(row)
 
         if args.method == 'gmm':
             probability_maps        = clustering.predict_proba(mask_img)

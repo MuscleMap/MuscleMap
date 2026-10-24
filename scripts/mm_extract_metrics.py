@@ -12,13 +12,15 @@ try:
     from .mm_util import (get_config_path, load_model_config, validate_extract_args,
     extract_image_data, create_output_dir,  calculate_metrics_dixon,
     calculate_metrics_average,calculate_metrics_thresholding,build_entry_dict_metrics,results_entry_to_dataframe,
-    add_slice_counts)
+    add_slice_counts, calculate_metrics_dixon_per_slice, calculate_metrics_average_per_slice,
+    per_slice_rows_to_dataframe)
 except ImportError:
     from mm_util import (get_config_path, load_model_config, validate_extract_args,
                          extract_image_data, create_output_dir,
                          calculate_metrics_dixon, calculate_metrics_average,
                          calculate_metrics_thresholding, build_entry_dict_metrics, results_entry_to_dataframe,
-                         add_slice_counts)
+                         add_slice_counts, calculate_metrics_dixon_per_slice, calculate_metrics_average_per_slice,
+                         per_slice_rows_to_dataframe)
 def get_parser():
     parser = argparse.ArgumentParser(description="Extract metrics of muscle size and composition")
 
@@ -51,6 +53,10 @@ def get_parser():
 
     parser.add_argument("--model_version", default="latest", required=False, type=str,
                           help="Model version to use, e.g. '2.0'. Default: latest available on Zenodo.")
+
+    parser.add_argument("--per_slice", action="store_true",
+                          help="Additionally export per-slice metrics (fat fraction / intensity, CSA and volume "
+                               "per label per slice) to a separate *_results_per_slice.csv")
 
     return parser
 
@@ -95,29 +101,39 @@ def main():
     # calculate number of slices with segmentation and update results_entry dictionary.
     results_entry = add_slice_counts(results_entry, mask, pix_dim)
 
+    # per-slice rows are only collected when --per_slice is given
+    per_slice_rows = [] if args.per_slice else None
+
     if not np.any(mask):
         raise ValueError("No labels found in segmentation mask")
     else:
-        if args.method == 'dixon': 
+        if args.method == 'dixon':
             _, fat_array, _, _,_,_  = extract_image_data(args.fat_image)
             _, water_array, _, _,_,_ = extract_image_data(args.water_image)
             outputs = calculate_metrics_dixon(results_entry, mask, fat_array, water_array, pix_dim)
+            if args.per_slice:
+                per_slice_rows = calculate_metrics_dixon_per_slice(results_entry, mask, fat_array, water_array,
+                                                                   pix_dim, affine)
         elif args.method == 'average':
             _, image_array,_,_, _, _ = extract_image_data(args.input_image)
             outputs = calculate_metrics_average(results_entry, mask, image_array, pix_dim)
+            if args.per_slice:
+                per_slice_rows = calculate_metrics_average_per_slice(results_entry, mask, image_array,
+                                                                     pix_dim, affine)
         elif args.method in ('kmeans', 'gmm'):
-            _, image_array, _, _, _, _, = extract_image_data(args.input_image) 
+            _, image_array, _, _, _, _, = extract_image_data(args.input_image)
             number_of_components = args.components
             outputs = calculate_metrics_thresholding(args, results_entry, mask, image_array, affine, header,
                                                                pix_dim, number_of_components, output_dir,
-                                                               id_part, qc=args.qc, model_config=model_config)
+                                                               id_part, qc=args.qc, model_config=model_config,
+                                                               per_slice_rows=per_slice_rows)
     # Construct the path to the output CSV file
     if args.method != 'dixon' and args.method != 'average':
-        output_filename = f"{id_part}_{args.method}_{args.components}component_results.csv"
+        output_stem = f"{id_part}_{args.method}_{args.components}component_results"
     else:
-        output_filename = f"{id_part}_{args.method}_results.csv"
+        output_stem = f"{id_part}_{args.method}_results"
 
-    output_file_path = os.path.join(output_dir, output_filename)
+    output_file_path = os.path.join(output_dir, f"{output_stem}.csv")
 
     save_outputs = results_entry_to_dataframe(outputs)
     save_outputs.to_csv(
@@ -127,6 +143,11 @@ def main():
 
     logging.info("-" * 60)
     logging.info(f"Results have been exported to {output_file_path}")
+
+    if args.per_slice:
+        per_slice_path = os.path.join(output_dir, f"{output_stem}_per_slice.csv")
+        per_slice_rows_to_dataframe(per_slice_rows).to_csv(per_slice_path, index=False, sep=',')
+        logging.info(f"Per-slice results have been exported to {per_slice_path}")
 
 if __name__ == "__main__":
     main()
