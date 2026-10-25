@@ -90,7 +90,7 @@ def _zenodo_get(url: str) -> dict:
     """GET a Zenodo API URL and return parsed JSON, or raise ConnectionError."""
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout = 15) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read())
     except Exception as e:
         raise ConnectionError(f"Zenodo API request failed ({url}): {type(e).__name__}: {e}") from e
@@ -1364,12 +1364,14 @@ def _make_out_path(image_path, output_dir, tag="dseg"):
         base = fname[:-7]
     elif fname.endswith(".nii"):
         base = fname[:-4]
+    else:
+        raise ValueError(f"Input image must be a NIfTI file (.nii or .nii.gz), got: {fname}")
     return os.path.join(output_dir, f"{base}_{tag}.nii.gz")
 
 def _write_settings_json(out_path, image_path, settings):
     json_path = out_path[:-len(".nii.gz")] + ".json"
     payload = {
-        "input_image": image_path,
+        "input_image": os.path.abspath(image_path),
         "output_image": os.path.basename(out_path),
         "datetime": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         **(settings or {}),

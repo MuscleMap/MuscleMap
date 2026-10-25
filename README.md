@@ -268,6 +268,7 @@ MuscleMap is also implemented as a dedicated 3D Slicer extension and within the 
        ~~~
        mm_segment -i image.nii.gz --model_version 1.3
        ~~~
+    * Output is saved as `<image>_dseg.nii.gz`. Use `--suffix` (`-x`) to change `dseg`. A JSON sidecar (`<image>_dseg.json`) is written alongside with the model version and inference settings used.
     * mm_segment will use GPU if detected. Users can force mm_segment to use CPU with -g N.
     * Run mm_segment -h to see all available options.
     * We are continuously expanding the whole-body model. We are working on adding the arm, forearm, hand, abdomen, spine, hip rotators, pelvic floor, and foot. If you have an immediate need, please open an [issue](https://github.com/MuscleMap/MuscleMap/issues).
