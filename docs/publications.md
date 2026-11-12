@@ -14,6 +14,14 @@ permalink: /publications/
 
 ### 2026
 
+* Kassity D. Clay, Iain Hunter, A. Wayne Johnson, Mitchell McCauley, Matthew Wengreen, Ulrike H. Mitchell. *Psoas Major Volume Asymmetry, Not Attachment Site Asymmetry, is Associated with Chronic Low Back Pain Status.* Research Square, 2026; preprint, posted November 11, 2026.<br>
+  [https://doi.org/10.21203/rs.3.rs-11159258/v1](https://doi.org/10.21203/rs.3.rs-11159258/v1)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Clay2026PsoasAsymmetry'); return false;" }
+
+* Fabio Sarto, Miloš Kalc, Ornella Caputo, Katarina Puš, Riccardo Magris, Giovanni Martino, Clarissa M. Brusco, Martino V. Franchi, Giuseppe De Vito, Francesca Ferranti, Boštjan Šimunič, Rado Pišot, Marco V. Narici. *Responses of Muscle Volume, Strength, and Motor Unit Properties to Bed Rest and Retraining in Young Males and Females.* bioRxiv, 2026; preprint, posted November 6, 2026.<br>
+  [https://doi.org/10.64898/2026.11.04.764387](https://doi.org/10.64898/2026.11.04.764387)<br>
+  [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Sarto2026BedRest'); return false;" }
+
 * Renhai Feng, Binqiang Pan, Lushuang Ye, Binbin Yin, Guoping Pan, Jianming Chen, Dan Wang. *Association between 3D CT-based volumetric fat infiltration of lumbar paraspinal muscles and bone mineral density: a clinical study.* BMC Medical Imaging, 2026;26:2556; published online July 4, 2026.<br>
   [https://doi.org/10.1186/s12880-026-02556-0](https://doi.org/10.1186/s12880-026-02556-0)<br>
   [Download BibTeX](#){: .btn .btn-outline onclick="downloadBibtex('Feng2026ParaspinalBMD'); return false;" }
